@@ -1,0 +1,65 @@
+import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/util/dimensions.dart';
+import 'package:Oxygen_Mart/util/styles.dart';
+
+class SupportButtonWidget extends StatelessWidget {
+  final IconData icon;
+  final String? iconPath;
+
+  final String title;
+  final String? info;
+  final Color color;
+  final Function onTap;
+  const SupportButtonWidget(
+      {super.key,
+      required this.icon,
+      required this.title,
+      required this.info,
+      required this.color,
+      required this.onTap,
+      this.iconPath});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap as void Function()?,
+      child: Container(
+        padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+          color: Theme.of(context).cardColor,
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 1)
+          ],
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.2),
+            ),
+            child: iconPath != null
+                ? Image.asset(iconPath!, height: 20, width: 20)
+                : Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: Dimensions.paddingSizeSmall),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(title,
+                    style: robotoMedium.copyWith(
+                        fontSize: Dimensions.fontSizeSmall, color: color)),
+                const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+                Text(info!,
+                    style: robotoRegular,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ])),
+        ]),
+      ),
+    );
+  }
+}

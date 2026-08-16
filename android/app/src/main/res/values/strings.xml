@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Oxygen Mart</string>
+    <string name="facebook_app_id">979309183657297</string>
+    <string name="fb_login_protocol_scheme">fb979309183657297</string>
+    <string name="facebook_client_token">27071575db12b5c9bd5563d0817807b9</string>
+</resources>
+
+

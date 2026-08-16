@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.oxygenmart.app",
+      "sha256_cert_fingerprints": [
+        "D3:8F:99:5E:36:6A:32:FC:0B:B3:C1:EE:59:C1:C5:94:66:55:DF:FA:2A:D6:3A:B3:FE:3A:CF:74:EF:87:13:F7"
+      ]
+    }
+  }
+]

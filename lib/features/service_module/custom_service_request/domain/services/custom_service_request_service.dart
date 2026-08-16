@@ -1,0 +1,7 @@
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/repositories/custom_service_request_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/services/custom_service_request_service_interface.dart';
+
+class CustomServiceRequestService implements CustomServiceRequestServiceInterface {
+  final CustomServiceRequestRepositoryInterface customServiceRequestRepositoryInterface;
+  CustomServiceRequestService({required this.customServiceRequestRepositoryInterface});
+}

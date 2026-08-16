@@ -1,0 +1,447 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:Oxygen_Mart/common/widgets/add_favourite_view.dart';
+import 'package:Oxygen_Mart/common/widgets/cart_count_view.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_asset_image_widget.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_ink_well.dart';
+import 'package:Oxygen_Mart/common/widgets/discount_tag.dart';
+import 'package:Oxygen_Mart/common/widgets/hover/on_hover.dart';
+import 'package:Oxygen_Mart/common/widgets/hover/text_hover.dart';
+import 'package:Oxygen_Mart/common/widgets/organic_tag.dart';
+import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
+import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/price_converter.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
+import 'package:Oxygen_Mart/util/dimensions.dart';
+import 'package:Oxygen_Mart/util/images.dart';
+import 'package:Oxygen_Mart/util/styles.dart';
+
+class ReviewItemCard extends StatelessWidget {
+  final bool isFeatured;
+  final Item? item;
+  const ReviewItemCard({super.key, this.isFeatured = false, this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    bool isShop = Get.find<SplashController>().module != null &&
+        Get.find<SplashController>().module!.moduleType.toString() ==
+            AppConstants.ecommerce;
+    bool isFood = Get.find<SplashController>().module != null &&
+        Get.find<SplashController>().module!.moduleType.toString() ==
+            AppConstants.food;
+
+    double? discount =
+        item?.storeDiscount == 0 ? item?.discount : item?.storeDiscount;
+    String? discountType =
+        item?.storeDiscount == 0 ? item?.discountType : 'percent';
+
+    return TextHover(builder: (hovered) {
+      return OnHover(
+        isItem: true,
+        child: isShop
+            ? Container(
+                width: 180,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                  color: Theme.of(context).cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 1))
+                  ],
+                ),
+                child: CustomInkWell(
+                  onTap: () => Get.find<ItemController>()
+                      .navigateToItemPage(item, context),
+                  radius: Dimensions.radiusDefault,
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    top: Dimensions.paddingSizeSmall,
+                                    left: Dimensions.paddingSizeSmall,
+                                    right: Dimensions.paddingSizeSmall),
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.all(
+                                      Radius.circular(
+                                          Dimensions.radiusDefault)),
+                                  child: CustomImage(
+                                    isHovered: hovered,
+                                    placeholder: Images.placeholder,
+                                    image: '${item!.imageFullUrl}',
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                ),
+                              ),
+                              AddFavouriteView(
+                                item: item!,
+                              ),
+                              DiscountTag(
+                                isFloating: true,
+                                discount: Get.find<ItemController>()
+                                    .getDiscount(item!),
+                                discountType: Get.find<ItemController>()
+                                    .getDiscountType(item!),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: Padding(
+                            padding: const EdgeInsets.all(
+                                Dimensions.paddingSizeSmall),
+                            child: Column(
+                                crossAxisAlignment: isFeatured
+                                    ? CrossAxisAlignment.start
+                                    : CrossAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    item!.storeName!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: robotoRegular.copyWith(
+                                        color: Theme.of(context).disabledColor,
+                                        fontSize: Dimensions.fontSizeSmall),
+                                  ),
+
+                                  Text(item!.name!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: robotoBold),
+
+                                  const SizedBox(),
+
+                                  Wrap(
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      alignment: WrapAlignment.start,
+                                      children: [
+                                        item!.discount != null &&
+                                                item!.discount! > 0
+                                            ? Text(
+                                                PriceConverter.convertPrice(
+                                                    Get.find<ItemController>()
+                                                        .getStartingPrice(
+                                                            item!)),
+                                                style: robotoRegular.copyWith(
+                                                  fontSize: Dimensions
+                                                      .fontSizeExtraSmall,
+                                                  color: Theme.of(context)
+                                                      .disabledColor,
+                                                  // decoration: TextDecoration
+                                                  //     .lineThrough,
+                                                ),
+                                              )
+                                            : const SizedBox(),
+                                        SizedBox(
+                                            width: item!.discount != null &&
+                                                    item!.discount! > 0
+                                                ? Dimensions
+                                                    .paddingSizeExtraSmall
+                                                : 0),
+                                        Text(
+                                          PriceConverter.convertPrice(
+                                              Get.find<ItemController>()
+                                                  .getStartingPrice(item!),
+                                              discount: item!.discount,
+                                              discountType: item!.discountType),
+                                          style: robotoMedium,
+                                          // textDirection: TextDirection.ltr,
+                                        ),
+                                      ]),
+                                  // SizedBox(height: item!.discount != null && item!.discount! > 0 ? Dimensions.paddingSizeExtraSmall : 0),
+                                ]),
+                          ),
+                        ),
+                      ]),
+                ),
+              )
+            : Container(
+                width: 210,
+                height: 285,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                  color: Theme.of(context).cardColor,
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 1))
+                  ],
+                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Stack(children: [
+                          Padding(
+                            padding: const EdgeInsets.all(
+                                Dimensions.paddingSizeExtraSmall),
+                            child: ClipRRect(
+                              borderRadius: const BorderRadius.all(
+                                  Radius.circular(Dimensions.radiusDefault)),
+                              child: CustomImage(
+                                isHovered: hovered,
+                                placeholder: Images.placeholder,
+                                image: '${item!.imageFullUrl}',
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                              ),
+                            ),
+                          ),
+                          AddFavouriteView(
+                            top: 10,
+                            right: 10,
+                            item: item!,
+                          ),
+                          item!.isStoreHalalActive! && item!.isHalalItem!
+                              ? const Positioned(
+                                  top: 35,
+                                  right: 10,
+                                  child: CustomAssetImageWidget(
+                                    Images.halalTag,
+                                    height: 20,
+                                    width: 20,
+                                  ),
+                                )
+                              : const SizedBox(),
+                          DiscountTag(
+                            isFloating: true,
+                            discount:
+                                Get.find<ItemController>().getDiscount(item!),
+                            discountType: Get.find<ItemController>()
+                                .getDiscountType(item!),
+                          ),
+                          OrganicTag(item: item!, placeInImage: false),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: Dimensions.paddingSizeDefault),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(
+                                        Dimensions.paddingSizeSmall),
+                                    decoration: BoxDecoration(
+                                      borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(
+                                              Dimensions.radiusDefault),
+                                          topRight: Radius.circular(
+                                              Dimensions.radiusDefault)),
+                                      color: Theme.of(context).cardColor,
+                                      boxShadow: [
+                                        BoxShadow(
+                                            color:
+                                                Colors.black.withOpacity(0.05),
+                                            spreadRadius: 1,
+                                            blurRadius: 5,
+                                            offset: const Offset(0, 1))
+                                      ],
+                                    ),
+                                    child: isFood
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const SizedBox(
+                                                  height: Dimensions
+                                                      .paddingSizeExtraSmall),
+                                              Text(
+                                                item!.storeName!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: robotoRegular.copyWith(
+                                                    color: Theme.of(context)
+                                                        .disabledColor,
+                                                    fontSize: Dimensions
+                                                        .fontSizeSmall),
+                                              ),
+                                              Text(item!.name!,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: robotoBold),
+                                              const SizedBox(),
+                                              Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    discount != null &&
+                                                            discount > 0
+                                                        ? Text(
+                                                            PriceConverter
+                                                                .convertPrice(
+                                                              Get.find<
+                                                                      ItemController>()
+                                                                  .getStartingPrice(
+                                                                      item!),
+                                                            ),
+                                                            style: robotoRegular
+                                                                .copyWith(
+                                                              fontSize: Dimensions
+                                                                  .fontSizeExtraSmall,
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .disabledColor,
+                                                              // decoration:
+                                                              //     TextDecoration
+                                                              //         .lineThrough,
+                                                            ),
+                                                          )
+                                                        : const SizedBox(),
+                                                    SizedBox(
+                                                        width: item!.discount! >
+                                                                0
+                                                            ? Dimensions
+                                                                .paddingSizeExtraSmall
+                                                            : 0),
+                                                    Text(
+                                                      PriceConverter
+                                                          .convertPrice(
+                                                        Get.find<
+                                                                ItemController>()
+                                                            .getStartingPrice(
+                                                                item!),
+                                                        discount: discount,
+                                                        discountType:
+                                                            discountType,
+                                                      ),
+                                                      style: robotoMedium,
+                                                      // textDirection:
+                                                      //     TextDirection.ltr,
+                                                    ),
+                                                  ]),
+                                            ],
+                                          )
+                                        : Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const SizedBox(
+                                                  height: Dimensions
+                                                      .paddingSizeExtraSmall),
+                                              Text(item!.name!,
+                                                  style: robotoBold,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis),
+                                              const SizedBox(),
+                                              const SizedBox(),
+                                              Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    discount != null &&
+                                                            discount > 0
+                                                        ? Text(
+                                                            PriceConverter
+                                                                .convertPrice(
+                                                              Get.find<
+                                                                      ItemController>()
+                                                                  .getStartingPrice(
+                                                                      item!),
+                                                            ),
+                                                            style: robotoRegular
+                                                                .copyWith(
+                                                              fontSize: Dimensions
+                                                                  .fontSizeExtraSmall,
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .disabledColor,
+                                                              // decoration:
+                                                              //     TextDecoration
+                                                              //         .lineThrough,
+                                                            ),
+                                                          )
+                                                        : const SizedBox(),
+                                                    // SizedBox(height: item!.discount! > 0 ? Dimensions.paddingSizeExtraSmall : 0),
+
+                                                    Text(
+                                                      PriceConverter
+                                                          .convertPrice(
+                                                        Get.find<
+                                                                ItemController>()
+                                                            .getStartingPrice(
+                                                                item!),
+                                                        discount: discount,
+                                                        discountType:
+                                                            discountType,
+                                                      ),
+                                                      style: robotoMedium,
+                                                      // textDirection:
+                                                      //     TextDirection.ltr,
+                                                    ),
+                                                  ]),
+                                            ],
+                                          ),
+                                  ),
+                                  Positioned(
+                                    top: -15,
+                                    left: 0,
+                                    right: 0,
+                                    child: CartCountView(
+                                      item: item!,
+                                      child: Center(
+                                        child: Container(
+                                          alignment: Alignment.center,
+                                          width: 65,
+                                          height: 30,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(112),
+                                            color: Theme.of(context).cardColor,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                  color: Theme.of(context)
+                                                      .primaryColor
+                                                      .withOpacity(0.1),
+                                                  spreadRadius: 1,
+                                                  blurRadius: 5,
+                                                  offset: const Offset(0, 1))
+                                            ],
+                                          ),
+                                          child: Text("add".tr,
+                                              style: robotoBold.copyWith(
+                                                  color: Theme.of(context)
+                                                      .primaryColor)),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ]),
+              ),
+      );
+    });
+  }
+}
