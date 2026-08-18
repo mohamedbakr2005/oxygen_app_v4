@@ -97,7 +97,7 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("com.google.firebase:firebase-messaging:23.4.1")
     implementation("com.android.installreferrer:installreferrer:2.2")
     implementation("org.slf4j:slf4j-simple:2.0.9")
