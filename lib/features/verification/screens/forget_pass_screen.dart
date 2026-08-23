@@ -1,17 +1,11 @@
-import 'package:Oxygen_Mart/helper/auth_event_logger_firebase.dart';
 import 'package:country_code_picker/country_code_picker.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_app_bar.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
-import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/verification/controllers/verification_controller.dart';
 import 'package:Oxygen_Mart/features/verification/screens/verification_screen.dart';
 import 'package:Oxygen_Mart/helper/custom_validator.dart';
@@ -21,6 +15,11 @@ import 'package:Oxygen_Mart/helper/validate_check.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class ForgetPassScreen extends StatefulWidget {
   final bool fromDialog;
@@ -33,20 +32,27 @@ class ForgetPassScreen extends StatefulWidget {
 class _ForgetPassScreenState extends State<ForgetPassScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _numberController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final FocusNode _numberFocusNode = FocusNode();
-  String? _countryDialCode = CountryCode.fromCountryCode(
-          Get.find<SplashController>().configModel!.country!)
-      .dialCode;
+  final FocusNode _emailFocusNode = FocusNode();
+  String? _countryDialCode = CountryCode.fromCountryCode(Get.find<SplashController>().configModel!.country!).dialCode;
   GlobalKey<FormState>? _formKeyLogin;
+  bool isEmail = false;
+  bool isPhone = false;
 
   @override
   void initState() {
     super.initState();
 
+    isPhone = (Get.find<SplashController>().configModel!.isSmsActive! || Get.find<SplashController>().configModel!.firebaseOtpVerification!);
+    isEmail = Get.find<SplashController>().configModel!.isMailActive!;
+
     _formKeyLogin = GlobalKey<FormState>();
     if (!kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        FocusScope.of(context).requestFocus(_numberFocusNode);
+        Future.delayed(const Duration(milliseconds: 800), () {
+          FocusScope.of(Get.context!).requestFocus(_numberFocusNode);
+        });
       });
     }
   }
@@ -61,184 +67,189 @@ class _ForgetPassScreenState extends State<ForgetPassScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ResponsiveHelper.isDesktop(context)
-          ? Colors.transparent
-          : Theme.of(context).cardColor,
-      appBar: ResponsiveHelper.isDesktop(context)
-          ? null
-          : CustomAppBar(title: 'forgot_password'.tr),
-      body: Center(
-          child: SingleChildScrollView(
+      appBar: ResponsiveHelper.isDesktop(context) ? null : CustomAppBar(title: 'forgot_password'.tr),
+      backgroundColor: ResponsiveHelper.isDesktop(context) ? Colors.transparent : Theme.of(context).cardColor,
+      body: Center(child: SingleChildScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
         child: Center(
-            child: Container(
-          height: widget.fromDialog ? 600 : null,
-          width: widget.fromDialog
-              ? 475
-              : context.width > 700
-                  ? 700
-                  : context.width,
-          //padding: widget.fromDialog ? const EdgeInsets.all(Dimensions.paddingSizeOverLarge) : context.width > 700 ? const EdgeInsets.all(Dimensions.paddingSizeDefault) : const EdgeInsets.all(Dimensions.paddingSizeLarge),
-          decoration: context.width > 700
-              ? BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                  boxShadow: ResponsiveHelper.isDesktop(context)
-                      ? null
-                      : [
-                          BoxShadow(
-                              color: Colors.grey[Get.isDarkMode ? 700 : 300]!,
-                              blurRadius: 5,
-                              spreadRadius: 1)
-                        ],
-                )
-              : null,
-          child: Column(
-            children: [
-              ResponsiveHelper.isDesktop(context)
-                  ? Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        onPressed: () => Get.back(),
-                        icon: const Icon(Icons.clear),
-                      ),
-                    )
-                  : const SizedBox(),
-              Padding(
-                padding: widget.fromDialog
-                    ? const EdgeInsets.all(Dimensions.paddingSizeExtremeLarge)
-                    : context.width > 700
-                        ? const EdgeInsets.all(Dimensions.paddingSizeDefault)
-                        : const EdgeInsets.all(Dimensions.paddingSizeLarge),
-                child: Column(children: [
-                  Image.asset(Images.forgot,
-                      height: widget.fromDialog ? 160 : 220),
-                  Padding(
-                    padding: const EdgeInsets.all(30),
-                    child: Text('please_enter_mobile'.tr,
-                        style: robotoRegular.copyWith(
-                            fontSize: widget.fromDialog
-                                ? Dimensions.fontSizeSmall
-                                : null),
-                        textAlign: TextAlign.center),
+          child: Container(
+            height: widget.fromDialog ? 600 : null,
+            width: widget.fromDialog ? 475 : context.width > 700 ? 700 : context.width,
+            decoration: context.width > 700 ? BoxDecoration(
+              color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+              boxShadow:  ResponsiveHelper.isDesktop(context) ?  null : [BoxShadow(color: Colors.grey[Get.isDarkMode ? 700 : 300]!, blurRadius: 5, spreadRadius: 1)],
+            ) : null,
+            child: Column(
+              children: [
+                ResponsiveHelper.isDesktop(context) ? Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.clear),
                   ),
-                  Form(
-                    key: _formKeyLogin,
-                    child: CustomTextField(
-                      titleText: 'xxx-xxx-xxxxx'.tr,
-                      controller: _numberController,
-                      focusNode: _numberFocusNode,
-                      inputType: TextInputType.phone,
-                      inputAction: TextInputAction.done,
-                      isPhone: true,
-                      onCountryChanged: (CountryCode countryCode) {
-                        _countryDialCode = countryCode.dialCode;
-                      },
-                      countryDialCode: _countryDialCode ??
-                          Get.find<LocalizationController>().locale.countryCode,
-                      onSubmit: (text) => GetPlatform.isWeb
-                          ? _onPressedForgetPass(_countryDialCode!)
-                          : null,
-                      labelText: 'phone'.tr,
-                      validator: (value) =>
-                          ValidateCheck.validateEmptyText(value, null),
+                ) : const SizedBox(),
+
+                (isPhone || isEmail) ? Padding(
+                  padding: widget.fromDialog ? const EdgeInsets.all(Dimensions.paddingSizeExtremeLarge) : context.width > 700 ? const EdgeInsets.all(Dimensions.paddingSizeDefault) : const EdgeInsets.all(Dimensions.paddingSizeLarge),
+                  child: Column(children: [
+
+                    Image.asset(Images.logo, width: 135),
+                    const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge, vertical: Dimensions.paddingSizeSmall),
+                      child: Text('forgot_your_password'.tr, style: robotoBold.copyWith(fontSize: Dimensions.fontSizeExtraLarge), textAlign: TextAlign.center),
                     ),
-                  ),
-                  const SizedBox(height: Dimensions.paddingSizeLarge),
-                  GetBuilder<VerificationController>(
-                      builder: (verificationController) {
-                    return GetBuilder<AuthController>(
-                        builder: (authController) {
-                      return CustomButton(
-                        radius: Dimensions.radiusDefault,
-                        buttonText: widget.fromDialog ? 'verify'.tr : 'next'.tr,
-                        isLoading: verificationController.isLoading ||
-                            authController.isLoading,
-                        onPressed: () =>
-                            _onPressedForgetPass(_countryDialCode!),
-                      );
-                    });
-                  }),
-                  const SizedBox(height: Dimensions.paddingSizeExtraLarge),
-                  RichText(
-                      text: TextSpan(children: [
-                        TextSpan(
-                          text:
-                              '${'if_you_have_any_queries_feel_free_to_contact_with_our'.tr} ',
-                          style: robotoRegular.copyWith(
-                              color: Theme.of(context).hintColor,
-                              fontSize: Dimensions.fontSizeSmall),
-                        ),
-                        TextSpan(
-                          text: 'help_and_support'.tr,
-                          style: robotoMedium.copyWith(
-                              color: Theme.of(context).primaryColor,
-                              fontSize: Dimensions.fontSizeDefault),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () =>
-                                Get.toNamed(RouteHelper.getSupportRoute()),
-                        ),
-                      ]),
-                      textAlign: TextAlign.center,
-                      maxLines: 3),
-                ]),
-              )
-            ],
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge),
+                      child: Text(
+                        isPhone ? 'please_enter_the_registered_phone_where_you_want'.tr : 'please_enter_the_registered_email_where_you_want'.tr,
+                        style: robotoRegular.copyWith(fontSize: widget.fromDialog ? Dimensions.fontSizeSmall : null, color: Theme.of(context).hintColor), textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: Dimensions.paddingSizeExtremeLarge),
+
+                    Form(
+                      key: _formKeyLogin,
+                      child: isPhone ? CustomTextField(
+                        titleText: 'xxx-xxx-xxxxx'.tr,
+                        controller: _numberController,
+                        focusNode: _numberFocusNode,
+                        inputType: TextInputType.phone,
+                        inputAction: TextInputAction.done,
+                        isPhone: true,
+                        onCountryChanged: (CountryCode countryCode) {
+                          _countryDialCode = countryCode.dialCode;
+                        },
+                        countryDialCode: CountryCode.fromCountryCode(Get.find<SplashController>().configModel!.country!).code ?? Get.find<LocalizationController>().locale.countryCode,
+                        onSubmit: (text) => GetPlatform.isWeb ? _onPressedForgetPass(_countryDialCode!) : null,
+                        labelText: 'phone'.tr,
+                        validator: (value) => ValidateCheck.validateEmptyText(value, null),
+                      ) : CustomTextField(
+                        titleText: 'enter_email'.tr,
+                        labelText: 'email'.tr,
+                        showLabelText: true,
+                        required: true,
+                        controller: _emailController,
+                        focusNode: _emailFocusNode,
+                        inputType: TextInputType.emailAddress,
+                        inputAction: TextInputAction.done,
+                        prefixIcon: CupertinoIcons.mail_solid,
+                        validator: (value) => ValidateCheck.validateEmail(value),
+                      ),
+                    ),
+
+                    const SizedBox(height: Dimensions.paddingSizeExtremeLarge),
+
+                    GetBuilder<VerificationController>(builder: (verificationController) {
+                      return GetBuilder<AuthController>(builder: (authController) {
+                        return CustomButton(
+                          radius: Dimensions.radiusDefault,
+                          buttonText: 'request_otp'.tr,
+                          isLoading: verificationController.isLoading || authController.isLoading,
+                          onPressed: () => _onPressedForgetPass(_countryDialCode!),
+                        );
+                      });
+                    }),
+                    const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                    Text('or'.tr, style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge, color: Theme.of(context).hintColor), textAlign: TextAlign.center),
+                    const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                    RichText(text: TextSpan(children: [
+                      TextSpan(
+                        text: '${'back_to'.tr} ',
+                        style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).textTheme.bodyLarge!.color),
+                      ),
+                      TextSpan(
+                        text: 'login_in'.tr, style: robotoMedium.copyWith(color: Theme.of(context).primaryColor, fontSize: Dimensions.fontSizeDefault, decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Get.back(),
+                      ),
+                    ]), textAlign: TextAlign.center, maxLines: 3),
+
+                  ]),
+                ) : Padding(
+                  padding: widget.fromDialog ? const EdgeInsets.all(Dimensions.paddingSizeExtremeLarge) : context.width > 700 ? const EdgeInsets.all(Dimensions.paddingSizeDefault) : const EdgeInsets.all(Dimensions.paddingSizeLarge),
+                  child: Column(children: [
+
+                    Image.asset(Images.forgot, height:  widget.fromDialog ? 160 : 220),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge, vertical: Dimensions.paddingSizeSmall),
+                      child: Text('sorry_something_went_wrong'.tr, style: robotoBold.copyWith(fontSize: Dimensions.fontSizeExtraLarge), textAlign: TextAlign.center),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge),
+                      child: Text(
+                        'please_try_again_after_some_time_or_contact_with_our_support_team'.tr,
+                        style: robotoRegular.copyWith(fontSize: widget.fromDialog ? Dimensions.fontSizeSmall : null, color: Theme.of(context).hintColor), textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: Dimensions.paddingSizeExtremeLarge),
+
+                    CustomButton(
+                      buttonText: 'help_and_support'.tr,
+                      onPressed: () {
+                        Get.toNamed(RouteHelper.getSupportRoute());
+                      }
+                    ),
+                    const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                    RichText(text: TextSpan(children: [
+                      TextSpan(
+                        text: '${'continue_as'.tr} ',
+                        style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).hintColor),
+                      ),
+                      TextSpan(
+                        text: 'guest'.tr, style: robotoMedium.copyWith(color: Theme.of(context).primaryColor, fontSize: Dimensions.fontSizeDefault, decoration: TextDecoration.underline),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => Get.offAllNamed(RouteHelper.getInitialRoute()),
+                      ),
+                    ]), textAlign: TextAlign.center, maxLines: 3),
+
+                  ]),
+                ),
+              ],
+            ),
           ),
-        )),
+        ),
       )),
     );
   }
 
   void _onPressedForgetPass(String countryCode) async {
     String phone = _numberController.text.trim();
-    String email = '';
+    String email = _emailController.text.trim();
 
-    String numberWithCountryCode = countryCode + phone;
-    PhoneValid phoneValid =
-        await CustomValidator.isPhoneValid(numberWithCountryCode);
+    String numberWithCountryCode = countryCode+phone;
+    PhoneValid phoneValid = await CustomValidator.isPhoneValid(numberWithCountryCode);
     numberWithCountryCode = phoneValid.phone;
 
-    if (_formKeyLogin!.currentState!.validate()) {
-      if (!phoneValid.isValid) {
+    if(_formKeyLogin!.currentState!.validate()) {
+      if (!phoneValid.isValid && !isEmail) {
         showCustomSnackBar('invalid_phone_number'.tr);
       } else {
-        Get.find<VerificationController>()
-            .forgetPassword(numberWithCountryCode)
-            .then((status) async {
+        Get.find<VerificationController>().forgetPassword(email: email, phone: numberWithCountryCode).then((status) async {
           if (status.isSuccess) {
-            AuthEventLogger.forgotPassword(numberWithCountryCode);
-
-            if (Get.find<SplashController>()
-                .configModel!
-                .firebaseOtpVerification!) {
-              Get.find<AuthController>().firebaseVerifyPhoneNumber(
-                  numberWithCountryCode, status.message, '',
-                  fromSignUp: false);
+            if(Get.find<SplashController>().configModel!.centralizeLoginSetup!.phoneVerificationStatus! && Get.find<SplashController>().configModel!.firebaseOtpVerification!) {
+              Get.find<AuthController>().firebaseVerifyPhoneNumber(numberWithCountryCode, status.message, '', fromSignUp: false);
             } else {
-              if (ResponsiveHelper.isDesktop(Get.context)) {
+              if(ResponsiveHelper.isDesktop(Get.context)) {
+                Get.back();
                 Get.dialog(VerificationScreen(
-                  number: numberWithCountryCode,
-                  email: email,
-                  token: '',
-                  fromSignUp: false,
-                  fromForgetPassword: true,
-                  loginType: '',
-                  password: '',
+                  number: numberWithCountryCode, email: email, token: '', fromSignUp: false,
+                  fromForgetPassword: true, loginType: '', password: '',
                 ));
               } else {
-                Get.toNamed(RouteHelper.getVerificationRoute(
-                    numberWithCountryCode,
-                    email,
-                    '',
-                    RouteHelper.forgotPassword,
-                    '',
-                    ''));
+                Get.toNamed(RouteHelper.getVerificationRoute(numberWithCountryCode, email, '', RouteHelper.forgotPassword, '', ''));
               }
             }
-          } else {
+          }else {
             showCustomSnackBar(status.message);
           }
         });

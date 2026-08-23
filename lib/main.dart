@@ -185,7 +185,7 @@ class _MyAppState extends State<MyApp> {
 
       if ((AuthHelper.isLoggedIn() || AuthHelper.isGuestLoggedIn()) &&
           Get.find<SplashController>().cacheModule != null) {
-        Get.find<CartController>().getCartDataOnline();
+        Get.find<CartController>().getAllCarts();
       }
 
       Get.find<SplashController>().getConfigData(
@@ -288,3 +288,4 @@ class MyHttpOverrides extends HttpOverrides {
 // a@eLk:Rq#LUvB8?CBx6N
 //  git pull --rebase origin main
 // >> git push origin main
+

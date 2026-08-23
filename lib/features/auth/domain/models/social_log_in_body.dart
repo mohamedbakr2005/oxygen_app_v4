@@ -1,5 +1,4 @@
 class SocialLogInBody {
-  String? name;
   String? email;
   String? token;
   String? uniqueId;
@@ -13,7 +12,6 @@ class SocialLogInBody {
   String? platform;
 
   SocialLogInBody({
-    this.name,
     this.email,
     this.token,
     this.uniqueId,
@@ -28,7 +26,6 @@ class SocialLogInBody {
   });
 
   SocialLogInBody.fromJson(Map<String, dynamic> json) {
-    name = json['name'];
     email = json['email'];
     token = json['token'];
     uniqueId = json['unique_id'];
@@ -44,7 +41,6 @@ class SocialLogInBody {
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['name'] = name;
     data['email'] = email;
     data['token'] = token;
     data['unique_id'] = uniqueId;

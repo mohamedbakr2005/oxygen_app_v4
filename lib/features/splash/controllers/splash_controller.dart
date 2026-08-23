@@ -480,4 +480,10 @@ class SplashController extends GetxController implements GetxService {
     hoverStates[index] = state;
     update();
   }
+
+  void togglePaymentIncompleteBottomSheet(bool status) {
+  }
+
+  void savePaymentIncompleteSheetStatus(bool hide) {
+  }
 }

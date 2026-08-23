@@ -1,3 +1,4 @@
+import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'dart:convert';
 
 import 'package:Oxygen_Mart/helper/analytics_route_wrapper.dart';
@@ -44,14 +45,14 @@ import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/item/screens/item_campaign_screen.dart';
 import 'package:Oxygen_Mart/features/item/screens/item_details_screen.dart';
 import 'package:Oxygen_Mart/features/item/screens/popular_item_screen.dart';
-import 'package:Oxygen_Mart/features/language/screens/language_screen.dart';
+import 'package:Oxygen_Mart/features/language/screens/language_new_screen.dart';
 import 'package:Oxygen_Mart/features/location/screens/access_location_screen.dart';
 import 'package:Oxygen_Mart/features/location/screens/map_screen.dart';
 import 'package:Oxygen_Mart/features/location/screens/pick_map_screen.dart';
 import 'package:Oxygen_Mart/features/loyalty/screens/loyalty_screen.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_body_model.dart';
 import 'package:Oxygen_Mart/features/notification/screens/notification_screen.dart';
-import 'package:Oxygen_Mart/features/onboard/screens/onboarding_screen.dart';
+import 'package:Oxygen_Mart/features/onboard/screens/onboarding_new_screen.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/order/screens/guest_track_order_screen.dart';
 import 'package:Oxygen_Mart/features/order/screens/order_details_screen.dart';
@@ -83,6 +84,9 @@ import 'package:Oxygen_Mart/features/update/screens/update_screen.dart';
 import 'package:Oxygen_Mart/features/verification/screens/forget_pass_screen.dart';
 import 'package:Oxygen_Mart/features/verification/screens/new_pass_screen.dart';
 import 'package:Oxygen_Mart/features/verification/screens/verification_screen.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/verification_new/new_pass_new_screen.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/verification_new/forget_pass_new_screen.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/verification_new/verification_new_screen.dart';
 import 'package:Oxygen_Mart/features/wallet/screens/wallet_screen.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -175,7 +179,18 @@ class RouteHelper {
   static String getOnBoardingRoute() => onBoarding;
   static String getSignInRoute(String page) => '$signIn?page=$page';
   static String getSignUpRoute() => signUp;
-  /*static String getVerificationRoute(String? number, String? token, String page, String pass, {String? session}) {
+  /*static String getVerificationRoute(String? number, String? email, String? token, String page, String? pass, String loginType, {String? session, UpdateUserModel? updateUserModel, bool? backFromThis}) {
+    String? authSession;
+    String? userModel;
+    if(session != null) {
+      authSession = base64Url.encode(utf8.encode(session));
+    }
+    if(updateUserModel != null) {
+      userModel = base64Url.encode(utf8.encode(jsonEncode(updateUserModel.toJson())));
+    }
+    String data = pass != null ? base64Url.encode(utf8.encode(pass)) : 'null';
+    return '$verification?page=$page&number=$number&email=$email&token=$token&pass=$data&session=$authSession&user_model=$userModel&login_type=$loginType&back_from_this=${backFromThis.toString()}';
+  }) {
     String? authSession;
     if(session != null) {
       authSession = base64Url.encode(utf8.encode(session));
@@ -183,21 +198,18 @@ class RouteHelper {
     return '$verification?page=$page&number=$number&token=$token&pass=$pass&session=$authSession';
   }*/
 
-  static String getVerificationRoute(String? number, String? email,
-      String? token, String page, String? pass, String loginType,
-      {String? session, UpdateUserModel? updateUserModel}) {
+  static String getVerificationRoute(String? number, String? email, String? token, String page, String? pass, String loginType, {String? session, UpdateUserModel? updateUserModel, bool? backFromThis}) {
     String? authSession;
     String? userModel;
-    if (session != null) {
+    if(session != null) {
       authSession = base64Url.encode(utf8.encode(session));
     }
-    if (updateUserModel != null) {
-      List<int> encoded = utf8.encode(jsonEncode(updateUserModel.toJson()));
-      userModel = base64Encode(encoded);
+    if(updateUserModel != null) {
+      userModel = base64Url.encode(utf8.encode(jsonEncode(updateUserModel.toJson())));
     }
-    return '$verification?page=$page&number=$number&email=$email&token=$token&pass=$pass&login_type=$loginType&session=$authSession&user_model=$userModel';
+    String data = pass != null ? base64Url.encode(utf8.encode(pass)) : 'null';
+    return '$verification?page=$page&number=$number&email=$email&token=$token&pass=$data&session=$authSession&user_model=$userModel&login_type=$loginType&back_from_this=${backFromThis.toString()}';
   }
-
   static String getAccessLocationRoute(String page) =>
       '$accessLocation?page=$page';
   static String getPickMapRoute(String? page, bool canRoute) =>
@@ -214,9 +226,9 @@ class RouteHelper {
 
   static String getForgotPassRoute() => forgotPassword;
 
-  static String getResetPasswordRoute(
-          String? phone, String token, String page) =>
-      '$resetPassword?phone=$phone&token=$token&page=$page';
+  static String getResetPasswordRoute({String? phone, String? email, required String token, required String page}) =>
+      '$resetPassword?phone=$phone&token=$token&page=$page&email=$email';
+
   static String getSearchRoute({String? queryText}) =>
       '$search?query=${queryText ?? ''}';
   static String getStoreRoute({required int? id, required String page}) {
@@ -408,14 +420,9 @@ class RouteHelper {
   static String getSubscriptionPaymentRoute(
           {required int? storeId, required int? packageId}) =>
       '$subscriptionPayment?store-id=$storeId&package-id=$packageId';
-  static String getNewUserSetupScreen(
-      {required String name,
-      required String loginType,
-      required String? phone,
-      required String? email}) {
-    return '$newUserSetupScreen?name=$name&login_type=$loginType&phone=$phone&email=$email';
+  static String getNewUserSetupScreen({required String name, required String loginType, required String? phone, required String? email, required bool? backFromThis, int? moduleId}) {
+    return '$newUserSetupScreen?name=$name&login_type=$loginType&phone=$phone&email=$email&back_from_this=${backFromThis.toString()}&module=${moduleId ?? ModuleHelper.getModule()?.id}';
   }
-
   static List<GetPage> routes = [
     GetPage(
         name: initial,
@@ -437,8 +444,8 @@ class RouteHelper {
     GetPage(
         name: language,
         page: () =>
-            ChooseLanguageScreen(fromMenu: Get.parameters['page'] == 'menu')),
-    GetPage(name: onBoarding, page: () => const OnBoardingScreen()),
+            ChooseLanguageNewScreen(fromMenu: Get.parameters['page'] == 'menu')),
+    GetPage(name: onBoarding, page: () => const OnBoardingNewScreen()),
     GetPage(
         name: signIn,
         page: () => SignInScreen(
@@ -458,7 +465,7 @@ class RouteHelper {
       if(Get.parameters['session'] != null && Get.parameters['session'] != 'null') {
         session = utf8.decode(base64Url.decode(Get.parameters['session'] ?? ''));
       }
-      return VerificationScreen(
+      return VerificationNewScreen(
         number: Get.parameters['number'], fromSignUp: Get.parameters['page'] == signUp, token: Get.parameters['token'],
         password: data, firebaseSession: session,
       );
@@ -488,7 +495,7 @@ class RouteHelper {
             userModel =
                 UpdateUserModel.fromJson(jsonDecode(utf8.decode(decode)));
           }
-          return VerificationScreen(
+          return VerificationNewScreen(
             number: Get.parameters['number'] != '' &&
                     Get.parameters['number'] != 'null'
                 ? Get.parameters['number']
@@ -503,7 +510,7 @@ class RouteHelper {
             loginType: Get.parameters['login_type']!,
             firebaseSession: session,
             fromForgetPassword: Get.parameters['page'] == forgotPassword,
-            userModel: userModel,
+            userModel: userModel, backFromThis: Get.parameters['back_from_this'] == 'true',
           );
         }),
     GetPage(
@@ -1031,6 +1038,7 @@ class RouteHelper {
                       Get.parameters['email'] != 'null'
                   ? Get.parameters['email']!.replaceAll(' ', '+')
                   : null,
+              backFromThis: Get.parameters['back_from_this'] == 'true',
             )),
   ];
 

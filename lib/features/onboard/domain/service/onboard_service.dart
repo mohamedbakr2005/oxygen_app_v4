@@ -10,4 +10,5 @@ class OnboardService implements OnboardServiceInterface {
   Future<Response> getOnBoardingList() async {
     return await onboardRepositoryInterface.getList();
   }
+
 }

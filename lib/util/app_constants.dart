@@ -4,6 +4,9 @@ import 'package:Oxygen_Mart/features/language/domain/models/language_model.dart'
 import 'package:Oxygen_Mart/util/images.dart';
 
 class AppConstants {
+  static const String googleServerClientId = '491987943015-agln6biv84krpnngdphj87jkko7r9lb8.apps.googleusercontent.com';
+  static const String otpUserNumber = '6ammart_otp_user_number';
+  static const String otpUserCountryCode = '6ammart_otp_user_country_code';
   static const String appName = 'Oxygen Mart';
   static const double appVersion = 3.3;
 
@@ -348,4 +351,10 @@ class AppConstants {
   static const String parcel = 'parcel';
   static const String taxi = 'rental';
   static const String ride = 'ride-share';
+  static const String walletSwitchUri = '/api/v1/customer/order/wallet-payment';
+  static const String getOrderTaxUri = '/api/v1/customer/order/get-Tax';
+  static const String getSurgePriceUri = '/api/v1/customer/order/get-surge-price';
+  static const String savedFilesUri = '/api/v1/customer/saved-files';
+  static const String deleteSavedFilesUri = '/api/v1/customer/saved-files/delete-all';
+  static const String storeSavedFilesUri = '/api/v1/customer/saved-files/store';
 }

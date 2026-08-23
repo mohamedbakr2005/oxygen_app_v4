@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_dialog.dart';
+import 'package:Oxygen_Mart/common/widgets/login_suggestion_bottomsheet.dart';
 import 'package:Oxygen_Mart/features/ai_chat_bot/widgets/ai_chat_bot_floating_button_widget.dart';
 import 'package:Oxygen_Mart/features/address/screens/address_screen.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
@@ -80,6 +81,8 @@ class DashboardScreenState extends State<DashboardScreen> {
       }
       suggestAddressBottomSheet();
       Get.find<OrderController>().getRunningOrders(1, fromDashboard: true);
+    } else {
+      _suggestLoginBottomSheet();
     }
 
     _pageIndex = widget.pageIndex;
@@ -148,6 +151,19 @@ class DashboardScreenState extends State<DashboardScreen> {
         });
       });
     }
+  }
+
+  Future<void> _suggestLoginBottomSheet() async {
+    Future.delayed(const Duration(seconds: 1), () {
+      ResponsiveHelper.isDesktop(Get.context)
+          ? Get.dialog(const Dialog(child: LoginSuggestionBottomSheet()))
+          : showModalBottomSheet(
+              context: Get.context!,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (con) => const LoginSuggestionBottomSheet(),
+            );
+    });
   }
 
   @override
@@ -277,16 +293,16 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(30),
                                 boxShadow: [
-                                  BoxShadow(
-                                      color: Colors.black.withOpacity(0.10),
-                                      blurRadius: 24,
-                                      spreadRadius: 0,
-                                      offset: const Offset(0, -4)),
-                                  BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
-                                      blurRadius: 8,
-                                      spreadRadius: 0,
-                                      offset: const Offset(0, 2)),
+                                   BoxShadow(
+                                       color: Colors.black.withValues(alpha: 0.10),
+                                       blurRadius: 24,
+                                       spreadRadius: 0,
+                                       offset: const Offset(0, -4)),
+                                   BoxShadow(
+                                       color: Colors.black.withValues(alpha: 0.04),
+                                       blurRadius: 8,
+                                       spreadRadius: 0,
+                                       offset: const Offset(0, 2)),
                                 ],
                               ),
                               child: Stack(

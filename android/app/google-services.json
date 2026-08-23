@@ -44,6 +44,75 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:274927672089:android:d36dd0dd3368df78a34388",
+        "android_client_info": {
+          "package_name": "com.oxygen_vendor_app.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "274927672089-708b62oq15tmkpl9gq7i1hq6btqhhaa4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oxygen_vendor_app.app",
+            "certificate_hash": "845b906ded76a33e16bae25914180dca0c8688f7"
+          }
+        },
+        {
+          "client_id": "274927672089-8c4ga6r8s3r1qjg6o70bs604953rjdrh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oxygen_vendor_app.app",
+            "certificate_hash": "2f744e2b918b01ee9368a4e495c2b994834a060d"
+          }
+        },
+        {
+          "client_id": "274927672089-afd2g66nmkohdc6gq107onv8ku928ntv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oxygen_vendor_app.app",
+            "certificate_hash": "1b946d97390a62c659c484e05f34c643a92c174f"
+          }
+        },
+        {
+          "client_id": "274927672089-tobhkjsm90qu1vm72i3h4p47l3ja5142.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oxygen_vendor_app.app",
+            "certificate_hash": "7c7e7d194d3b034ffc59d67fb560b00afd3fa285"
+          }
+        },
+        {
+          "client_id": "274927672089-0bq7bbj0m9b4ad7km3hkhmeh4n89k34q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzBaKCph0f5AtEtw3ezrhF2IRyO0ch2CM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "274927672089-0bq7bbj0m9b4ad7km3hkhmeh4n89k34q.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "274927672089-1ldpuikpph6ein1qai01h45kcl89sv8f.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.oxygenmart.app",
+                "app_store_id": "6736767925"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:274927672089:android:c622d24b59e61a0fa34388",
         "android_client_info": {
           "package_name": "com.oxygenmart.app"

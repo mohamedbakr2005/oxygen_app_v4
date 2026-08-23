@@ -13,7 +13,7 @@ class SignUpBodyModel {
     this.fName,
     this.lName,
     this.phone,
-    this.email ,
+    this.email = '',
     this.password,
     this.refCode = '',
     this.deviceToken,
@@ -25,7 +25,7 @@ class SignUpBodyModel {
     fName = json['f_name'];
     lName = json['l_name'];
     phone = json['phone'];
-    // email = json['email'];
+    email = json['email'];
     password = json['password'];
     refCode = json['ref_code'];
     deviceToken = json['cm_firebase_token'];
@@ -38,7 +38,7 @@ class SignUpBodyModel {
     data['f_name'] = fName;
     data['l_name'] = lName;
     data['phone'] = phone;
-    // data['email'] = email;
+    data['email'] = email;
     data['password'] = password;
     data['ref_code'] = refCode;
     data['cm_firebase_token'] = deviceToken;

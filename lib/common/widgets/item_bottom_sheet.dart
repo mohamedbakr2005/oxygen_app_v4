@@ -81,7 +81,8 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
       child: GetBuilder<ItemController>(builder: (itemController) {
         double? startingPrice;
         double? endingPrice;
-        if (widget.item!.choiceOptions!.isNotEmpty &&
+        if (widget.item!.choiceOptions != null &&
+            widget.item!.choiceOptions!.isNotEmpty &&
             widget.item!.foodVariations!.isEmpty &&
             !_newVariation) {
           List<double?> priceList = [];
@@ -133,12 +134,16 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
           }
         } else {
           List<String> variationList = [];
-          for (int index = 0;
-              index < widget.item!.choiceOptions!.length;
-              index++) {
-            variationList.add(widget.item!.choiceOptions![index]
-                .options![itemController.variationIndex![index]]
-                .replaceAll(' ', ''));
+          if (widget.item!.choiceOptions != null) {
+            for (int index = 0;
+                index < widget.item!.choiceOptions!.length;
+                index++) {
+              if (itemController.variationIndex != null && index < itemController.variationIndex!.length && widget.item!.choiceOptions![index].options != null) {
+                variationList.add(widget.item!.choiceOptions![index]
+                    .options![itemController.variationIndex![index]]
+                    .replaceAll(' ', ''));
+              }
+            }
           }
           String variationType = '';
           bool isFirst = true;
@@ -1093,8 +1098,7 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
                                                           if (success) {
                                                             await Get.find<
                                                                     CartController>()
-                                                                .addToCartOnline(
-                                                                    onlineCart);
+                                                                .addToCartOnline(onlineCart, storeId: widget.item?.storeId);
                                                             Get.back();
                                                             //showCartSnackBar();
                                                           }
@@ -1118,8 +1122,7 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
                                                 } else {
                                                   await Get.find<
                                                           CartController>()
-                                                      .addToCartOnline(
-                                                          onlineCart)
+                                                      .addToCartOnline(onlineCart, storeId: widget.item?.storeId)
                                                       .then((success) {
                                                     if (success) {
                                                       Get.back();
@@ -1374,6 +1377,9 @@ class VariationView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (item == null || item!.choiceOptions == null || item!.choiceOptions!.isEmpty) {
+      return const SizedBox();
+    }
     return ListView.builder(
       shrinkWrap: true,
       itemCount: item!.choiceOptions!.length,
@@ -1728,3 +1734,4 @@ class NewVariationView extends StatelessWidget {
         : const SizedBox();
   }
 }
+

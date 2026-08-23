@@ -20,6 +20,9 @@ class Images {
   static const String mail = 'assets/image/mail.png';
   static const String placeHolder = 'assets/image/placeholder-image.jpg';
   static const String map = 'assets/image/map.png';
+  static const String facebook2 = 'assets/image/facebook2.png';
+  static const String changePass = 'assets/image/change_pass.png';
+  static const String onBoard = 'assets/image/onboard.svg';
   static const String onboard_1 = 'assets/image/onboard_1.png';
   static const String onboard_2 = 'assets/image/onboard_2.png';
   static const String onboard_3 = 'assets/image/onboard_3.png';

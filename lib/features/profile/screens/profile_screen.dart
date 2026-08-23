@@ -238,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             icon: Icons.lock,
                                             title: 'change_password'.tr,
                                             onTap: () {
-                                              Get.toNamed(RouteHelper.getResetPasswordRoute('', '', 'password-change'));
+                                              Get.toNamed(RouteHelper.getResetPasswordRoute(phone: '', token: '', page: 'password-change'));
                                             },
                                           ),
 

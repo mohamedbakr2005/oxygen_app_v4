@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/language/domain/models/language_model.dart';
+import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/language/domain/repository/language_repository_interface.dart';
 import 'package:Oxygen_Mart/features/language/domain/service/language_service_interface.dart';
 
@@ -17,8 +17,7 @@ class LanguageService implements LanguageServiceInterface {
 
   @override
   updateHeader(Locale locale, int? moduleId) {
-    AddressModel? addressModel =
-        languageRepositoryInterface.getAddressFormSharedPref();
+    AddressModel? addressModel = languageRepositoryInterface.getAddressFormSharedPref();
     languageRepositoryInterface.updateHeader(addressModel, locale, moduleId);
   }
 
@@ -30,8 +29,8 @@ class LanguageService implements LanguageServiceInterface {
   @override
   setSelectedIndex(List<LanguageModel> languages, Locale locale) {
     int selectedIndex = 0;
-    for (int index = 0; index < languages.length; index++) {
-      if (languages[index].languageCode == locale.languageCode) {
+    for(int index = 0; index<languages.length; index++) {
+      if(languages[index].languageCode == locale.languageCode) {
         selectedIndex = index;
         break;
       }
@@ -53,4 +52,5 @@ class LanguageService implements LanguageServiceInterface {
   Locale getCacheLocaleFromSharedPref() {
     return languageRepositoryInterface.getCacheLocaleFromSharedPref();
   }
+
 }

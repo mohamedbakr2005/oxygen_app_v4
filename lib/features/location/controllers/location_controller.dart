@@ -322,7 +322,7 @@ class LocationController extends GetxController implements GetxService {
       bool canRoute, bool isDesktop) {
     getZone(address.latitude, address.longitude, false).then((response) async {
       if (response.isSuccess) {
-        Get.find<CartController>().getCartDataOnline();
+        Get.find<CartController>().getAllCarts();
         address.zoneId = response.zoneIds[0];
         address.zoneIds = [];
         address.zoneIds!.addAll(response.zoneIds);
@@ -657,4 +657,9 @@ class LocationController extends GetxController implements GetxService {
       }
     }
   }
+
+  Future<void> addRecentAddress(AddressModel address) async {
+    // Patched from logic migration
+  }
 }
+

@@ -53,6 +53,9 @@ class ConfigModel {
   List<SocialLogin>? socialLogin;
   List<SocialLogin>? appleLogin;
   bool? refundActiveStatus;
+  bool? isSmsActive;
+  bool? isMailActive;
+  DownloadUserAppLinks? downloadUserAppLinks;
   int? refundPolicyStatus;
   int? cancellationPolicyStatus;
   int? shippingPolicyStatus;
@@ -137,6 +140,9 @@ class ConfigModel {
     this.appleLogin,
     this.refundActiveStatus,
     this.refundPolicyStatus,
+    this.isSmsActive,
+    this.isMailActive,
+    this.downloadUserAppLinks,
     this.cancellationPolicyStatus,
     this.shippingPolicyStatus,
     this.prescriptionStatus,
@@ -848,6 +854,36 @@ class CentralizeLoginSetup {
     data['apple_login_status'] = appleLoginStatus;
     data['email_verification_status'] = emailVerificationStatus;
     data['phone_verification_status'] = phoneVerificationStatus;
+    return data;
+  }
+}
+
+class DownloadUserAppLinks {
+  String? playstoreUrl;
+  String? playstoreUrlStatus;
+  String? appleStoreUrl;
+  String? appleStoreUrlStatus;
+
+  DownloadUserAppLinks({
+    this.playstoreUrl,
+    this.playstoreUrlStatus,
+    this.appleStoreUrl,
+    this.appleStoreUrlStatus,
+  });
+
+  DownloadUserAppLinks.fromJson(Map<String, dynamic> json) {
+    playstoreUrl = json['playstore_url_status'] == '1' ? json['playstore_url'] : null;
+    playstoreUrlStatus = json['playstore_url_status'];
+    appleStoreUrl = json['apple_store_url_status'] == '1' ? json['apple_store_url'] : null;
+    appleStoreUrlStatus = json['apple_store_url_status'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['playstore_url'] = playstoreUrl;
+    data['playstore_url_status'] = playstoreUrlStatus;
+    data['apple_store_url'] = appleStoreUrl;
+    data['apple_store_url_status'] = appleStoreUrlStatus;
     return data;
   }
 }

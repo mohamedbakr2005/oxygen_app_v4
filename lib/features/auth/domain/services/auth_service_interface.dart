@@ -2,46 +2,30 @@ import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/signup_body_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/social_log_in_body.dart';
 
-abstract class AuthServiceInterface {
+abstract class AuthServiceInterface{
   bool isSharedPrefNotificationActive();
-  //Future<ResponseModel> registration(SignUpBodyModel signUpBody, bool isCustomerVerificationOn);
   Future<ResponseModel> registration(SignUpBodyModel signUpBody);
-  //Future<ResponseModel> login({String? phone, String? password, required bool isCustomerVerificationOn});
-  Future<ResponseModel> login(
-      {required String emailOrPhone,
-      required String password,
-      required String loginType,
-      required String fieldType,
-      bool alreadyInApp = false});
-  Future<ResponseModel> otpLogin(
-      {required String phone,
-      required String otp,
-      required String loginType,
-      required String verified,
-      bool alreadyInApp = false});
-  Future<ResponseModel> updatePersonalInfo(
-      {required String name,
-      required String? phone,
-      required String loginType,
-      required String? email,
-      required String? referCode,
-      bool alreadyInApp = false});
+  Future<ResponseModel> login({required String emailOrPhone, required String password, required String loginType, required String fieldType, bool alreadyInApp = false});
+  Future<ResponseModel> otpLogin({required String phone, required String otp, required String loginType, required String verified, bool alreadyInApp = false});
+  Future<ResponseModel> updatePersonalInfo({required String name, required String? phone, required String loginType, required String? email, required String? referCode, bool alreadyInApp = false});
   Future<ResponseModel> guestLogin();
-  //Future<bool> loginWithSocialMedia(SocialLogInBody socialLogInBody, int timeout, bool isCustomerVerificationOn);
-  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInModel,
-      {bool isCustomerVerificationOn = false});
+  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInModel, {bool isCustomerVerificationOn = false});
   Future<void> updateToken();
+  Future<void> loginWithToken(String token);
   bool isLoggedIn();
   bool isGuestLoggedIn();
   String getSharedPrefGuestId();
   Future<bool> clearSharedData({bool removeToken = true});
   Future<bool> clearSharedAddress();
-  Future<void> saveUserNumberAndPassword(
-      String number, String password, String countryCode);
+  Future<void> saveUserNumberAndPassword(String number, String password, String countryCode);
   String getUserNumber();
   String getUserCountryCode();
   String getUserPassword();
   Future<bool> clearUserNumberAndPassword();
+  Future<void> saveOtpUserNumber(String number, String countryCode);
+  String getOtpUserNumber();
+  String getOtpUserCountryCode();
+  Future<bool> clearOtpUserNumber();
   String getUserToken();
   Future updateZone();
   Future<bool> saveGuestContactNumber(String number);

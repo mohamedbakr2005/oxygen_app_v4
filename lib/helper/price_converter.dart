@@ -1,6 +1,7 @@
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 
@@ -15,6 +16,7 @@ class PriceConverter {
     }
   }
 
+  static int get noTipIndex => AppConstants.tips.indexOf('0');
   static String convertPrice(double? price,
       {double? discount,
       String? discountType,
