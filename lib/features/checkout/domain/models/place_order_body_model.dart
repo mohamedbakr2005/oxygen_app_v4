@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
+import 'package:Oxygen_Mart/helper/type_converter_helper.dart';
 
 class PlaceOrderBodyModel {
   List<OnlineCart>? _cart;
@@ -41,6 +42,7 @@ class PlaceOrderBodyModel {
   int? _createNewUser;
   String? _password;
   int? _isGuest;
+  bool? _monthlySubscribe;
 
   PlaceOrderBodyModel({
     required List<OnlineCart> cart,
@@ -80,6 +82,7 @@ class PlaceOrderBodyModel {
     required int? createNewUser,
     required String? password,
     required int? isGuest,
+    bool? monthlySubscribe,
   }) {
     _cart = cart;
     _couponDiscountAmount = couponDiscountAmount;
@@ -118,6 +121,7 @@ class PlaceOrderBodyModel {
     _createNewUser = createNewUser;
     _password = password;
     _isGuest = isGuest;
+    _monthlySubscribe = monthlySubscribe;
   }
 
   List<OnlineCart>? get cart => _cart;
@@ -156,6 +160,7 @@ class PlaceOrderBodyModel {
   int? get createNewUser => _createNewUser;
   String? get password => _password;
   int? get isGuest => _isGuest;
+  bool? get monthlySubscribe => _monthlySubscribe;
 
   PlaceOrderBodyModel.fromJson(Map<String, dynamic> json) {
     if (json['cart'] != null) {
@@ -221,6 +226,7 @@ class PlaceOrderBodyModel {
     _isGuest = json['is_guest'] != null
         ? int.parse(json['is_guest'].toString())
         : null;
+    _monthlySubscribe = TypeConverterHelper.getBool(json['monthly_subscribe']);
   }
 
   Map<String, String> toJson() {
@@ -293,6 +299,9 @@ class PlaceOrderBodyModel {
     if (_isGuest != null) {
       data['is_guest'] = _isGuest.toString();
     }
+    if (_monthlySubscribe != null) {
+      data['monthly_subscribe'] = _monthlySubscribe! ? 'true' : 'false';
+    }
 
     return data;
   }
@@ -312,6 +321,7 @@ class OnlineCart {
   List<int?>? _addOnQtys;
   String? _model;
   String? _itemType;
+  int? _storeId;
 
   OnlineCart(
       int? cartId,
@@ -326,7 +336,7 @@ class OnlineCart {
       List<AddOns>? addOns,
       List<int?> addOnQtys,
       String model,
-      {String? itemType}) {
+      {String? itemType, int? storeId}) {
     _cartId = cartId;
     _itemId = itemId;
     _itemCampaignId = itemCampaignId;
@@ -340,6 +350,7 @@ class OnlineCart {
     _addOnQtys = addOnQtys;
     _model = model;
     _itemType = itemType;
+    _storeId = storeId;
   }
 
   int? get cartId => _cartId;
@@ -354,6 +365,7 @@ class OnlineCart {
   List<int?>? get addOnQtys => _addOnQtys;
   String? get model => _model;
   String? get itemType => _itemType;
+  int? get storeId => _storeId;
 
   OnlineCart.fromJson(Map<String, dynamic> json) {
     _cartId = json['cart_id'];
@@ -387,6 +399,7 @@ class OnlineCart {
     if (json['item_type'] != null && json['item_type'] != 'null') {
       _itemType = json['item_type'];
     }
+    _storeId = json['store_id'];
   }
 
   Map<String, dynamic> toJson() {

@@ -34,7 +34,6 @@
     <application
         android:label="Oxygen Mart"
         android:name="${applicationName}"
-        android:extractNativeLibs="true"
         android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/launcher_icon">

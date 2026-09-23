@@ -1,4 +1,5 @@
 import 'package:Oxygen_Mart/features/home/domain/models/cashback_model.dart';
+import 'package:Oxygen_Mart/features/home/domain/models/top_offer_model.dart';
 import 'package:Oxygen_Mart/features/home/domain/repositories/home_repository_interface.dart';
 import 'package:Oxygen_Mart/features/home/domain/services/home_service_interface.dart';
 
@@ -14,6 +15,11 @@ class HomeService implements HomeServiceInterface {
   @override
   Future<CashBackModel?> getCashBackData(double amount) async {
     return await homeRepositoryInterface.getCashBackData(amount);
+  }
+
+  @override
+  Future<TopOfferModel?> getTopOffer() async {
+    return await homeRepositoryInterface.getTopOffer();
   }
 
   @override

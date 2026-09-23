@@ -33,8 +33,7 @@ class ApiClient extends GetxService {
           jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
     } catch (_) {}
     int? moduleID;
-    if (GetPlatform.isWeb &&
-        sharedPreferences.containsKey(AppConstants.moduleId)) {
+    if (sharedPreferences.containsKey(AppConstants.moduleId)) {
       try {
         moduleID = ModuleModel.fromJson(
                 jsonDecode(sharedPreferences.getString(AppConstants.moduleId)!))
@@ -62,21 +61,53 @@ class ApiClient extends GetxService {
       {bool setHeader = true}) {
     Map<String, String> header = {};
 
-    if (moduleID != null) {
-      header.addAll({AppConstants.moduleId: '$moduleID'});
+    int? activeModuleId = moduleID;
+    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.moduleId)) {
+      try {
+        activeModuleId = ModuleModel.fromJson(
+                jsonDecode(sharedPreferences.getString(AppConstants.moduleId)!))
+            .id;
+      } catch (_) {}
     }
+    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.cacheModuleId)) {
+      try {
+        activeModuleId = ModuleModel.fromJson(
+                jsonDecode(sharedPreferences.getString(AppConstants.cacheModuleId)!))
+            .id;
+      } catch (_) {}
+    }
+
+    if (activeModuleId != null) {
+      header.addAll({AppConstants.moduleId: '$activeModuleId'});
+    }
+
+    List<int>? activeZoneIDs = zoneIDs;
+    String? activeLat = latitude;
+    String? activeLng = longitude;
+    if (activeZoneIDs == null && sharedPreferences.containsKey(AppConstants.userAddress)) {
+      try {
+        AddressModel addr = AddressModel.fromJson(
+            jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
+        activeZoneIDs = addr.zoneIds;
+        activeLat ??= addr.latitude;
+        activeLng ??= addr.longitude;
+      } catch (_) {}
+    }
+
     header.addAll({
       'Content-Type': 'application/json; charset=UTF-8',
-      AppConstants.zoneId: zoneIDs != null ? jsonEncode(zoneIDs) : '',
+      AppConstants.zoneId: activeZoneIDs != null ? jsonEncode(activeZoneIDs) : '',
 
       ///this will add in ride module
       // AppConstants.operationAreaId: operationIds != null ? jsonEncode(operationIds) : '',
       AppConstants.localizationKey:
           languageCode ?? AppConstants.languages[0].languageCode!,
-      AppConstants.latitude: latitude != null ? jsonEncode(latitude) : '',
-      AppConstants.longitude: longitude != null ? jsonEncode(longitude) : '',
-      'Authorization': 'Bearer $token'
+      AppConstants.latitude: activeLat != null ? jsonEncode(activeLat) : '',
+      AppConstants.longitude: activeLng != null ? jsonEncode(activeLng) : '',
     });
+    if (token != null && token.isNotEmpty) {
+      header['Authorization'] = 'Bearer $token';
+    }
     if (setHeader) {
       _mainHeaders = header;
     }

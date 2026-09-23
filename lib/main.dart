@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
@@ -8,6 +8,7 @@ import 'package:Oxygen_Mart/features/home/widgets/cookies_view.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/features/notification/controllers/notification_controller.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_body_model.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/firebase_options.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -47,34 +48,37 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 // void checkPageSize() {
 //   Process.run("getconf", ["PAGE_SIZE"]).then((result) {
 //     print(
-//         "📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌 PAGE SIZE = ${result.stdout}");
+//         "ðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“Œ PAGE SIZE = ${result.stdout}");
 //   });
 // }
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. إعدادات سريعة جداً (Synchronous) مش بتعطل الأبلكيشن
+  PaintingBinding.instance.imageCache.maximumSize = 1000;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
+
+  // 1. Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø³Ø±ÙŠØ¹Ø© Ø¬Ø¯Ø§Ù‹ (Synchronous) Ù…Ø´ Ø¨ØªØ¹Ø·Ù„ Ø§Ù„Ø£Ø¨Ù„ÙƒÙŠØ´Ù†
   if (ResponsiveHelper.isMobilePhone()) {
     HttpOverrides.global = MyHttpOverrides();
   }
   setPathUrlStrategy();
 
-  // 2. تشغيل الـ SDKs الغير حرجة في الخلفية (بدون await عشان مانوقفش الـ runApp)
+  // 2. ØªØ´ØºÙŠÙ„ Ø§Ù„Ù€ SDKs Ø§Ù„ØºÙŠØ± Ø­Ø±Ø¬Ø© ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© (Ø¨Ø¯ÙˆÙ† await Ø¹Ø´Ø§Ù† Ù…Ø§Ù†ÙˆÙ‚ÙØ´ Ø§Ù„Ù€ runApp)
   // _initializeNonCriticalSDKs() moved after di.init()
 
-  // 🚨 تم إزالة SharedPreferences.getInstance() من هنا لأنها موجودة داخل di.init()
+  // ðŸš¨ ØªÙ… Ø¥Ø²Ø§Ù„Ø© SharedPreferences.getInstance() Ù…Ù† Ù‡Ù†Ø§ Ù„Ø£Ù†Ù‡Ø§ Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¯Ø§Ø®Ù„ di.init()
 
-  // 3. تهيئة الأساسيات (Firebase والـ Dependency Injection)
+  // 3. ØªÙ‡ÙŠØ¦Ø© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ§Øª (Firebase ÙˆØ§Ù„Ù€ Dependency Injection)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // بنحمل اللغات والكنترولرز
+  // Ø¨Ù†Ø­Ù…Ù„ Ø§Ù„Ù„ØºØ§Øª ÙˆØ§Ù„ÙƒÙ†ØªØ±ÙˆÙ„Ø±Ø²
   Map<String, Map<String, String>> languages = await di.init();
 
-  // 2. تشغيل الـ SDKs الغير حرجة في الخلفية
+  // 2. ØªØ´ØºÙŠÙ„ Ø§Ù„Ù€ SDKs Ø§Ù„ØºÙŠØ± Ø­Ø±Ø¬Ø© ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ©
   await _initializeNonCriticalSDKs();
 
-  // 4. معالجة الإشعارات (لازم نستنى الفايربيز يخلص الأول)
+  // 4. Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª (Ù„Ø§Ø²Ù… Ù†Ø³ØªÙ†Ù‰ Ø§Ù„ÙØ§ÙŠØ±Ø¨ÙŠØ² ÙŠØ®Ù„Øµ Ø§Ù„Ø£ÙˆÙ„)
   NotificationBodyModel? body;
   try {
     if (GetPlatform.isMobile) {
@@ -99,12 +103,12 @@ Future<void> main() async {
     print("Notification Init Error: $e");
   }
 
-  // 5. تتبع الكراشات
+  // 5. ØªØªØ¨Ø¹ Ø§Ù„ÙƒØ±Ø§Ø´Ø§Øª
   FlutterError.onError = (FlutterErrorDetails details) async {
     FirebaseAnalytics.instance.logEvent(name: 'app_crashed', parameters: {
       "exception": details.exception.toString(),
     });
-    print("🔥 Crash logged");
+    print("ðŸ”¥ Crash logged");
     FlutterError.presentError(details);
   };
 
@@ -112,15 +116,15 @@ Future<void> main() async {
     FirebaseAnalytics.instance.logEvent(name: 'app_crashed', parameters: {
       "exception": error.toString(),
     });
-    print("🔥 Uncaught crash logged");
+    print("ðŸ”¥ Uncaught crash logged");
     return true;
   };
 
-  // 6. انطلاق! 🚀
+  // 6. Ø§Ù†Ø·Ù„Ø§Ù‚! ðŸš€
   runApp(MyApp(languages: languages, body: body));
 }
 
-// دالة منفصلة لتشغيل الخدمات في الخلفية بدون ما نوقف الـ UI
+// Ø¯Ø§Ù„Ø© Ù…Ù†ÙØµÙ„Ø© Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© Ø¨Ø¯ÙˆÙ† Ù…Ø§ Ù†ÙˆÙ‚Ù Ø§Ù„Ù€ UI
 Future<void> _initializeNonCriticalSDKs() async {
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     final metaAnalyticsService = Get.find<MetaAnalyticsService>();
@@ -161,7 +165,7 @@ class _MyAppState extends State<MyApp> {
         },
       );
 
-      print("🔥 notification_opened logged");
+      print("ðŸ”¥ notification_opened logged");
 
       NotificationHelper.convertNotification(message.data);
       RouteHelper.getNotificationRoute();
@@ -228,6 +232,12 @@ class _MyAppState extends State<MyApp> {
                             ? RouteHelper.getInitialRoute()
                             : RouteHelper.getSplashRoute(widget.body),
                         getPages: RouteHelper.routes,
+                        routingCallback: (routing) {
+                          if (routing == null || (routing.isBottomSheet ?? false) || (routing.isDialog ?? false)) return;
+                          if (Get.isRegistered<ProController>()) {
+                            Get.find<ProController>().maybeShowRenewOnRoute(routing.current);
+                          }
+                        },
                         defaultTransition: Transition.cupertino,
                         transitionDuration: const Duration(milliseconds: 10),
                         builder: (BuildContext context, widget) {
@@ -288,4 +298,5 @@ class MyHttpOverrides extends HttpOverrides {
 // a@eLk:Rq#LUvB8?CBx6N
 //  git pull --rebase origin main
 // >> git push origin main
+
 

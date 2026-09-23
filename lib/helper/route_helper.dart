@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/ai_chat_bot/screens/ai_chat_bot_screen.dart';
+import 'package:Oxygen_Mart/features/home/screens/preference_screen.dart';
 import 'package:Oxygen_Mart/common/widgets/image_viewer_screen.dart';
 import 'package:Oxygen_Mart/common/widgets/not_found.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
@@ -14,7 +15,6 @@ import 'package:Oxygen_Mart/features/address/screens/address_screen.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/auth/screens/delivery_man_registration_screen.dart';
 import 'package:Oxygen_Mart/features/ai_chat_bot/screens/ai_chat_details_screen.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/screens/ai_chat_bot_screen.dart';
 import 'package:Oxygen_Mart/features/auth/screens/new_user_setup_screen.dart';
 import 'package:Oxygen_Mart/features/auth/screens/sign_in_screen.dart';
 import 'package:Oxygen_Mart/features/auth/screens/sign_up_screen.dart';
@@ -66,6 +66,7 @@ import 'package:Oxygen_Mart/features/parcel/screens/parcel_request_screen.dart';
 import 'package:Oxygen_Mart/features/payment/screens/offline_payment_screen.dart';
 import 'package:Oxygen_Mart/features/payment/screens/payment_screen.dart';
 import 'package:Oxygen_Mart/features/payment/screens/payment_webview_screen.dart';
+import 'package:Oxygen_Mart/features/pro/screens/subscription_plan_screen.dart';
 import 'package:Oxygen_Mart/features/profile/domain/models/update_user_model.dart';
 import 'package:Oxygen_Mart/features/profile/screens/profile_screen.dart';
 import 'package:Oxygen_Mart/features/profile/screens/update_profile_screen.dart';
@@ -83,9 +84,6 @@ import 'package:Oxygen_Mart/features/support/screens/support_screen.dart';
 import 'package:Oxygen_Mart/features/update/screens/update_screen.dart';
 import 'package:Oxygen_Mart/features/verification/screens/forget_pass_screen.dart';
 import 'package:Oxygen_Mart/features/verification/screens/new_pass_screen.dart';
-import 'package:Oxygen_Mart/features/verification/screens/verification_screen.dart';
-import 'package:Oxygen_Mart/features/auth/widgets/verification_new/new_pass_new_screen.dart';
-import 'package:Oxygen_Mart/features/auth/widgets/verification_new/forget_pass_new_screen.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/verification_new/verification_new_screen.dart';
 import 'package:Oxygen_Mart/features/wallet/screens/wallet_screen.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -139,6 +137,8 @@ class RouteHelper {
   static const String parcelCategory = '/parcel-category';
   static const String parcelLocation = '/parcel-location';
   static const String parcelRequest = '/parcel-request';
+  static const String serviceDetails = '/service-details';
+  static const String providerDetails = '/provider-details';
   static const String searchStoreItem = '/search-store-item';
   static const String order = '/order';
   static const String itemDetails = '/item-details';
@@ -152,6 +152,7 @@ class RouteHelper {
   static const String refund = '/refund';
   static const String aiChatBot = '/ai-chat-bot';
   static const String aiChatDetails = '/ai-chat-details';
+  static const String preference = '/preference';
 
   static const String offlinePaymentScreen = '/offline-payment-screen';
   static const String flashSaleDetailsScreen = '/flash-sale-details-screen';
@@ -162,6 +163,7 @@ class RouteHelper {
 
   static const String subscriptionSuccess = '/subscription-success';
   static const String subscriptionPayment = '/subscription-payment';
+  static const String subscriptionPlan = '/subscription-plan';
   static const String newUserSetupScreen = '/new-user-setup-screen';
 
   static String getInitialRoute({bool fromSplash = false}) =>
@@ -231,7 +233,7 @@ class RouteHelper {
 
   static String getSearchRoute({String? queryText}) =>
       '$search?query=${queryText ?? ''}';
-  static String getStoreRoute({required int? id, required String page}) {
+  static String getStoreRoute({required int? id, required String page, String? slug, String? moduleId, bool fromDeeplink = false}) {
     return '$store?id=$id&page=$page';
   }
 
@@ -273,8 +275,10 @@ class RouteHelper {
     bool? createAccount,
     int? createUserId,
     int? contentId,
+    bool isProSubscription = false,
+    bool isRenew = false,
   }) =>
-      '$payment?id=$id&user=$user&type=$type&amount=$amount&cod-delivery=$codDelivery&add-fund-url=$addFundUrl&payment-method=$paymentMethod&guest-id=$guestId&number=$contactNumber&subscription-url=$subscriptionUrl&store_id=$storeId&create_account=$createAccount&create_user_id=$createUserId';
+      '$payment?id=$id&user=$user&type=$type&amount=$amount&cod-delivery=$codDelivery&add-fund-url=$addFundUrl&payment-method=$paymentMethod&guest-id=$guestId&number=$contactNumber&subscription-url=$subscriptionUrl&store_id=$storeId&create_account=$createAccount&create_user_id=$createUserId&is_pro_subscription=$isProSubscription&is_renew=$isRenew';
   static String getCheckoutRoute(String page, {int? storeId}) =>
       '$checkout?page=$page&store-id=$storeId';
   static String getOrderTrackingRoute(int? id, String? contactNumber) =>
@@ -287,7 +291,7 @@ class RouteHelper {
 
   static String getHtmlRoute(String page) => '$html?page=$page';
   static String getCategoryRoute() => categories;
-  static String getCategoryItemRoute(int? id, String name) {
+  static String getCategoryItemRoute(int? id, String name, {int? moduleId, String? slug}) {
     List<int> encoded = utf8.encode(name);
     String data = base64Encode(encoded);
     return '$categoryItem?id=$id&name=$data';
@@ -346,6 +350,11 @@ class RouteHelper {
         base64Url.encode(utf8.encode(jsonEncode(destinationAddress.toJson())));
     return '$parcelRequest?category=$category0&picked=$pickedUpAddress&destination=$destinationAddress0';
   }
+
+  static String getServiceDetailsRoute({required int id, String slug = ''}) =>
+      '$serviceDetails?id=$id&slug=$slug';
+  static String getProviderDetailsRoute(int id, {String? slug, bool fromGlobalCart = false}) =>
+      '$providerDetails?id=$id&slug=${slug ?? ''}${fromGlobalCart ? '&from_global_cart=true' : ''}';
 
   static String getSearchStoreItemRoute(int? storeID) =>
       '$searchStoreItem?id=$storeID';
@@ -420,6 +429,14 @@ class RouteHelper {
   static String getSubscriptionPaymentRoute(
           {required int? storeId, required int? packageId}) =>
       '$subscriptionPayment?store-id=$storeId&package-id=$packageId';
+  static String getSubscriptionPlanRoute({bool? flag, bool isRenew = false}) {
+    String route = (isRenew && GetPlatform.isWeb ? '$subscriptionPlan/renew' : subscriptionPlan);
+    if(flag != null) {
+      route = '$route?flag=${flag ? 'success' : 'fail'}&renew=$isRenew';
+    }
+    return route;
+  }
+  static String getPreferenceRoute() => preference;
   static String getNewUserSetupScreen({required String name, required String loginType, required String? phone, required String? email, required bool? backFromThis, int? moduleId}) {
     return '$newUserSetupScreen?name=$name&login_type=$loginType&phone=$phone&email=$email&back_from_this=${backFromThis.toString()}&module=${moduleId ?? ModuleHelper.getModule()?.id}';
   }
@@ -675,6 +692,8 @@ class RouteHelper {
                   Get.parameters['create_user_id'] != 'null'
               ? int.parse(Get.parameters['create_user_id']!)
               : null;
+          bool isProSubscription = Get.parameters['is_pro_subscription'] == 'true';
+          bool isRenew = Get.parameters['is_renew'] == 'true';
           return getRoute(AppConstants.payInWevView
               ? PaymentWebViewScreen(
                   orderModel: order,
@@ -686,6 +705,8 @@ class RouteHelper {
                   subscriptionUrl: subscriptionUrl,
                   storeId: storeId,
                   createAccount: createAccount,
+                  isProSubscription: isProSubscription,
+                  isRenew: isRenew,
                 )
               : PaymentScreen(
                   orderModel: order,
@@ -698,6 +719,8 @@ class RouteHelper {
                   storeId: storeId,
                   createAccount: createAccount,
                   createUserId: createUserId,
+                  isProSubscription: isProSubscription,
+                  isRenew: isRenew,
                 ));
         }),
     GetPage(
@@ -1026,6 +1049,16 @@ class RouteHelper {
             storeId: int.parse(Get.parameters['store-id']!),
             packageId: int.parse(Get.parameters['package-id']!))),
     GetPage(
+        name: subscriptionPlan,
+        page: () {
+          final bool isRenew = Uri.base.toString().contains('$subscriptionPlan/renew') || Get.parameters['renew'] == 'true';
+          final String? flag = Get.parameters['flag'];
+          return SubscriptionPlanScreen(
+            flag: flag == 'success' ? true : (flag == 'fail' ? false : null),
+            isRenewalMode: isRenew,
+          );
+        }),
+    GetPage(
         name: newUserSetupScreen,
         page: () => NewUserSetupScreen(
               name: Get.parameters['name']!,
@@ -1040,6 +1073,19 @@ class RouteHelper {
                   : null,
               backFromThis: Get.parameters['back_from_this'] == 'true',
             )),
+    GetPage(name: preference, page: () => const PreferenceScreen()),
+    GetPage(name: aiChatBot, page: () => const AiChatBotScreen()),
+    GetPage(name: aiChatDetails, page: () {
+      final String? rawId = Get.parameters['conversation_id'];
+      final int? conversationId = (rawId != null && rawId.isNotEmpty) ? int.tryParse(rawId) : null;
+      final String? rawTitle = Get.parameters['title'];
+      final String? rawInitialMessage = Get.parameters['initial_message'];
+      return AiChatDetailsScreen(
+        conversationId: conversationId,
+        title: (rawTitle != null && rawTitle.isNotEmpty) ? rawTitle : null,
+        initialMessage: (rawInitialMessage != null && rawInitialMessage.isNotEmpty) ? rawInitialMessage : null,
+      );
+    }),
   ];
 
   static Widget getRoute(Widget navigateTo,

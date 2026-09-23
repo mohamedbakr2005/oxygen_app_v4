@@ -27,6 +27,8 @@ class PaymentScreen extends StatefulWidget {
   final int? storeId;
   final bool createAccount;
   final int? createUserId;
+  final bool isProSubscription;
+  final bool isRenew;
   const PaymentScreen(
       {super.key,
       required this.orderModel,
@@ -38,7 +40,9 @@ class PaymentScreen extends StatefulWidget {
       this.storeId,
       this.subscriptionUrl,
       this.createAccount = false,
-      this.createUserId});
+      this.createUserId,
+      this.isProSubscription = false,
+      this.isRenew = false});
 
   @override
   PaymentScreenState createState() => PaymentScreenState();
@@ -106,6 +110,8 @@ class PaymentScreenState extends State<PaymentScreen> {
       subscriptionUrl: widget.subscriptionUrl,
       createAccount: widget.createAccount,
       guestId: widget.guestId,
+      isProSubscription: widget.isProSubscription,
+      isRenew: widget.isRenew,
     );
 
     if (GetPlatform.isAndroid) {
@@ -206,6 +212,8 @@ class MyInAppBrowser extends InAppBrowser {
   final int? storeId;
   final bool createAccount;
   final String guestId;
+  final bool isProSubscription;
+  final bool isRenew;
 
   MyInAppBrowser(
       {super.windowId,
@@ -220,7 +228,9 @@ class MyInAppBrowser extends InAppBrowser {
       this.contactNumber,
       this.storeId,
       required this.createAccount,
-      required this.guestId});
+      required this.guestId,
+      this.isProSubscription = false,
+      this.isRenew = false});
 
   final bool _canRedirect = true;
 
@@ -247,6 +257,8 @@ class MyInAppBrowser extends InAppBrowser {
       subscriptionUrl: subscriptionUrl,
       createAccount: createAccount,
       guestId: guestId,
+      isProSubscription: isProSubscription,
+      isRenew: isRenew,
     );
   }
 
@@ -267,6 +279,8 @@ class MyInAppBrowser extends InAppBrowser {
       subscriptionUrl: subscriptionUrl,
       createAccount: createAccount,
       guestId: guestId,
+      isProSubscription: isProSubscription,
+      isRenew: isRenew,
     );
   }
 

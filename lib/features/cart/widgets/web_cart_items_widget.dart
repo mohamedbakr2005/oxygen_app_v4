@@ -6,6 +6,9 @@ import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/cart_item_widget.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/features/store/screens/store_screen.dart';
+import 'package:Oxygen_Mart/features/cart/widgets/add_to_monthly_widget.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
@@ -81,6 +84,18 @@ class WebCardItemsWidget extends StatelessWidget {
                                 fontSize: Dimensions.fontSizeDefault)),
                       ),
                     ),
+                    const SizedBox(height: Dimensions.paddingSizeSmall),
+                    if (cartController.cartList.isNotEmpty &&
+                        (cartController.cartList[0].item?.moduleType == 'grocery' ||
+                            cartController.cartList[0].item?.moduleType == 'pharmacy' ||
+                            Get.find<SplashController>().module?.moduleType == 'grocery' ||
+                            Get.find<SplashController>().module?.moduleType == 'pharmacy') &&
+                        !cartController.cartList.any((cart) => (cart.isCampaign ?? false) || (cart.item?.flashSale ?? 0) > 0) &&
+                        AuthHelper.isLoggedIn() &&
+                        Get.find<SplashController>().configModel?.monthlyOrderRemainder == 1) ...[
+                      const MonthlyReorderSection(),
+                      const SizedBox(height: Dimensions.paddingSizeSmall),
+                    ],
                   ]),
             ),
             const SizedBox(height: Dimensions.paddingSizeSmall),

@@ -13,7 +13,7 @@ buildscript {
     dependencies {
         // Google Services classpath
         classpath("com.google.gms:google-services:4.4.0")
-        classpath("com.android.tools.build:gradle:8.6.0")
+        classpath("com.android.tools.build:gradle:9.0.1")
     }
 }
 
@@ -60,4 +60,3 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
-

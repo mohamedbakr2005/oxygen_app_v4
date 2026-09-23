@@ -21,6 +21,10 @@ import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/screens/subscription_plan_screen.dart';
+import 'package:Oxygen_Mart/features/pro/widgets/pro_plan_banner_widget.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/search/widgets/custom_check_box_widget.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
@@ -90,6 +94,12 @@ class _StoreScreenState extends State<StoreScreen> {
       slug: widget.slug,
     );
     Get.find<StoreController>().showButtonAnimation();
+
+    if (Get.find<SplashController>().proStaus && AuthHelper.isLoggedIn()) {
+      Get.find<ProController>().getProActiveOffer(
+        moduleType: Get.find<StoreController>().store?.moduleType ?? Get.find<SplashController>().module?.moduleType,
+      );
+    }
 
     // 2. Fetch Categories if missing (Awaited)
     if (Get.find<CategoryController>().categoryList == null) {
@@ -258,6 +268,21 @@ class _StoreScreenState extends State<StoreScreen> {
                                     ],
                                   ),
                                 ),
+                        !Get.find<SplashController>().proStaus || Get.find<ProfileController>().proStatus ? const SliverToBoxAdapter(child: SizedBox()) : SliverToBoxAdapter(
+                          child: Container(
+                            color: Theme.of(context).cardColor,
+                            padding: const EdgeInsets.fromLTRB(Dimensions.paddingSizeDefault, Dimensions.paddingSizeExtraSmall, Dimensions.paddingSizeDefault, Dimensions.paddingSizeSmall),
+                            child: ProPlanBannerWidget(
+                              onSubscribe: () {
+                                final Store? storeData = Get.find<StoreController>().store;
+                                Get.find<ProController>().saveCurrentPath(route: RouteHelper.getStoreRoute(
+                                  id: storeData?.id, page: 'store',
+                                ));
+                                SubscriptionPlanScreen.open();
+                              },
+                            ),
+                          ),
+                        ),
 /*
                               : SliverAppBar(
                                   expandedHeight: 300,

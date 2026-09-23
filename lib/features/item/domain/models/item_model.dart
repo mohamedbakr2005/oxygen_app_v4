@@ -80,6 +80,27 @@ class Item {
   String? description;
   String? imageFullUrl;
   List<String>? imagesFullUrl;
+    String? video;
+  String? videoLink;
+  String? videoFullUrl;
+  String? videoSourceType;
+  String? videoPreviewType;
+  String? videoPreviewUrl;
+  String? videoThumbnailUrl;
+  String? videoEmbedUrl;
+  String? videoPreviewModalType;
+  String? videoPreviewModalUrl;
+  bool? hasVideoPreview;
+  bool? hasVideoSource;
+  String? storeImageFullUrl;
+  String? storeLogoFullUrl;
+  String? offerLabel;
+  int? verifiedSeller;
+  StoreDetails? storeDetails;
+  String? brandName;
+  bool? freeDelivery;
+  String? slug;
+
   int? categoryId;
   List<CategoryIds>? categoryIds;
   List<Variation>? variations;
@@ -121,7 +142,27 @@ class Item {
     this.description,
     this.imageFullUrl,
     this.imagesFullUrl,
-    this.categoryId,
+          this.video,
+      this.videoLink,
+      this.videoFullUrl,
+      this.videoSourceType,
+      this.videoPreviewType,
+      this.videoPreviewUrl,
+      this.videoThumbnailUrl,
+      this.videoEmbedUrl,
+      this.videoPreviewModalType,
+      this.videoPreviewModalUrl,
+      this.hasVideoPreview,
+      this.hasVideoSource,
+      this.storeImageFullUrl,
+      this.storeLogoFullUrl,
+      this.offerLabel,
+      this.verifiedSeller,
+      this.storeDetails,
+      this.brandName,
+      this.freeDelivery,
+      this.slug,
+      this.categoryId,
     this.categoryIds,
     this.variations,
     this.foodVariations,
@@ -169,7 +210,27 @@ class Item {
         }
       });
     }
-    categoryId = json['category_id'];
+          video = json['video'];
+      videoLink = json['video_link'];
+      videoFullUrl = json['video_full_url'];
+      videoSourceType = json['video_source_type'];
+      videoPreviewType = json['video_preview_type'];
+      videoPreviewUrl = json['video_preview_url'];
+      videoThumbnailUrl = json['video_thumbnail_url'];
+      videoEmbedUrl = json['video_embed_url'];
+      videoPreviewModalType = json['video_preview_modal_type'];
+      videoPreviewModalUrl = json['video_preview_modal_url'];
+      hasVideoPreview = json['has_video_preview'];
+      hasVideoSource = json['has_video_source'];
+      storeImageFullUrl = json['store_image_full_url'];
+      storeLogoFullUrl = json['store_logo_full_url'];
+      offerLabel = json['offer_label']?.toString();
+      verifiedSeller = json['verified_seller'] != null ? int.tryParse(json['verified_seller'].toString()) : null;
+      brandName = json['brand_name'];
+      freeDelivery = json['free_delivery'];
+      slug = json['slug'];
+      storeDetails = json['store_details'] != null ? StoreDetails.fromJson(json['store_details']) : null;
+      categoryId = json['category_id'] != null ? int.tryParse(json['category_id'].toString()) : null;
     if (json['category_ids'] != null) {
       categoryIds = [];
       json['category_ids'].forEach((v) {
@@ -243,7 +304,29 @@ class Item {
     data['description'] = description;
     data['image_full_url'] = imageFullUrl;
     data['images_full_url'] = imagesFullUrl;
-    data['category_id'] = categoryId;
+          data['video'] = video;
+      data['video_link'] = videoLink;
+      data['video_full_url'] = videoFullUrl;
+      data['video_source_type'] = videoSourceType;
+      data['video_preview_type'] = videoPreviewType;
+      data['video_preview_url'] = videoPreviewUrl;
+      data['video_thumbnail_url'] = videoThumbnailUrl;
+      data['video_embed_url'] = videoEmbedUrl;
+      data['video_preview_modal_type'] = videoPreviewModalType;
+      data['video_preview_modal_url'] = videoPreviewModalUrl;
+      data['has_video_preview'] = hasVideoPreview;
+      data['has_video_source'] = hasVideoSource;
+      data['store_image_full_url'] = storeImageFullUrl;
+      data['store_logo_full_url'] = storeLogoFullUrl;
+      data['offer_label'] = offerLabel;
+      data['verified_seller'] = verifiedSeller;
+      data['brand_name'] = brandName;
+      data['free_delivery'] = freeDelivery;
+      data['slug'] = slug;
+      if (storeDetails != null) {
+        data['store_details'] = storeDetails!.toJson();
+      }
+      data['category_id'] = categoryId;
     if (categoryIds != null) {
       data['category_ids'] = categoryIds!.map((v) => v.toJson()).toList();
     }
@@ -447,3 +530,51 @@ class VariationValue {
     return data;
   }
 }
+
+class StoreDetails {
+  int? id;
+  String? name;
+  String? phone;
+  String? email;
+  String? slug;
+  int? zoneId;
+  bool? showLowStockCount;
+  int? minimumStockForWarning;
+
+  StoreDetails({
+    this.id,
+    this.name,
+    this.phone,
+    this.email,
+    this.slug,
+    this.zoneId,
+    this.showLowStockCount,
+    this.minimumStockForWarning,
+  });
+
+  StoreDetails.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    name = json['name'];
+    phone = json['phone'];
+    email = json['email'];
+    slug = json['slug'];
+    zoneId = json['zone_id'];
+    showLowStockCount = (json['show_low_stock_count'] == 1 || json['show_low_stock_count'] == true) ? true : false ;
+    minimumStockForWarning = json['minimum_stock_for_warning'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['name'] = name;
+    data['phone'] = phone;
+    data['email'] = email;
+    data['slug'] = slug;
+    data['zone_id'] = zoneId;
+    data['show_low_stock_count'] = showLowStockCount;
+    data['minimum_stock_for_warning'] = minimumStockForWarning;
+    return data;
+  }
+}
+
+

@@ -13,6 +13,7 @@ import 'package:Oxygen_Mart/features/parcel/controllers/parcel_controller.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
 import 'package:Oxygen_Mart/features/parcel/widgets/parcel_view_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -88,6 +89,11 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
       Get.find<AddressController>().getAddressList();
     }
     if (AuthHelper.isLoggedIn()) {
+      if (Get.find<ProfileController>().proStatus) {
+        Get.find<ProController>().getProActiveOffer(
+          moduleType: Get.find<SplashController>().module?.moduleType,
+        );
+      }
       if (Get.find<ProfileController>().userInfoModel == null) {
         await Get.find<ProfileController>().getUserInfo();
         _senderNameController.text = Get.find<ProfileController>()

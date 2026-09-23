@@ -1,10 +1,9 @@
-import 'package:carousel_slider/carousel_slider.dart';
+﻿import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/banner/controllers/banner_controller.dart';
@@ -42,7 +41,7 @@ class _BannerViewState extends State<BannerView> {
           ? const SizedBox()
           : Container(
               width: MediaQuery.of(context).size.width,
-              // ظبطنا الارتفاع عشان يتناسب مع العرض العريض
+              // Ø¸Ø¨Ø·Ù†Ø§ Ø§Ù„Ø§Ø±ØªÙØ§Ø¹ Ø¹Ø´Ø§Ù† ÙŠØªÙ†Ø§Ø³Ø¨ Ù…Ø¹ Ø§Ù„Ø¹Ø±Ø¶ Ø§Ù„Ø¹Ø±ÙŠØ¶
               height: GetPlatform.isDesktop
                   ? 500
                   : MediaQuery.of(context).size.width * 0.55,
@@ -55,17 +54,17 @@ class _BannerViewState extends State<BannerView> {
                           child: CarouselSlider.builder(
                             options: CarouselOptions(
                               autoPlay: true,
-                              // 1. شغلنا الزووم عشان اللي في النص تبرز
+                              // 1. Ø´ØºÙ„Ù†Ø§ Ø§Ù„Ø²ÙˆÙˆÙ… Ø¹Ø´Ø§Ù† Ø§Ù„Ù„ÙŠ ÙÙŠ Ø§Ù„Ù†Øµ ØªØ¨Ø±Ø²
                               enlargeCenterPage: true,
                               disableCenter: true,
 
-                              // 2. ده الرقم السحري: 0.93
-                              // بيخلي الكارت ياخد 93% من العرض (عريض جداً)
-                              // والـ 7% الباقية بتتقسم يمين وشمال (حتة صغيرة تبان)
+                              // 2. Ø¯Ù‡ Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø³Ø­Ø±ÙŠ: 0.93
+                              // Ø¨ÙŠØ®Ù„ÙŠ Ø§Ù„ÙƒØ§Ø±Øª ÙŠØ§Ø®Ø¯ 93% Ù…Ù† Ø§Ù„Ø¹Ø±Ø¶ (Ø¹Ø±ÙŠØ¶ Ø¬Ø¯Ø§Ù‹)
+                              // ÙˆØ§Ù„Ù€ 7% Ø§Ù„Ø¨Ø§Ù‚ÙŠØ© Ø¨ØªØªÙ‚Ø³Ù… ÙŠÙ…ÙŠÙ† ÙˆØ´Ù…Ø§Ù„ (Ø­ØªØ© ØµØºÙŠØ±Ø© ØªØ¨Ø§Ù†)
                               viewportFraction: 0.98,
 
-                              // 3. قللنا الفاكتور لـ 0.15
-                              // عشان الجناب متصغرش أوي وتبقى "مفعوصة"، كدة هتبان حتة صغيرة ومحترمة
+                              // 3. Ù‚Ù„Ù„Ù†Ø§ Ø§Ù„ÙØ§ÙƒØªÙˆØ± Ù„Ù€ 0.15
+                              // Ø¹Ø´Ø§Ù† Ø§Ù„Ø¬Ù†Ø§Ø¨ Ù…ØªØµØºØ±Ø´ Ø£ÙˆÙŠ ÙˆØªØ¨Ù‚Ù‰ "Ù…ÙØ¹ÙˆØµØ©"ØŒ ÙƒØ¯Ø© Ù‡ØªØ¨Ø§Ù† Ø­ØªØ© ØµØºÙŠØ±Ø© ÙˆÙ…Ø­ØªØ±Ù…Ø©
                               enlargeFactor: 0.3,
 
                               clipBehavior: Clip.none,
@@ -95,7 +94,7 @@ class _BannerViewState extends State<BannerView> {
                           ),
                         ),
 
-                        // المؤشرات (Dots)
+                        // Ø§Ù„Ù…Ø¤Ø´Ø±Ø§Øª (Dots)
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -113,7 +112,7 @@ class _BannerViewState extends State<BannerView> {
                                 color:
                                     bannerController.currentIndex == entry.key
                                         ? Theme.of(context).primaryColor
-                                        : Colors.grey.withOpacity(0.3),
+                                        : Colors.grey.withValues(alpha: 0.3),
                               ),
                             );
                           }).toList(),
@@ -132,15 +131,15 @@ class _BannerViewState extends State<BannerView> {
     required VoidCallback onTap,
   }) {
     return Container(
-      // قللت المارجن خالص (2) عشان احنا مكبرين الـ viewportFraction ع الآخر
-      // فمش عايزين مسافات كبيرة، يدوب فاصل بسيط
+      // Ù‚Ù„Ù„Øª Ø§Ù„Ù…Ø§Ø±Ø¬Ù† Ø®Ø§Ù„Øµ (2) Ø¹Ø´Ø§Ù† Ø§Ø­Ù†Ø§ Ù…ÙƒØ¨Ø±ÙŠÙ† Ø§Ù„Ù€ viewportFraction Ø¹ Ø§Ù„Ø¢Ø®Ø±
+      // ÙÙ…Ø´ Ø¹Ø§ÙŠØ²ÙŠÙ† Ù…Ø³Ø§ÙØ§Øª ÙƒØ¨ÙŠØ±Ø©ØŒ ÙŠØ¯ÙˆØ¨ ÙØ§ØµÙ„ Ø¨Ø³ÙŠØ·
       margin: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             spreadRadius: 0,
             offset: const Offset(0, 4),
@@ -154,13 +153,12 @@ class _BannerViewState extends State<BannerView> {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            splashColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: CustomImage(
               image: imageUrl,
               fit: BoxFit.fill,
               width: double.infinity,
               height: double.infinity,
-              isHighQuality: true,
             ),
           ),
         ),
@@ -176,7 +174,7 @@ class _BannerViewState extends State<BannerView> {
       enabled: true,
       child: CarouselSlider.builder(
         options: CarouselOptions(
-          viewportFraction: 1, // نفس الرقم عشان يظبط مع التحميل
+          viewportFraction: 1, // Ù†ÙØ³ Ø§Ù„Ø±Ù‚Ù… Ø¹Ø´Ø§Ù† ÙŠØ¸Ø¨Ø· Ù…Ø¹ Ø§Ù„ØªØ­Ù…ÙŠÙ„
           enlargeCenterPage: true,
           enlargeFactor: 0.4,
           disableCenter: false,
@@ -249,3 +247,6 @@ class _BannerViewState extends State<BannerView> {
     );
   }
 }
+
+
+

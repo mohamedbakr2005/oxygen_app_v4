@@ -1,3 +1,4 @@
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:photo_view/photo_view.dart';
@@ -34,7 +35,7 @@ class ImageViewerScreen extends StatelessWidget {
               pageController: pageController,
               builder: (BuildContext context, int index) {
                 return PhotoViewGalleryPageOptions(
-                  imageProvider: NetworkImage('${imageList[index]}'),
+                  imageProvider: CachedNetworkImageProvider('${imageList[index]}'),
                   initialScale: PhotoViewComputedScale.contained,
                   heroAttributes:
                       PhotoViewHeroAttributes(tag: index.toString()),
@@ -108,6 +109,47 @@ class ImageViewerScreen extends StatelessWidget {
                   )
                 : const SizedBox(),
           ])),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            height: 60,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              shrinkWrap: true,
+              itemCount: imageList.length,
+              itemBuilder: (context, index) {
+                return InkWell(
+                  onTap: () {
+                    pageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: index == itemController.imageIndex
+                            ? Theme.of(context).primaryColor
+                            : Colors.transparent,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image(
+                        image: CachedNetworkImageProvider('${imageList[index]}'),
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
         ]);
       }),
     );

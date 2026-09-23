@@ -13,6 +13,7 @@ import 'package:Oxygen_Mart/common/widgets/web_constrained_box.dart';
 import 'package:Oxygen_Mart/common/widgets/web_page_title_widget.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
+import 'package:Oxygen_Mart/features/cart/widgets/add_to_monthly_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/cart_item_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/extra_packaging_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/not_available_bottom_sheet_widget.dart';
@@ -25,6 +26,8 @@ import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/order/screens/order_details_screen.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/widgets/pro_cart_banner_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
@@ -37,6 +40,7 @@ import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/socket_service.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
@@ -97,7 +101,19 @@ class _CartScreenState extends State<CartScreen> {
       _loadAllHistoryOrders();
     }
     if (Get.find<CartController>().cartList.isEmpty) {
-      await Get.find<CartController>().getCartDataOnline();
+      await Get.find<CartController>().getAllCarts();
+    }
+    if (Get.find<SplashController>().module == null && Get.find<CartController>().cartList.isNotEmpty) {
+      await Get.find<SplashController>().getModules();
+      int i = 0;
+      for (i = 0; i < Get.find<SplashController>().moduleList!.length; i++) {
+        if (Get.find<CartController>().cartList[0].item?.moduleId == Get.find<SplashController>().moduleList![i].id) {
+          break;
+        }
+      }
+      if (i < Get.find<SplashController>().moduleList!.length) {
+        Get.find<SplashController>().setModule(Get.find<SplashController>().moduleList![i]);
+      }
     }
     if (Get.find<CartController>().cartList.isNotEmpty) {
       if (Get.find<CartController>().addCutlery) {
@@ -116,6 +132,9 @@ class _CartScreenState extends State<CartScreen> {
           false,
           fromCart: true);
       Get.find<CartController>().calculationCart();
+      if (Get.find<ProfileController>().proStatus) {
+        Get.find<ProController>().getProActiveOffer(moduleType: Get.find<SplashController>().module?.moduleType);
+      }
       showReferAndEarnSnackBar();
     }
   }
@@ -486,6 +505,18 @@ class _CartScreenState extends State<CartScreen> {
                               const SizedBox(
                                 height: Dimensions.paddingSizeLarge,
                               ),
+                              if (_isGroceryOrPharmacy(cartController) &&
+                                  !_hasCampaignOrFlashSaleItem(cartController) &&
+                                  (AuthHelper.isLoggedIn() &&
+                                      Get.find<SplashController>()
+                                              .configModel
+                                              ?.monthlyOrderRemainder ==
+                                          1)) ...[
+                                const MonthlyReorderSection(),
+                                const SizedBox(
+                                  height: Dimensions.paddingSizeLarge,
+                                ),
+                              ],
                               ExtraPackagingWidget(
                                 cartController: cartController,
                               ),
@@ -541,6 +572,18 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                     child: Column(
                       children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            Dimensions.paddingSizeDefault,
+                            Dimensions.paddingSizeSmall,
+                            Dimensions.paddingSizeDefault,
+                            0,
+                          ),
+                          child: ProCartBannerWidget(
+                            subtotal: cartController.subTotal,
+                            redirectRoute: RouteHelper.getCartRoute(),
+                          ),
+                        ),
                         Container(
                           padding: const EdgeInsets.all(
                             Dimensions.paddingSizeDefault,
@@ -957,6 +1000,16 @@ class _CartScreenState extends State<CartScreen> {
                 )
               : const SizedBox(),
           isDesktop
+              ? Padding(
+                  padding: const EdgeInsets.only(
+                      bottom: Dimensions.paddingSizeSmall),
+                  child: ProCartBannerWidget(
+                    subtotal: cartController.subTotal,
+                    redirectRoute: RouteHelper.getCartRoute(),
+                  ),
+                )
+              : const SizedBox.shrink(),
+          isDesktop
               ? CheckoutButton(
                   cartController: cartController,
                   availableList: cartController.availableList)
@@ -977,6 +1030,25 @@ class _CartScreenState extends State<CartScreen> {
         Get.find<ProfileController>().userInfoModel!.isValidForDiscount!) {
       showCustomSnackBar(text, isError: false);
     }
+  }
+
+  bool _isGroceryOrPharmacy(CartController cartController) {
+    String? moduleType = cartController.cartList.isNotEmpty ? cartController.cartList[0].item?.moduleType : null;
+    moduleType ??= Get.find<SplashController>().module?.moduleType ?? ModuleHelper.getCacheModule()?.moduleType;
+    if (moduleType == null && cartController.cartList.isNotEmpty && cartController.cartList[0].item?.moduleId != null) {
+      final int? mId = cartController.cartList[0].item!.moduleId;
+      for (final m in (Get.find<SplashController>().moduleList ?? [])) {
+        if (m.id == mId) {
+          moduleType = m.moduleType;
+          break;
+        }
+      }
+    }
+    return moduleType == AppConstants.grocery || moduleType == AppConstants.pharmacy;
+  }
+
+  bool _hasCampaignOrFlashSaleItem(CartController cartController) {
+    return cartController.cartList.any((cart) => (cart.isCampaign ?? false) || (cart.item?.flashSale ?? 0) > 0);
   }
 }
 

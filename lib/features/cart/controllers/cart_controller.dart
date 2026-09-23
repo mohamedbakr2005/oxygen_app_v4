@@ -248,6 +248,33 @@ class CartController extends GetxController implements GetxService {
     Get.find<ItemController>().setExistInCart(cartModel.item, null, notify: true);
     await cartServiceInterface.addSharedPrefCartList(_cartList);
 
+    if (cartModel.item != null && (AuthHelper.isLoggedIn() || AuthHelper.isGuestLoggedIn())) {
+      List<int?> addOnIdList = [];
+      List<int?> addOnQtyList = [];
+      if (cartModel.addOnIds != null) {
+        for (var addOn in cartModel.addOnIds!) {
+          addOnIdList.add(addOn.id);
+          addOnQtyList.add(addOn.quantity);
+        }
+      }
+      OnlineCart onlineCart = OnlineCart(
+        cartModel.id,
+        cartModel.item!.id,
+        cartModel.isCampaign == true ? cartModel.item!.id : null,
+        (cartModel.discountedPrice ?? cartModel.price ?? 0).toString(),
+        '',
+        cartModel.variation,
+        null,
+        cartModel.quantity,
+        addOnIdList,
+        cartModel.addOns,
+        addOnQtyList,
+        'Item',
+        storeId: cartModel.item?.storeId,
+      );
+      await addToCartOnline(onlineCart, storeId: cartModel.item?.storeId);
+    }
+
         try {
       FirebaseAnalytics.instance.logAddToCart(
         items: [
@@ -418,6 +445,13 @@ class CartController extends GetxController implements GetxService {
     _isLoading = true;
     bool success = false;
     update();
+    storeId ??= cart.storeId;
+    if(storeId == null && Get.isRegistered<ItemController>()) {
+      storeId = Get.find<ItemController>().item?.storeId;
+    }
+    if(storeId == null && _cartList.isNotEmpty) {
+      storeId = _cartList.first.item?.storeId;
+    }
     List<OnlineCartModel>? onlineCartList = await cartServiceInterface.addToCartOnline(cart, storeId: storeId);
     if(onlineCartList != null) {
       _cartList = [];
@@ -436,6 +470,13 @@ class CartController extends GetxController implements GetxService {
     _isLoading = true;
     bool success = false;
     update();
+    storeId ??= cart.storeId;
+    if(storeId == null && Get.isRegistered<ItemController>()) {
+      storeId = Get.find<ItemController>().item?.storeId;
+    }
+    if(storeId == null && _cartList.isNotEmpty) {
+      storeId = _cartList.first.item?.storeId;
+    }
     List<OnlineCartModel>? onlineCartList = await cartServiceInterface.updateCartOnline(cart, storeId: storeId);
     if(onlineCartList != null) {
       _cartList = [];

@@ -131,9 +131,9 @@ class ItemController extends GetxController implements GetxService {
     update();
   }
 
-  void changeReadMore() {
-    _isReadMore = !_isReadMore;
-    update();
+  void changeReadMore({bool? value, bool notify = true}) {
+    _isReadMore = value ?? !_isReadMore;
+    if(notify) update();
   }
 
   void setCurrentIndex(int index, bool notify) {
@@ -390,6 +390,21 @@ class ItemController extends GetxController implements GetxService {
     if (conditions != null) {
       _commonConditions!.addAll(conditions);
       _isLoading = false;
+    }
+    update();
+  }
+
+    Future<void> getItemDetails({
+    required int itemId,
+    CartModel? cart,
+    bool isCampaign = false,
+  }) async {
+    _item = null;
+    _item = await itemServiceInterface.getItemDetails(itemId); // V4 getItemDetails takes id
+
+    if (_item != null) {
+      initData(_item, cart);
+      setExistInCart(_item, _selectedVariations);
     }
     update();
   }
@@ -686,6 +701,7 @@ class ItemController extends GetxController implements GetxService {
         [],
         [],
         'Item',
+        storeId: item.storeId,
       );
       if (Get.find<SplashController>()
               .configModel!
@@ -716,7 +732,7 @@ class ItemController extends GetxController implements GetxService {
                     .then((success) async {
                   if (success) {
                     await Get.find<CartController>()
-                        .addToCartOnline(onlineCart);
+                        .addToCartOnline(onlineCart, storeId: item.storeId);
                     Get.back();
                     showCartSnackBar(success
                         ? 'item_added_to_cart'.tr
@@ -727,7 +743,7 @@ class ItemController extends GetxController implements GetxService {
             ),
             barrierDismissible: false);
       } else {
-        Get.find<CartController>().addToCartOnline(onlineCart);
+        Get.find<CartController>().addToCartOnline(onlineCart, storeId: item.storeId);
         showCartSnackBar('item_added_to_cart'.tr, isError: false);
       }
     } else if (Get.find<SplashController>()
@@ -756,3 +772,7 @@ class ItemController extends GetxController implements GetxService {
     }
   }
 }
+
+
+
+

@@ -8,6 +8,8 @@ import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/auth_dialog_widget.dart';
+import 'package:Oxygen_Mart/features/order/screens/my_items_screen.dart';
+import 'package:Oxygen_Mart/features/pro/widgets/pro_badge_avatar_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/profile/widgets/notification_status_change_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/profile/widgets/profile_button_widget.dart';
@@ -216,6 +218,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             Get.find<ThemeController>().toggleTheme();
                                           },
                                         ),
+
+                                        // Monthly Cart List (If logged in & enabled)
+                                        if (isLoggedIn &&
+                                            Get.find<SplashController>()
+                                                    .configModel
+                                                    ?.monthlyOrderRemainder ==
+                                                1)
+                                          ProfileButtonWidget(
+                                            iconImage: Images.monthlyCart,
+                                            title: 'monthly_cart_list'.tr,
+                                            onTap: () {
+                                              Get.to(() => const MyItemsScreen());
+                                            },
+                                          ),
+
+                                        // My Subscription (If Pro is active)
+                                        if (Get.find<SplashController>().proStaus)
+                                          ProfileButtonWidget(
+                                            iconImage: Images.proPlanCrown,
+                                            title: 'my_subscription'.tr,
+                                            onTap: () {
+                                              Get.toNamed(RouteHelper.getSubscriptionPlanRoute());
+                                            },
+                                          ),
                                         
                                         // Notifications (If logged in)
                                         if (isLoggedIn)
@@ -238,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             icon: Icons.lock,
                                             title: 'change_password'.tr,
                                             onTap: () {
-                                              Get.toNamed(RouteHelper.getResetPasswordRoute(phone: '', token: '', page: 'password-change'));
+                                              Get.toNamed(RouteHelper.getResetPasswordRoute(phone: '', email: '', token: '', page: 'password-change'));
                                             },
                                           ),
 
@@ -281,18 +307,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildLoggedInProfileCard(BuildContext context, ProfileController profileController) {
     return Row(
       children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2), width: 3),
-          ),
-          child: ClipOval(
-            child: CustomImage(
-              placeholder: Images.guestIcon,
-              image: '${profileController.userInfoModel?.imageFullUrl ?? ''}',
-              height: 75,
-              width: 75,
-              fit: BoxFit.cover,
+        ProBadgeAvatarWidget(
+          badgeSize: 28,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.2), width: 3),
+            ),
+            child: ClipOval(
+              child: CustomImage(
+                placeholder: Images.guestIcon,
+                image: '${profileController.userInfoModel?.imageFullUrl ?? ''}',
+                height: 75,
+                width: 75,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

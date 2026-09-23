@@ -47,12 +47,12 @@ class CustomToast extends StatelessWidget {
                       ? CupertinoIcons.multiply_circle_fill
                       : Icons.check_circle,
                   color: isError
-                      ? const Color(0xffFF9090).withOpacity(0.5)
+                      ? const Color(0x80FF9090)
                       : const Color(0xff039D55),
                   size: 20),
               const SizedBox(width: Dimensions.paddingSizeSmall),
               Flexible(
-                  child: Text(text,
+                  child: Text(text.tr,
                       style: robotoRegular.copyWith(color: textColor),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis)),

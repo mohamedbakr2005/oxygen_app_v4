@@ -1,5 +1,5 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -30,7 +30,6 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
     final configModel = Get.find<SplashController>().configModel;
     final centralizeLogin = configModel?.centralizeLoginSetup;
 
@@ -92,10 +91,10 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                   Row(spacing: 8, children: <Widget>[
                     if(facebookLoginActive)
                       Expanded(child: SocialLoginButton(
-                        iconPath: Images.facebook2,
+                        iconPath: Images.facebook,
                         onTap: () {
                           Get.back();
-                          _facebookLogin();
+                          _openSignInScreen();
                         },
                       )),
 
@@ -104,7 +103,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                         iconPath: Images.google,
                         onTap: () {
                           Get.back();
-                          _googleLogin(googleSignIn);
+                          _openSignInScreen();
                         },
                       )),
 
@@ -113,7 +112,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                         iconPath: Images.appleLogo,
                         onTap: () {
                           Get.back();
-                          _appleLogin();
+                          _openSignInScreen();
                         },
                       )),
                   ]),
@@ -132,7 +131,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                   height: 50, buttonText: 'login_with_password'.tr,
                   onPressed: () async {
                     Get.back(result: true);
-                    await Get.toNamed(RouteHelper.getSignInRoute(Get.currentRoute));
+                    await _openSignInScreen();
                   },
                 ),
                 const SizedBox(height: Dimensions.paddingSizeDefault),
@@ -145,7 +144,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                     onPressed: () async {
                       Get.back();
                       Get.find<AuthController>().enableOtpView(enable: true);
-                      await Get.toNamed(RouteHelper.getSignInRoute(Get.currentRoute));
+                      await _openSignInScreen();
                     },
                   ),
                 const SizedBox(height: Dimensions.paddingSizeDefault),
@@ -214,39 +213,60 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
     );
   }
 
+  Future<void> _openSignInScreen() async {
+    await Get.toNamed(RouteHelper.getSignInRoute(Get.currentRoute));
+  }
+
   void _googleLogin(GoogleSignIn googleSignIn) async {
-    if(kIsWeb) {
-      await _googleWebSignIn();
-
-    }else{
-      try{
-        if(googleSignIn.supportsAuthenticate()) {
-          await googleSignIn.initialize(serverClientId: AppConstants.googleServerClientId).then((_) async {
-
-            googleSignIn.signOut();
-            GoogleSignInAccount googleAccount = await googleSignIn.authenticate();
-            const List<String> scopes = <String>['email'];
-            GoogleSignInClientAuthorization? auth = await googleAccount.authorizationClient.authorizationForScopes(scopes);
-
-            SocialLogInBody googleBodyModel = SocialLogInBody(
-              email: googleAccount.email, token: auth?.accessToken, uniqueId: googleAccount.id,
-              medium: 'google', accessToken: 1, loginType: CentralizeLoginType.social.name,
-            );
-
-            Get.find<AuthController>().loginWithSocialMedia(googleBodyModel).then((response) {
-              if (response.isSuccess) {
-                _processSocialSuccessSetup(response, googleBodyModel, null, null);
-              } else {
-                showCustomSnackBar(response.message);
-              }
-            });
-          });
-        }else {
-          debugPrint("Google Sign-In not supported on this device.");
-        }
-      }catch(e){
-        debugPrint('Error in google sign in: $e');
+    try {
+      GoogleSignInAccount? googleAccount = await googleSignIn.signIn();
+      if (googleAccount == null) {
+        print('❌ Google Sign-In cancelled');
+        return; // User canceled the sign-in
       }
+
+      GoogleSignInAuthentication auth = await googleAccount.authentication;
+
+      print('========== GOOGLE LOGIN DEBUG ==========');
+      print('Email: ${googleAccount.email}');
+      print('Google ID: ${googleAccount.id}');
+      print('ID Token exists: ${auth.idToken != null}');
+      print('ID Token length: ${auth.idToken?.length}');
+      print('========================================');
+
+      if (auth.idToken == null || auth.idToken!.isEmpty) {
+        print('❌ Google ID Token is NULL/EMPTY');
+        showCustomSnackBar('Google Sign-In failed: ID Token is missing.');
+        return;
+      }
+
+      SocialLogInBody googleBodyModel = SocialLogInBody(
+        email: googleAccount.email,
+        token: auth.idToken!,
+        uniqueId: googleAccount.id,
+        medium: 'google',
+        loginType: CentralizeLoginType.social.name,
+      );
+
+      Get.find<AuthController>()
+          .loginWithSocialMedia(googleBodyModel, alreadyInApp: true)
+          .then((response) {
+        if (response.isSuccess) {
+          _processSocialSuccessSetup(response, googleBodyModel, null, null);
+        } else {
+          showCustomSnackBar(response.message);
+        }
+      });
+    } catch (error) {
+      print('Google Sign-In Error: $error');
+      showCustomSnackBar('Google Sign-In failed. Please try again.');
+      FirebaseAnalytics.instance.logEvent(
+        name: 'login_failed',
+        parameters: {
+          'method': 'google',
+          'error': error.toString(),
+        },
+      );
     }
   }
 
@@ -266,7 +286,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
         loginType: CentralizeLoginType.social.name,
       );
 
-      Get.find<AuthController>().loginWithSocialMedia(googleBodyModel).then((response) {
+      Get.find<AuthController>().loginWithSocialMedia(googleBodyModel, alreadyInApp: true).then((response) {
         if (response.isSuccess) {
           _processSocialSuccessSetup(response, googleBodyModel, null, null);
         } else {
@@ -289,7 +309,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
         medium: 'facebook', loginType: CentralizeLoginType.social.name,
       );
 
-      Get.find<AuthController>().loginWithSocialMedia(facebookBodyModel).then((response) {
+      Get.find<AuthController>().loginWithSocialMedia(facebookBodyModel, alreadyInApp: true).then((response) {
         if (response.isSuccess) {
           _processSocialSuccessSetup(response, null, null, facebookBodyModel);
         } else {
@@ -319,7 +339,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
       medium: 'apple', loginType: CentralizeLoginType.social.name, platform: GetPlatform.isIOS ? 'flutter_app' : 'flutter_web',
     );
 
-    Get.find<AuthController>().loginWithSocialMedia(appleBodyModel).then((response) {
+    Get.find<AuthController>().loginWithSocialMedia(appleBodyModel, alreadyInApp: true).then((response) {
       if (response.isSuccess) {
         _processSocialSuccessSetup(response, null, appleBodyModel, null);
       } else {
@@ -349,7 +369,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
           socialLogInBodyModel: googleBodyModel ?? appleBodyModel ?? facebookBodyModel, email: email, backFromThis: true,
         ));
       }
-    } else if(response.isSuccess && response.authResponseModel != null && !response.authResponseModel!.isPersonalInfo!) {
+    } else if(response.isSuccess && response.authResponseModel != null && response.authResponseModel!.requiresProfileCompletion) {
 
       String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
 

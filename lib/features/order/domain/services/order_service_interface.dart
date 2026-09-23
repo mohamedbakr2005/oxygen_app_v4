@@ -1,8 +1,10 @@
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 
 abstract class OrderServiceInterface {
   Future<PaginatedOrderModel?> getRunningOrderList(
@@ -26,6 +28,9 @@ abstract class OrderServiceInterface {
   OrderModel? prepareOrderModel(
       PaginatedOrderModel? runningOrderModel, int? orderID);
   Future<bool> switchToCOD(String? orderID, {String? guestId});
+  Future<MonthlyOrderModel?> getMonthlyOrderList({required int offset, String? moduleType});
+  Future<bool> removeMonthlyOrder(int id);
+  Future<ReorderResponseModel?> reorder(int orderId);
   void paymentRedirect(
       {required String url,
       required bool canRedirect,
@@ -36,5 +41,7 @@ abstract class OrderServiceInterface {
       required final String orderID,
       int? storeId,
       required bool createAccount,
-      required String guestId});
+      required String guestId,
+      bool isProSubscription = false,
+      bool isRenew = false});
 }

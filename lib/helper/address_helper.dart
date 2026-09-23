@@ -17,7 +17,8 @@ class AddressHelper {
       address.zoneIds,
       [],
       sharedPreferences.getString(AppConstants.languageCode),
-      Get.find<SplashController>().module?.id,
+      Get.find<SplashController>().module?.id ??
+          Get.find<SplashController>().cacheModule?.id,
       address.latitude,
       address.longitude,
     );

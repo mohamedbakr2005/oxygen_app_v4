@@ -5,10 +5,30 @@ import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot
 import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot_repository_interface.dart';
 import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service.dart';
 import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service_interface.dart';
+import 'package:Oxygen_Mart/features/smart_banner/controllers/smart_banner_controller.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository_interface.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service_interface.dart';
 
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository.dart';
+import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository_interface.dart';
+import 'package:Oxygen_Mart/features/reels/domain/services/reels_service.dart';
+import 'package:Oxygen_Mart/features/reels/domain/services/reels_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/controllers/taxi_home_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/controllers/taxi_cart_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service_interface.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
@@ -132,6 +152,11 @@ import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repositor
 import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository_interface.dart';
 import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service.dart';
 import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service_interface.dart';
+import 'package:Oxygen_Mart/features/offer/controllers/offer_controller.dart';
+import 'package:Oxygen_Mart/features/offer/domain/repositories/offer_repository.dart';
+import 'package:Oxygen_Mart/features/offer/domain/repositories/offer_repository_interface.dart';
+import 'package:Oxygen_Mart/features/offer/domain/services/offer_service.dart';
+import 'package:Oxygen_Mart/features/offer/domain/services/offer_service_interface.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository_interface.dart';
@@ -147,6 +172,11 @@ import 'package:Oxygen_Mart/features/payment/domain/repositories/payement_reposi
 import 'package:Oxygen_Mart/features/payment/domain/repositories/payment_repository_interface.dart';
 import 'package:Oxygen_Mart/features/payment/domain/services/payment_service.dart';
 import 'package:Oxygen_Mart/features/payment/domain/services/payment_service_interface.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/domain/repositories/pro_repository.dart';
+import 'package:Oxygen_Mart/features/pro/domain/repositories/pro_repository_interface.dart';
+import 'package:Oxygen_Mart/features/pro/domain/services/pro_service.dart';
+import 'package:Oxygen_Mart/features/pro/domain/services/pro_service_interface.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/profile/domain/repositories/profile_repository.dart';
 import 'package:Oxygen_Mart/features/profile/domain/repositories/profile_repository_interface.dart';
@@ -353,6 +383,18 @@ Future<Map<String, Map<String, String>>> init() async {
       AdvertisementRepository(apiClient: Get.find());
   Get.lazyPut(() => advertisementRepositoryInterface);
 
+  ProRepositoryInterface proRepositoryInterface =
+      ProRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => proRepositoryInterface);
+
+  OfferRepositoryInterface offerRepositoryInterface =
+      OfferRepository(apiClient: Get.find());
+  Get.lazyPut(() => offerRepositoryInterface);
+
+  SmartBannerRepositoryInterface smartBannerRepositoryInterface =
+      SmartBannerRepository(apiClient: Get.find());
+  Get.lazyPut(() => smartBannerRepositoryInterface);
+
   /// Service Interface
   CheckoutServiceInterface checkoutServiceInterface =
       CheckoutService(checkoutRepositoryInterface: Get.find());
@@ -499,8 +541,38 @@ Future<Map<String, Map<String, String>>> init() async {
       AdvertisementService(advertisementRepositoryInterface: Get.find());
   Get.lazyPut(() => advertisementServiceInterface);
 
+  ProServiceInterface proServiceInterface =
+      ProService(proRepositoryInterface: Get.find());
+  Get.lazyPut(() => proServiceInterface);
+
+  OfferServiceInterface offerServiceInterface =
+      OfferService(offerRepositoryInterface: Get.find());
+  Get.lazyPut(() => offerServiceInterface);
+
+  SmartBannerServiceInterface smartBannerServiceInterface =
+      SmartBannerService(smartBannerRepositoryInterface: Get.find());
+  Get.lazyPut(() => smartBannerServiceInterface);
+
+  ReelsRepositoryInterface reelsRepositoryInterface = ReelsRepository(apiClient: Get.find());
+  Get.lazyPut(() => reelsRepositoryInterface);
+  ReelsServiceInterface reelsServiceInterface = ReelsService(reelsRepositoryInterface: Get.find());
+  Get.lazyPut(() => reelsServiceInterface, fenix: true);
+
+  TaxiHomeRepositoryInterface taxiHomeRepositoryInterface = TaxiHomeRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => taxiHomeRepositoryInterface);
+  TaxiHomeServiceInterface taxiHomeServiceInterface = TaxiHomeService(taxiHomeRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiHomeServiceInterface);
+
+  TaxiCartRepositoryInterface taxiCartRepositoryInterface = TaxiCartRepository(apiClient: Get.find());
+  Get.lazyPut(() => taxiCartRepositoryInterface);
+  TaxiCartServiceInterface taxiCartServiceInterface = TaxiCartService(taxiCartRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiCartServiceInterface);
+
   /// Controller
   Get.lazyPut(() => ThemeController(sharedPreferences: Get.find()));
+    Get.lazyPut(() => ReelsController(reelsServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => TaxiHomeController(taxiHomeServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiCartController(taxiCartServiceInterface: Get.find()));
   Get.lazyPut(() => SplashController(splashServiceInterface: Get.find()));
   Get.lazyPut(() => AddressController(addressServiceInterface: Get.find()));
   Get.lazyPut(() =>
@@ -545,6 +617,10 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => BusinessController(businessServiceInterface: Get.find()));
   Get.lazyPut(
       () => AdvertisementController(advertisementServiceInterface: Get.find()));
+  Get.lazyPut(() => ProController(proServiceInterface: Get.find()));
+  Get.lazyPut(() => OfferController(offerServiceInterface: Get.find()));
+  Get.lazyPut(() => SmartBannerController(smartBannerServiceInterface: Get.find()));
+
 
   /// Retrieving localized data
   Map<String, Map<String, String>> languages = {};
@@ -560,4 +636,9 @@ Future<Map<String, Map<String, String>>> init() async {
         json;
   }
   return languages;
+
 }
+
+
+
+

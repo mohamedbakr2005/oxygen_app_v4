@@ -65,11 +65,11 @@ class AuthService implements AuthServiceInterface{
   }
 
   @override
-  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInModel, {bool isCustomerVerificationOn = false}) async {
+  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInModel, {bool isCustomerVerificationOn = false, bool alreadyInApp = false}) async {
     Response response = await authRepositoryInterface.loginWithSocialMedia(socialLogInModel);
     if (response.statusCode == 200) {
       AuthResponseModel authResponse = AuthResponseModel.fromJson(response.body);
-      await _updateHeaderFunctionality(authResponse);
+      await _updateHeaderFunctionality(authResponse, alreadyInApp: alreadyInApp);
       return ResponseModel(true, authResponse.token??'', authResponseModel: authResponse);
     } else {
       return ResponseModel(false, response.statusText);

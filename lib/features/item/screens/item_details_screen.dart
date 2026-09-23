@@ -1,12 +1,9 @@
-import 'dart:convert';
-import 'package:Oxygen_Mart/helper/facebook_pixel_helper.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/cart_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/confirmation_dialog.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_app_bar.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
@@ -89,10 +86,16 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
 
           if (itemController.item != null && itemController.variationIndex != null) {
             List<String> variationList = [];
-            for (int index = 0; index < itemController.item!.choiceOptions!.length; index++) {
-              variationList.add(itemController.item!.choiceOptions![index]
-                  .options![itemController.variationIndex![index]]
-                  .replaceAll(' ', ''));
+            if (itemController.item!.choiceOptions != null) {
+              for (int index = 0; index < itemController.item!.choiceOptions!.length; index++) {
+                if (index < itemController.variationIndex!.length &&
+                    itemController.item!.choiceOptions![index].options != null &&
+                    itemController.variationIndex![index] < itemController.item!.choiceOptions![index].options!.length) {
+                  variationList.add(itemController.item!.choiceOptions![index]
+                      .options![itemController.variationIndex![index]]
+                      .replaceAll(' ', ''));
+                }
+              }
             }
             String variationType = '';
             bool isFirst = true;
@@ -108,38 +111,42 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             double? price = itemController.item!.price;
             Variation? variation;
             stock = itemController.item!.stock ?? 0;
-            for (Variation v in itemController.item!.variations!) {
-              if (v.type == variationType) {
-                price = v.price;
-                variation = v;
-                stock = v.stock;
-                break;
+            if (itemController.item!.variations != null) {
+              for (Variation v in itemController.item!.variations!) {
+                if (v.type == variationType) {
+                  price = v.price;
+                  variation = v;
+                  stock = v.stock;
+                  break;
+                }
               }
             }
 
-            double? discount = (itemController.item!.availableDateStarts != null || itemController.item!.storeDiscount == 0)
+            double? discount = (itemController.item!.availableDateStarts != null || (itemController.item!.storeDiscount ?? 0) == 0)
                 ? itemController.item!.discount
                 : itemController.item!.storeDiscount;
-            String? discountType = (itemController.item!.availableDateStarts != null || itemController.item!.storeDiscount == 0)
+            String? discountType = (itemController.item!.availableDateStarts != null || (itemController.item!.storeDiscount ?? 0) == 0)
                 ? itemController.item!.discountType
                 : 'percent';
-            double priceWithDiscount = PriceConverter.convertWithDiscount(price, discount, discountType)!;
-            double priceWithQuantity = priceWithDiscount * itemController.quantity!;
+            double priceWithDiscount = PriceConverter.convertWithDiscount(price, discount, discountType) ?? price ?? 0;
+            double priceWithQuantity = priceWithDiscount * (itemController.quantity ?? 1);
             
             double addonsCost = 0;
             List<AddOn> addOnIdList = [];
             List<AddOns> addOnsList = [];
-            for (int index = 0; index < itemController.item!.addOns!.length; index++) {
-              if (itemController.addOnActiveList[index]) {
-                addonsCost = addonsCost + (itemController.item!.addOns![index].price! * itemController.addOnQtyList[index]!);
-                addOnIdList.add(AddOn(id: itemController.item!.addOns![index].id, quantity: itemController.addOnQtyList[index]));
-                addOnsList.add(itemController.item!.addOns![index]);
+            if (itemController.item!.addOns != null) {
+              for (int index = 0; index < itemController.item!.addOns!.length; index++) {
+                if (index < itemController.addOnActiveList.length && itemController.addOnActiveList[index]) {
+                  addonsCost = addonsCost + ((itemController.item!.addOns![index].price ?? 0) * (index < itemController.addOnQtyList.length ? (itemController.addOnQtyList[index] ?? 1) : 1));
+                  addOnIdList.add(AddOn(id: itemController.item!.addOns![index].id, quantity: index < itemController.addOnQtyList.length ? itemController.addOnQtyList[index] : 1));
+                  addOnsList.add(itemController.item!.addOns![index]);
+                }
               }
             }
 
             cartModel = CartModel(
                 null, price, priceWithDiscount, variation != null ? [variation] : [], [],
-                (price! - PriceConverter.convertWithDiscount(price, discount, discountType)!),
+                ((price ?? 0) - (PriceConverter.convertWithDiscount(price, discount, discountType) ?? 0)),
                 itemController.quantity, addOnIdList, addOnsList, itemController.item!.availableDateStarts != null,
                 stock, itemController.item, itemController.item?.quantityLimit);
 
@@ -149,9 +156,10 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
             cart = OnlineCart(
                 cartId, widget.item!.id, null, priceWithDiscount.toString(), '', variation != null ? [variation] : [],
                 null, itemController.cartIndex != -1 ? cartController.cartList[itemController.cartIndex].quantity : itemController.quantity,
-                listOfAddOnId, addOnsList, listOfAddOnQty, 'Item');
+                listOfAddOnId, addOnsList, listOfAddOnQty, 'Item',
+                storeId: widget.item?.storeId);
                 
-            priceWithAddons = priceWithQuantity + (Get.find<SplashController>().configModel!.moduleConfig!.module!.addOn! ? addonsCost : 0);
+            priceWithAddons = priceWithQuantity + ((Get.find<SplashController>().configModel?.moduleConfig?.module?.addOn ?? false) ? addonsCost : 0);
           }
 
           return Scaffold(
@@ -203,7 +211,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                                           item: itemController.item,
                                           inStorePage: widget.inStorePage,
                                           isCampaign: itemController.item!.availableDateStarts != null,
-                                          inStock: (Get.find<SplashController>().configModel!.moduleConfig!.module!.stock! && stock! <= 0),
+                                          inStock: ((Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) && (stock ?? 0) <= 0),
                                         ),
                                         const SizedBox(height: 20),
                                         
@@ -216,74 +224,81 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                                         const SizedBox(height: 20),
 
                                         // 🎨 Modern Variations (Animated Wrap)
-                                        ListView.builder(
-                                          shrinkWrap: true,
-                                          itemCount: itemController.item!.choiceOptions!.length,
-                                          physics: const NeverScrollableScrollPhysics(),
-                                          itemBuilder: (context, index) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(bottom: Dimensions.paddingSizeLarge),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    itemController.item!.choiceOptions![index].title!,
-                                                    style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge),
-                                                  ),
-                                                  const SizedBox(height: Dimensions.paddingSizeSmall),
-                                                  Wrap(
-                                                    spacing: 10,
-                                                    runSpacing: 10,
-                                                    children: List.generate(
-                                                      itemController.item!.choiceOptions![index].options!.length,
-                                                      (i) {
-                                                        bool isSelected = itemController.variationIndex![index] == i;
-                                                        return InkWell(
-                                                          borderRadius: BorderRadius.circular(20),
-                                                          onTap: () {
-                                                            itemController.setCartVariationIndex(index, i, itemController.item);
-                                                          },
-                                                          child: AnimatedContainer(
-                                                            duration: const Duration(milliseconds: 200),
-                                                            curve: Curves.easeInOut,
-                                                            padding: const EdgeInsets.symmetric(
-                                                              horizontal: Dimensions.paddingSizeLarge,
-                                                              vertical: Dimensions.paddingSizeSmall,
-                                                            ),
-                                                            decoration: BoxDecoration(
-                                                              color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).cardColor,
-                                                              borderRadius: BorderRadius.circular(30), // Pill Shape
-                                                              border: Border.all(
-                                                                color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).disabledColor.withOpacity(0.3),
-                                                                width: 1.5,
-                                                              ),
-                                                              boxShadow: isSelected ? [
-                                                                BoxShadow(
-                                                                  color: Theme.of(context).primaryColor.withOpacity(0.2),
-                                                                  blurRadius: 8,
-                                                                  offset: const Offset(0, 4),
-                                                                )
-                                                              ] : [],
-                                                            ),
-                                                            child: Text(
-                                                              itemController.item!.choiceOptions![index].options![i].trim(),
-                                                              style: robotoMedium.copyWith(
-                                                                color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge!.color,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        );
-                                                      },
+                                        if (itemController.item?.choiceOptions != null && itemController.item!.choiceOptions!.isNotEmpty)
+                                          ListView.builder(
+                                            shrinkWrap: true,
+                                            itemCount: itemController.item!.choiceOptions!.length,
+                                            physics: const NeverScrollableScrollPhysics(),
+                                            itemBuilder: (context, index) {
+                                              if (itemController.item!.choiceOptions![index].options == null ||
+                                                  itemController.item!.choiceOptions![index].options!.isEmpty) {
+                                                return const SizedBox();
+                                              }
+                                              return Padding(
+                                                padding: const EdgeInsets.only(bottom: Dimensions.paddingSizeLarge),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      itemController.item!.choiceOptions![index].title ?? '',
+                                                      style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
+                                                    const SizedBox(height: Dimensions.paddingSizeSmall),
+                                                    Wrap(
+                                                      spacing: 10,
+                                                      runSpacing: 10,
+                                                      children: List.generate(
+                                                        itemController.item!.choiceOptions![index].options!.length,
+                                                        (i) {
+                                                          bool isSelected = (itemController.variationIndex != null &&
+                                                              index < itemController.variationIndex!.length &&
+                                                              itemController.variationIndex![index] == i);
+                                                          return InkWell(
+                                                            borderRadius: BorderRadius.circular(20),
+                                                            onTap: () {
+                                                              itemController.setCartVariationIndex(index, i, itemController.item);
+                                                            },
+                                                            child: AnimatedContainer(
+                                                              duration: const Duration(milliseconds: 200),
+                                                              curve: Curves.easeInOut,
+                                                              padding: const EdgeInsets.symmetric(
+                                                                horizontal: Dimensions.paddingSizeLarge,
+                                                                vertical: Dimensions.paddingSizeSmall,
+                                                              ),
+                                                              decoration: BoxDecoration(
+                                                                color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).cardColor,
+                                                                borderRadius: BorderRadius.circular(30), // Pill Shape
+                                                                border: Border.all(
+                                                                  color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).disabledColor.withOpacity(0.3),
+                                                                  width: 1.5,
+                                                                ),
+                                                                boxShadow: isSelected ? [
+                                                                  BoxShadow(
+                                                                    color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                                                    blurRadius: 8,
+                                                                    offset: const Offset(0, 4),
+                                                                  )
+                                                                ] : [],
+                                                              ),
+                                                              child: Text(
+                                                                itemController.item!.choiceOptions![index].options![i].trim(),
+                                                                style: robotoMedium.copyWith(
+                                                                  color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge!.color,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          ),
 
                                         // Prescription Alert
-                                        if (itemController.item!.isPrescriptionRequired!)
+                                        if (itemController.item?.isPrescriptionRequired == true)
                                           Container(
                                             padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
                                             margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeLarge),
@@ -397,7 +412,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
       BuildContext context, CartController cartController, ItemController itemController, 
       int? stock, OnlineCart? cart, CartModel? cartModel, double priceWithAddons) {
     
-    bool isOutOfStock = Get.find<SplashController>().configModel!.moduleConfig!.module!.stock! && stock! <= 0;
+    bool isOutOfStock = (Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) && (stock ?? 0) <= 0;
 
     return Container(
       margin: const EdgeInsets.all(Dimensions.paddingSizeDefault),
@@ -431,12 +446,12 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                   icon: Icons.remove,
                   onTap: cartController.isLoading ? null : () {
                     if (itemController.cartIndex != -1) {
-                      if (cartController.cartList[itemController.cartIndex].quantity! > 1) {
+                      if ((cartController.cartList[itemController.cartIndex].quantity ?? 0) > 1) {
                         cartController.setQuantity(false, itemController.cartIndex, stock, cartController.cartList[itemController.cartIndex].quantityLimit);
                       }
                     } else {
-                      if (itemController.quantity! > 1) {
-                        itemController.setQuantity(false, stock, itemController.item!.quantityLimit);
+                      if ((itemController.quantity ?? 1) > 1) {
+                        itemController.setQuantity(false, stock, itemController.item?.quantityLimit);
                       }
                     }
                   },
@@ -447,7 +462,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                     child: Text(
                       itemController.cartIndex != -1
                           ? cartController.cartList[itemController.cartIndex].quantity.toString()
-                          : itemController.quantity.toString(),
+                          : (itemController.quantity ?? 1).toString(),
                       style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge),
                     ),
                   ),
@@ -460,7 +475,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                     if (itemController.cartIndex != -1) {
                       cartController.setQuantity(true, itemController.cartIndex, stock, cartController.cartList[itemController.cartIndex].quantityLimit);
                     } else {
-                      itemController.setQuantity(true, stock, itemController.item!.quantityLimit);
+                      itemController.setQuantity(true, stock, itemController.item?.quantityLimit);
                     }
                   },
                 ),
@@ -473,10 +488,10 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(30),
-              onTap: (!Get.find<SplashController>().configModel!.moduleConfig!.module!.stock! || stock! > 0)
+              onTap: (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0)
                   ? () async {
-                      if (!Get.find<SplashController>().configModel!.moduleConfig!.module!.stock! || stock! > 0) {
-                        if (itemController.item!.availableDateStarts != null) {
+                      if (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0) {
+                        if (itemController.item?.availableDateStarts != null) {
                           Get.toNamed(
                               RouteHelper.getCheckoutRoute('campaign'),
                               arguments: CheckoutScreen(
@@ -486,22 +501,22 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                               ));
                         } else {
                           if (cartController.existAnotherStoreItem(
-                              cartModel!.item!.storeId,
+                              cartModel?.item?.storeId,
                               Get.find<SplashController>().module == null
-                                  ? Get.find<SplashController>().cacheModule!.id
-                                  : Get.find<SplashController>().module!.id)) {
+                                  ? Get.find<SplashController>().cacheModule?.id
+                                  : Get.find<SplashController>().module?.id)) {
                             Get.dialog(
                                 ConfirmationDialog(
                                   icon: Images.warning,
                                   title: 'are_you_sure_to_reset'.tr,
-                                  description: Get.find<SplashController>().configModel!.moduleConfig!.module!.showRestaurantText!
+                                  description: (Get.find<SplashController>().configModel?.moduleConfig?.module?.showRestaurantText ?? false)
                                       ? 'if_you_continue'.tr
                                       : 'if_you_continue_without_another_store'.tr,
                                   onYesPressed: () {
                                     Get.back();
                                     cartController.clearCartOnline().then((success) async {
                                       if (success) {
-                                        await cartController.addToCartOnline(cart!);
+                                        await cartController.addToCartOnline(cart!, storeId: widget.item?.storeId ?? cart.storeId);
                                         itemController.setExistInCart(widget.item, null);
                                         showCartSnackBar(success ? 'item_added_to_cart'.tr : 'failed_to_add_to_cart'.tr, isError: false);
                                       }
@@ -511,7 +526,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                                 barrierDismissible: false);
                           } else {
                             if (itemController.cartIndex == -1) {
-                              await cartController.addToCartOnline(cart!).then((success) {
+                              await cartController.addToCartOnline(cart!, storeId: widget.item?.storeId ?? cart.storeId).then((success) {
                                 if (success) {
                                   itemController.setExistInCart(widget.item, null);
                                   showCartSnackBar(success ? 'item_added_to_cart'.tr : 'failed_to_add_to_cart'.tr, isError: false);
@@ -519,7 +534,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                                 }
                               });
                             } else {
-                              await cartController.updateCartOnline(cart!).then((success) {
+                              await cartController.updateCartOnline(cart!, storeId: widget.item?.storeId ?? cart.storeId).then((success) {
                                 if (success) {
                                   showCartSnackBar(success ? 'item_added_to_cart'.tr : 'failed_to_add_to_cart'.tr, isError: false);
                                   _key.currentState!.shake();
@@ -527,24 +542,28 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                               });
                             }
                             if (GetPlatform.isIOS || !GetPlatform.isWeb) {
-                              _faceBookEvent(widget.item!);
+                              if (widget.item != null) {
+                                _faceBookEvent(widget.item!);
+                              }
                             }
-                            FirebaseAnalytics.instance.logEvent(
-                              name: 'add_to_cart',
-                              parameters: {
-                                'currency': 'EGP',
-                                'value': widget.item!.price!,
-                                'items': [
-                                  {
-                                    'item_id': widget.item!.id.toString(),
-                                    'item_name': widget.item!.name,
-                                    'price': widget.item!.price!,
-                                    'quantity': widget.item!.quantityLimit ?? 1,
-                                    'item_category': widget.item!.storeName ?? '',
-                                  }
-                                ]
-                              },
-                            );
+                            if (widget.item != null) {
+                              FirebaseAnalytics.instance.logEvent(
+                                name: 'add_to_cart',
+                                parameters: {
+                                  'currency': 'EGP',
+                                  'value': widget.item!.price ?? 0.0,
+                                  'items': [
+                                    {
+                                      'item_id': widget.item!.id.toString(),
+                                      'item_name': widget.item!.name ?? '',
+                                      'price': widget.item!.price ?? 0.0,
+                                      'quantity': widget.item!.quantityLimit ?? 1,
+                                      'item_category': widget.item!.storeName ?? '',
+                                    }
+                                  ]
+                                },
+                              );
+                            }
                           }
                         }
                       }
@@ -554,7 +573,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                 duration: const Duration(milliseconds: 300),
                 height: 50,
                 decoration: BoxDecoration(
-                  color: (!Get.find<SplashController>().configModel!.moduleConfig!.module!.stock! || stock! > 0)
+                  color: (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0)
                       ? Theme.of(context).primaryColor
                       : Theme.of(context).disabledColor,
                   borderRadius: BorderRadius.circular(30),
@@ -639,19 +658,19 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
 
   double _getItemDetailsDiscountPrice({required CartModel cart}) {
     double discountedPrice = 0;
-    double? discount = cart.item!.storeDiscount == 0 ? cart.item!.discount! : cart.item!.storeDiscount!;
-    String? discountType = (cart.item!.storeDiscount == 0) ? cart.item!.discountType : 'percent';
-    String variationType = cart.variation != null && cart.variation!.isNotEmpty ? cart.variation![0].type! : '';
+    double? discount = (cart.item?.storeDiscount ?? 0) == 0 ? cart.item?.discount : cart.item?.storeDiscount;
+    String? discountType = ((cart.item?.storeDiscount ?? 0) == 0) ? cart.item?.discountType : 'percent';
+    String variationType = cart.variation != null && cart.variation!.isNotEmpty ? (cart.variation![0].type ?? '') : '';
 
-    if (cart.variation != null && cart.variation!.isNotEmpty) {
+    if (cart.variation != null && cart.variation!.isNotEmpty && cart.item?.variations != null) {
       for (Variation variation in cart.item!.variations!) {
         if (variation.type == variationType) {
-          discountedPrice = (PriceConverter.convertWithDiscount(variation.price!, discount, discountType)! * cart.quantity!);
+          discountedPrice = ((PriceConverter.convertWithDiscount(variation.price ?? 0, discount, discountType) ?? variation.price ?? 0) * (cart.quantity ?? 1));
           break;
         }
       }
     } else {
-      discountedPrice = (PriceConverter.convertWithDiscount(cart.item!.price!, discount, discountType)! * cart.quantity!);
+      discountedPrice = ((PriceConverter.convertWithDiscount(cart.item?.price ?? 0, discount, discountType) ?? cart.item?.price ?? 0) * (cart.quantity ?? 1));
     }
     return discountedPrice;
   }

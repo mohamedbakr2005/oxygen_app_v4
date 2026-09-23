@@ -21,6 +21,7 @@ import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/features/item/controllers/campaign_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_body_model.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/services/splash_service_interface.dart';
@@ -35,6 +36,8 @@ class SplashController extends GetxController implements GetxService {
 
   ConfigModel? _configModel;
   ConfigModel? get configModel => _configModel;
+
+  bool get proStaus => _configModel?.proMemberStatus ?? false;
 
   bool _firstTimeConnectionCheck = true;
   bool get firstTimeConnectionCheck => _firstTimeConnectionCheck;
@@ -290,6 +293,9 @@ class SplashController extends GetxController implements GetxService {
       if (AuthHelper.isLoggedIn()) {
         futures.add(Get.find<HomeController>().getCashBackOfferList());
         futures.add(Get.find<FavouriteController>().getFavouriteList());
+        if (Get.find<ProfileController>().userInfoModel?.proStatus ?? false) {
+          futures.add(Get.find<ProController>().getProActiveOffer(moduleType: _module?.moduleType));
+        }
       }
 
       await Future.wait(futures);

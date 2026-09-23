@@ -163,6 +163,22 @@ class CouponCardWidget extends StatelessWidget {
               ),
             )
           : const SizedBox(),
+
+      if (coupon.couponType == 'pro_customer')
+        Positioned.directional(
+          textDirection: Directionality.of(context),
+          top: Dimensions.paddingSizeSmall,
+          start: Dimensions.paddingSizeSmall,
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Color(0xFFB57BEE),
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(Images.proPlanCrown,
+                height: 14, width: 14, color: Colors.white),
+          ),
+        ),
     ]);
   }
 }

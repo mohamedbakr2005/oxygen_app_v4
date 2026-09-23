@@ -7,8 +7,6 @@ import 'package:Oxygen_Mart/common/widgets/custom_loader.dart';
 import 'package:Oxygen_Mart/common/widgets/title_widget.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
-import 'package:Oxygen_Mart/features/banner/controllers/banner_controller.dart';
-import 'package:Oxygen_Mart/features/home/widgets/banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/popular_store_view.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
@@ -34,9 +32,9 @@ class ModuleView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      GetBuilder<BannerController>(builder: (bannerController) {
-        return const BannerView(isFeatured: true);
-      }),
+      // GetBuilder<BannerController>(builder: (bannerController) {
+      //   return const BannerView(isFeatured: true);
+      // }),
       if (splashController.moduleList != null &&
           splashController.moduleList!.isNotEmpty)
         _ModulesBentoSection(splashController: splashController)
@@ -49,7 +47,7 @@ class ModuleView extends StatelessWidget {
             child: Text('no_module_found'.tr),
           ),
         ),
-      GetBuilder<AddressController>(builder: (locationController) {
+      /* GetBuilder<AddressController>(builder: (locationController) {
         List<AddressModel?> addressList = [];
         if (AuthHelper.isLoggedIn() && locationController.addressList != null) {
           addressList = [];
@@ -103,8 +101,8 @@ class ModuleView extends StatelessWidget {
                   ])
                 : const SizedBox()
             : AddressShimmer(isEnabled: AuthHelper.isLoggedIn() && locationController.addressList == null);
-      }),
-      const PopularStoreView(isPopular: false, isFeatured: true),
+      }), */
+      // const PopularStoreView(isPopular: false, isFeatured: true),
       const SizedBox(height: 120),
     ]);
   }

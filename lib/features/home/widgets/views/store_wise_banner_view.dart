@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
@@ -26,10 +26,10 @@ class StoreWiseBannerView extends StatelessWidget {
             fit: BoxFit.cover,
             height: 135,
             width: double.infinity,
-            isHighQuality: true,
           ),
         ),
       ),
     );
   }
 }
+

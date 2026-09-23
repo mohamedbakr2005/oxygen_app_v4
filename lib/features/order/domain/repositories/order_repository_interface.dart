@@ -1,5 +1,7 @@
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 import 'package:Oxygen_Mart/interfaces/repository_interface.dart';
 
 abstract class OrderRepositoryInterface extends RepositoryInterface {
@@ -20,4 +22,7 @@ abstract class OrderRepositoryInterface extends RepositoryInterface {
   Future<Response> getDeliveryManLastLocation(String orderID);
   Future<bool> cancelOrder(String orderID, String? reason, {String? guestId});
   Future<Response> switchToCOD(String? orderID, {String? guestId});
+  Future<MonthlyOrderModel?> getMonthlyOrderList({required int offset, String? moduleType});
+  Future<Response> removeMonthlyOrder(int id);
+  Future<ReorderResponseModel?> reorder(int orderId);
 }

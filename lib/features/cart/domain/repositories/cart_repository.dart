@@ -46,8 +46,13 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   }
 
   Future<List<OnlineCartModel>?> _addToCartOnline(OnlineCart cart, {int? storeId}) async {
+    storeId ??= cart.storeId;
     List<OnlineCartModel>? onlineCartList;
-    Response response = await apiClient.postData('${AppConstants.addCartUri}${_buildCartMutationQuery(storeId)}', cart.toJson());
+    Map<String, dynamic> data = cart.toJson();
+    if(storeId != null && !data.containsKey('store_id')) {
+      data['store_id'] = storeId;
+    }
+    Response response = await apiClient.postData('${AppConstants.addCartUri}${_buildCartMutationQuery(storeId)}', data);
     if(response.statusCode == 200) {
       onlineCartList = [];
       response.body.forEach((cart) => onlineCartList!.add(OnlineCartModel.fromJson(cart)));
@@ -99,7 +104,7 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
 
   @override
   Future getList({int? offset}) async {
-    return await _getCartDataOnline();
+    return [];
   }
 
   @override
@@ -109,11 +114,12 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
 
   Future<List<OnlineCartModel>?> _getCartDataOnline({int? storeId}) async {
     List<OnlineCartModel>? onlineCartList;
-    Map<String, String>? header ={
+    final String? token = sharedPreferences.getString(AppConstants.token);
+    Map<String, String>? header = {
       'Content-Type': 'application/json; charset=UTF-8',
       AppConstants.localizationKey: AppConstants.languages[0].languageCode!,
       AppConstants.moduleId: '${ModuleHelper.getCacheModule()?.id}',
-      'Authorization': 'Bearer ${sharedPreferences.getString(AppConstants.token)}'
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
 
     final List<String> queryParams = <String>[];
@@ -128,8 +134,9 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
     Response response = await apiClient.getData(
       '${AppConstants.getCartListUri}$querySuffix',
       headers: ModuleHelper.getModule()?.id == null ? header : null,
+      handleError: false,
     );
-    if(response.statusCode == 200) {
+    if(response.statusCode == 200 && response.body is List) {
       onlineCartList = [];
       response.body.forEach((cart) => onlineCartList!.add(OnlineCartModel.fromJson(cart)));
     }
@@ -146,6 +153,9 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   }
 
   Future<List<OnlineCartModel>?> _updateCartOnline(Map<String, dynamic> body, {int? storeId}) async {
+    if(storeId != null && !body.containsKey('store_id')) {
+      body['store_id'] = storeId;
+    }
     List<OnlineCartModel>? onlineCartList;
     Response response = await apiClient.postData('${AppConstants.updateCartUri}${_buildCartMutationQuery(storeId)}', body);
     if(response.statusCode == 200) {
@@ -161,6 +171,9 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
       "price": price,
       "quantity": quantity,
     };
+    if(storeId != null) {
+      data['store_id'] = storeId;
+    }
     Response response = await apiClient.postData('${AppConstants.updateCartUri}${_buildCartMutationQuery(storeId)}', data);
     return (response.statusCode == 200);
   }
@@ -168,11 +181,12 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   @override
   Future<List<AllCartsModel>?> getAllCarts() async {
     List<AllCartsModel>? allCarts;
+    final String? token = sharedPreferences.getString(AppConstants.token);
     Map<String, String>? header = {
       'Content-Type': 'application/json; charset=UTF-8',
       AppConstants.localizationKey: AppConstants.languages[0].languageCode!,
       AppConstants.moduleId: '${ModuleHelper.getCacheModule()?.id}',
-      'Authorization': 'Bearer ${sharedPreferences.getString(AppConstants.token)}',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
     if(ModuleHelper.getCacheModule()?.id == null) {
       return [];

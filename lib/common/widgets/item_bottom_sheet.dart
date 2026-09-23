@@ -1046,6 +1046,7 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
                                               addOnsList,
                                               listOfAddOnQty,
                                               'Item',
+                                              storeId: widget.item?.storeId,
                                             );
 
                                             if (widget.isCampaign) {
@@ -1113,7 +1114,8 @@ class _ItemBottomSheetState extends State<ItemBottomSheet> {
                                                   await Get.find<
                                                           CartController>()
                                                       .updateCartOnline(
-                                                          onlineCart)
+                                                          onlineCart,
+                                                          storeId: widget.item?.storeId)
                                                       .then((success) {
                                                     if (success) {
                                                       Get.back();

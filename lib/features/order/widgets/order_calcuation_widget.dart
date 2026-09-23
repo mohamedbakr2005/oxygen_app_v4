@@ -7,6 +7,7 @@ import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/order/widgets/order_item_widget.dart';
 import 'package:Oxygen_Mart/features/order/widgets/support_reason_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/parcel/widgets/details_widget.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
@@ -206,6 +207,19 @@ class OrderCalculationWidget extends StatelessWidget {
                                   ),
                                 ]),
                             const SizedBox(height: 12),
+                            (order.benefitType == ProBenefitType.deliveryFee && (order.deliveryFeeReductionAmount ?? 0) > 0)
+                                ? Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('delivery_discount_pro'.tr,
+                                          style: summaryLabelStyle),
+                                      Text(
+                                          '(-) ${PriceConverter.convertPrice(order.deliveryFeeReductionAmount)}',
+                                          style: summaryValueStyle),
+                                    ])
+                                : const SizedBox(),
+                            SizedBox(height: (order.benefitType == ProBenefitType.deliveryFee && (order.deliveryFeeReductionAmount ?? 0) > 0) ? 12 : 0),
                             Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
@@ -316,6 +330,19 @@ class OrderCalculationWidget extends StatelessWidget {
                                         style: summaryValueStyle),
                                   ]),
                               const SizedBox(height: 12),
+                              (order.benefitType == ProBenefitType.discount && (order.proDiscount ?? 0) > 0)
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('discount_pro'.tr,
+                                            style: summaryLabelStyle),
+                                        Text(
+                                            '(-) ${PriceConverter.convertPrice(order.proDiscount)}',
+                                            style: summaryValueStyle),
+                                      ])
+                                  : const SizedBox(),
+                              SizedBox(height: (order.benefitType == ProBenefitType.discount && (order.proDiscount ?? 0) > 0) ? 12 : 0),
                               couponDiscount > 0
                                   ? Row(
                                       mainAxisAlignment:
@@ -422,6 +449,20 @@ class OrderCalculationWidget extends StatelessWidget {
                                                 color: Theme.of(context)
                                                     .primaryColor)),
                                   ]),
+                              const SizedBox(height: 12),
+                              (order.benefitType == ProBenefitType.deliveryFee && (order.deliveryFeeReductionAmount ?? 0) > 0)
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('delivery_discount_pro'.tr,
+                                            style: summaryLabelStyle),
+                                        Text(
+                                            '(-) ${PriceConverter.convertPrice(order.deliveryFeeReductionAmount)}',
+                                            style: summaryValueStyle),
+                                      ])
+                                  : const SizedBox(),
+                              SizedBox(height: (order.benefitType == ProBenefitType.deliveryFee && (order.deliveryFeeReductionAmount ?? 0) > 0) ? 12 : 0),
                             ],
                           ),
                     Padding(

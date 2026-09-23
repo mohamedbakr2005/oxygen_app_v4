@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:get/get.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/features/home/widgets/banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/highlight_widget.dart';
@@ -8,15 +11,13 @@ import 'package:Oxygen_Mart/features/home/widgets/views/middle_section_banner_vi
 import 'package:Oxygen_Mart/features/home/widgets/views/product_with_categories_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/promotional_banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/top_offers_near_me.dart';
+import 'package:Oxygen_Mart/features/home/widgets/todays_deals_section.dart';
+import 'package:Oxygen_Mart/features/home/widgets/top_picks_near_you_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/visit_again_view.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_utils/src/extensions/internacionalization.dart';import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/styles.dart';
 class PharmacyHomeScreen extends StatelessWidget {
   const PharmacyHomeScreen({super.key});
 
@@ -68,8 +69,21 @@ class PharmacyHomeScreen extends StatelessWidget {
         ),
       ),
       const CategoryView(),
+      const TodaysDealsSectionWidget(),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
+      TopPicksNearYouWidget(title: "verified_pharmacies".tr, subTitle: "secure_buying_experience".tr, isVerifiedStore: true),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
+      TopPicksNearYouWidget(title: "recommended_for_you".tr, isRecommended: true),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
       isLoggedIn ? const VisitAgainView() : const SizedBox(),
       const ProductWithCategoriesView(),
+      GetBuilder<ReelsController>(builder: (controller) {
+        final visible = (controller.reelsList == null && controller.isLoading) || (controller.reelsList != null && controller.reelsList!.isNotEmpty);
+        return visible ? const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: ReelsSectionWidget(),
+        ) : const SizedBox();
+      }),
       const HighlightWidget(),
       const MiddleSectionBannerView(),
       const TopOffersNearMe(),
@@ -79,3 +93,4 @@ class PharmacyHomeScreen extends StatelessWidget {
     ]);
   }
 }
+

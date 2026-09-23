@@ -5,6 +5,7 @@ import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/repositories/checkout_repository_interface.dart';
 import 'package:Oxygen_Mart/features/payment/domain/models/offline_method_model.dart';
+import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class CheckoutRepository implements CheckoutRepositoryInterface {
@@ -68,8 +69,14 @@ class CheckoutRepository implements CheckoutRepositoryInterface {
   @override
   Future<Response> placeOrder(PlaceOrderBodyModel orderBody,
       List<MultipartBody>? orderAttachment) async {
+    Map<String, String> headers = Map<String, String>.from(apiClient.getHeader());
+    final int? moduleId = ModuleHelper.getModule()?.id ?? ModuleHelper.getCacheModule()?.id;
+    if (moduleId != null) {
+      headers[AppConstants.moduleId] = '$moduleId';
+    }
     return await apiClient.postMultipartData(
         AppConstants.placeOrderUri, orderBody.toJson(), orderAttachment ?? [],
+        headers: headers,
         handleError: false);
   }
 

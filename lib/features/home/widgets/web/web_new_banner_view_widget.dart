@@ -1,4 +1,4 @@
-import 'package:carousel_slider/carousel_slider.dart';
+﻿import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
@@ -130,7 +130,6 @@ class WebNewBannerViewWidget extends StatelessWidget {
                                           isHovered: hovered,
                                           image: '${bannerList[index]}',
                                           fit: BoxFit.cover,
-                                          isHighQuality: true,
                                         );
                                       }),
                                     ),
@@ -173,7 +172,7 @@ class WebNewBannerViewWidget extends StatelessWidget {
                                       decoration: BoxDecoration(
                                           color: Theme.of(context)
                                               .primaryColor
-                                              .withOpacity(0.5),
+                                              .withValues(alpha: 0.5),
                                           borderRadius: BorderRadius.circular(
                                               Dimensions.radiusDefault)),
                                     ),
@@ -199,3 +198,5 @@ class WebNewBannerViewWidget extends StatelessWidget {
     });
   }
 }
+
+

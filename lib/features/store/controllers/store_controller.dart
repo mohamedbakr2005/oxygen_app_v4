@@ -173,6 +173,9 @@ class StoreController extends GetxController implements GetxService {
   List<Store>? _recommendedStoreList;
   List<Store>? get recommendedStoreList => _recommendedStoreList;
 
+  // List<Store>? _topOfferStoreList;
+  // List<Store>? get topOfferStoreList => _topOfferStoreList;
+
   double getRestaurantDistance(LatLng storeLatLng) {
     double distance = 0;
     distance = Geolocator.distanceBetween(
@@ -457,49 +460,6 @@ class StoreController extends GetxController implements GetxService {
     }
   }
 
-  Future<void> getTopOfferStoreList(bool reload, bool notify,
-      {DataSourceEnum dataSource = DataSourceEnum.local,
-      bool fromRecall = false}) async {
-    final int requestId = _storeRequestId;
-    if (reload) {
-      _topOfferStoreList = null;
-    }
-    if (notify) {
-      update();
-    }
-    if (_topOfferStoreList == null || reload || fromRecall) {
-      List<Store>? latestStoreList;
-      if (dataSource == DataSourceEnum.local) {
-        latestStoreList = await storeServiceInterface.getTopOfferStoreList(
-            source: DataSourceEnum.local);
-        if (requestId != _storeRequestId) return;
-        if (latestStoreList != null) {
-          _topOfferStoreList = [];
-          _topOfferStoreList!.addAll(latestStoreList);
-        }
-        update();
-        getTopOfferStoreList(false, notify,
-            dataSource: DataSourceEnum.client, fromRecall: true);
-      } else {
-        var results = await Future.wait([
-          storeServiceInterface.getTopOfferStoreList(
-              source: DataSourceEnum.client),
-          if (reload)
-            Future.delayed(const Duration(seconds: 3))
-          else
-            Future.value(null),
-        ]);
-        latestStoreList = results[0] as List<Store>?;
-
-        if (requestId != _storeRequestId) return;
-        if (latestStoreList != null) {
-          _topOfferStoreList = [];
-          _topOfferStoreList!.addAll(latestStoreList);
-        }
-        update();
-      }
-    }
-  }
 
   Future<void> getFeaturedStoreList(
       {bool reload = false,
@@ -707,6 +667,37 @@ class StoreController extends GetxController implements GetxService {
     if (recommendedStoreList != null) {
       _recommendedStoreList = [];
       _recommendedStoreList!.addAll(recommendedStoreList);
+    }
+    update();
+  }
+
+  Future<void> getTopOfferStoreList(bool reload, bool notify, {DataSourceEnum dataSource = DataSourceEnum.local, bool fromRecall = false}) async {
+    final int requestId = _storeRequestId;
+    if (reload) {
+      _topOfferStoreList = null;
+    }
+    if (notify) {
+      update();
+    }
+    if (_topOfferStoreList == null || reload || fromRecall) {
+      List<Store>? topOfferStoreList;
+      if (dataSource == DataSourceEnum.local) {
+        topOfferStoreList = await storeServiceInterface.getTopOfferStoreList(source: DataSourceEnum.local);
+        if (requestId != _storeRequestId) return;
+        _prepareTopOfferStores(topOfferStoreList);
+        getTopOfferStoreList(false, notify, dataSource: DataSourceEnum.client, fromRecall: true);
+      } else {
+        topOfferStoreList = await storeServiceInterface.getTopOfferStoreList(source: DataSourceEnum.client);
+        if (requestId != _storeRequestId) return;
+        _prepareTopOfferStores(topOfferStoreList);
+      }
+    }
+  }
+
+  void _prepareTopOfferStores(List<Store>? topOfferStoreList) {
+    if (topOfferStoreList != null) {
+      _topOfferStoreList = [];
+      _topOfferStoreList!.addAll(topOfferStoreList);
     }
     update();
   }

@@ -2,6 +2,7 @@ import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/features/home/domain/models/cashback_model.dart';
+import 'package:Oxygen_Mart/features/home/domain/models/top_offer_model.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 import 'home_repository_interface.dart';
@@ -56,6 +57,15 @@ class HomeRepository implements HomeRepositoryInterface {
       cashBackModel = CashBackModel.fromJson(response.body);
     }
     return cashBackModel;
+  }
+
+  @override
+  Future<TopOfferModel?> getTopOffer() async {
+    final Response response = await apiClient.getData(AppConstants.topOfferUri);
+    if (response.statusCode == 200 && response.body is Map<String, dynamic>) {
+      return TopOfferModel.fromJson(response.body);
+    }
+    return null;
   }
 
   @override

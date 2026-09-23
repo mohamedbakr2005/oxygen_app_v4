@@ -100,7 +100,7 @@ class ExistingUserBottomSheet extends StatelessWidget {
                   } else {
                     socialLogInBodyModel!.verified = 'no';
 
-                    authController.loginWithSocialMedia(socialLogInBodyModel!).then((response) {
+                    authController.loginWithSocialMedia(socialLogInBodyModel!, alreadyInApp: backFromThis).then((response) {
                       _responseHandle(response);
                     });
                   }
@@ -114,14 +114,14 @@ class ExistingUserBottomSheet extends StatelessWidget {
                 fontSize: Dimensions.fontSizeDefault,
                 onPressed: () async {
                   if(loginType == CentralizeLoginType.otp.name) {
-                    authController.otpLogin(phone: number ?? email ?? '', loginType: loginType, otp: otp!, verified: 'yes').then((response) {
+                    authController.otpLogin(phone: number ?? email ?? '', loginType: loginType, otp: otp!, verified: 'yes', alreadyInApp: backFromThis).then((response) {
                       _responseHandle(response);
                     });
                   } else {
 
                     socialLogInBodyModel!.verified = 'yes';
 
-                    authController.loginWithSocialMedia(socialLogInBodyModel!).then((response) {
+                    authController.loginWithSocialMedia(socialLogInBodyModel!, alreadyInApp: backFromThis).then((response) {
                       _responseHandle(response);
                     });
                   }
@@ -138,7 +138,7 @@ class ExistingUserBottomSheet extends StatelessWidget {
 
   void _responseHandle(ResponseModel response) {
     Get.back();
-    if(response.isSuccess && !response.authResponseModel!.isPersonalInfo!) {
+    if(response.isSuccess && response.authResponseModel!.requiresProfileCompletion) {
       if(ResponsiveHelper.isDesktop(Get.context)) {
         Get.back();
         Get.dialog(NewUserSetupScreen(name: userModel.name??'', loginType: loginType, phone: number, email: email, backFromThis: backFromThis));

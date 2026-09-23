@@ -19,10 +19,8 @@ class Images {
   static const String lock = 'assets/image/lock.png';
   static const String mail = 'assets/image/mail.png';
   static const String placeHolder = 'assets/image/placeholder-image.jpg';
+  static const String proPlanCrown = 'assets/image/pro_plan_crown.png';
   static const String map = 'assets/image/map.png';
-  static const String facebook2 = 'assets/image/facebook2.png';
-  static const String changePass = 'assets/image/change_pass.png';
-  static const String onBoard = 'assets/image/onboard.svg';
   static const String onboard_1 = 'assets/image/onboard_1.png';
   static const String onboard_2 = 'assets/image/onboard_2.png';
   static const String onboard_3 = 'assets/image/onboard_3.png';
@@ -107,6 +105,7 @@ class Images {
   static const String shippingPolicy = 'assets/image/shipping_policy.png';
   static const String cancellation = 'assets/image/cancelation.png';
   static const String refund = 'assets/image/refund.png';
+  static const String monthlyCart = 'assets/image/monthly_cart.png';
   //ride share
   static const String riderSearch = 'assets/image/rider_search.png';
   static const String addressOffice = 'assets/image/address_type_office.png';
@@ -221,6 +220,7 @@ class Images {
   static const String storeMarker = 'assets/image/store_marker.png';
   static const String profileDelete = 'assets/image/profile_delete.png';
   static const String delete = 'assets/image/delete_icon.png';
+  // static const String fireIcon = 'assets/image/fire.png';
   static const String biking = 'assets/image/biking.png';
   static const String walletProfile = 'assets/image/wallet_profile.png';
   static const String pendingOrderDetails = 'assets/image/pending_for_all.gif';
@@ -320,7 +320,7 @@ class Images {
   static const String emailWithPhoneIcon = 'assets/image/email_with_phone.png';
 
   static const String referBg = 'assets/image/refer_bg.svg';
-  static const String halalTag = 'assets/image/halal_tag.svg';
+  // static const String halalTag = 'assets/image/halal_tag.svg';
   static const String cashBack = 'assets/image/cash_back.svg';
   static const String shopIcon = 'assets/image/shop_icon.svg';
   static const String pickStoreMarker = 'assets/image/pick_store_marker.svg';
@@ -362,4 +362,17 @@ class Images {
   static const String offerImage = 'assets/image/offer.png';
   static const String expressDelivery = 'assets/image/express_delivery.png';
   static const String nearByIcon = 'assets/image/near_by.png';
+
+  static const String verifiedBadge = 'assets/image/verified_badge.png';
+  static const String verifiedBadge2 = 'assets/image/verified_icon.png';
+  static const String organicTag = 'assets/image/organic.png';
+  static const String halalTag = 'assets/image/halal_tag.svg';
+  static const String halalTagPng = 'assets/image/halal_tag.png';
+  static const String vegTag = 'assets/image/veg_new.png';
+  static const String nonVegTag = 'assets/image/non_veg_new.png';
+  static const String changePass = 'assets/image/change_pass.png';
+  static const String onBoard = 'assets/image/onboard.svg';
+  static const String reelTitleIcon = 'assets/image/reel_title_icon.png';
+  static const String quickDelivery = 'assets/image/quick_delivery.png';
+  // static const String fireIcon = 'assets/image/fire_icon.png';
 }

@@ -291,6 +291,7 @@ class CheckoutController extends GetxController implements GetxService {
     _distance = null;
     _orderAttachment = null;
     _rawAttachment = null;
+    _monthlySubscribe = false;
   }
 
   Future<void> initializeTimeSlot(Store store) async {
@@ -703,6 +704,7 @@ class CheckoutController extends GetxController implements GetxService {
         }
       }
       clearPrevData();
+      _monthlySubscribe = false;
       Get.find<CouponController>().removeCouponData(false);
       updateTips(
         getSharedPrefDmTipIndex().isNotEmpty
@@ -773,4 +775,15 @@ class CheckoutController extends GetxController implements GetxService {
       update();
     }
   }
+
+  bool _monthlySubscribe = false;
+  bool get monthlySubscribe => _monthlySubscribe;
+
+  void toggleMonthlySubscribe() {
+    _monthlySubscribe = !_monthlySubscribe;
+    print('[DEBUG] Monthly Subscribe toggled: $_monthlySubscribe');
+    update();
+  }
+
+  List<String> getMonthlyReorderPolicy() => checkoutServiceInterface.getMonthlyReorderPolicy();
 }

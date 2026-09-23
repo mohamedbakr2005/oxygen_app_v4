@@ -1,4 +1,4 @@
-import 'package:carousel_slider/carousel_slider.dart';
+﻿import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
@@ -72,7 +72,6 @@ class _MiddleSectionBannerViewState extends State<MiddleSectionBannerView> {
                                 fit: BoxFit.cover,
                                 height: 80,
                                 width: double.infinity,
-                                isHighQuality: true,
                               ),
                             ),
                           ),
@@ -105,7 +104,7 @@ class _MiddleSectionBannerViewState extends State<MiddleSectionBannerView> {
                                   decoration: BoxDecoration(
                                       color: Theme.of(context)
                                           .primaryColor
-                                          .withOpacity(0.5),
+                                          .withValues(alpha: 0.5),
                                       borderRadius: BorderRadius.circular(
                                           Dimensions.radiusDefault)),
                                 ),
@@ -160,3 +159,5 @@ class MiddleSectionBannerShimmerView extends StatelessWidget {
     );
   }
 }
+
+

@@ -305,15 +305,19 @@ class DetailsWebViewWidget extends StatelessWidget {
                                             )
                                           : const SizedBox(),
                                       const SizedBox(height: 30),
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        itemCount: itemController
-                                            .item!.choiceOptions!.length,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        padding: EdgeInsets.zero,
-                                        itemBuilder: (context, index) {
-                                          return Column(
+                                      if (itemController.item?.choiceOptions !=
+                                              null &&
+                                          itemController.item!.choiceOptions!
+                                              .isNotEmpty)
+                                        ListView.builder(
+                                          shrinkWrap: true,
+                                          itemCount: itemController
+                                              .item!.choiceOptions!.length,
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          padding: EdgeInsets.zero,
+                                          itemBuilder: (context, index) {
+                                            return Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
@@ -632,7 +636,8 @@ class DetailsWebViewWidget extends StatelessWidget {
                                                                     if (success) {
                                                                       await cartController
                                                                           .addToCartOnline(
-                                                                              cart!);
+                                                                              cart!,
+                                                                              storeId: itemController.item?.storeId ?? cart?.storeId);
                                                                       itemController.setExistInCart(
                                                                           itemController
                                                                               .item,
@@ -654,7 +659,8 @@ class DetailsWebViewWidget extends StatelessWidget {
                                                               -1) {
                                                             await cartController
                                                                 .addToCartOnline(
-                                                                    cart!)
+                                                                    cart!,
+                                                                    storeId: itemController.item?.storeId ?? cart?.storeId)
                                                                 .then(
                                                                     (success) {
                                                               if (success) {
@@ -676,7 +682,8 @@ class DetailsWebViewWidget extends StatelessWidget {
                                                           } else {
                                                             await cartController
                                                                 .updateCartOnline(
-                                                                    cart!)
+                                                                    cart!,
+                                                                    storeId: itemController.item?.storeId ?? cart?.storeId)
                                                                 .then(
                                                                     (success) {
                                                               if (success) {

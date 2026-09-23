@@ -14,6 +14,10 @@ import 'package:Oxygen_Mart/features/parcel/widgets/get_service_video_widget.dar
 import 'package:Oxygen_Mart/features/parcel/widgets/parcel_app_bar_widget.dart';
 import 'package:Oxygen_Mart/features/parcel/widgets/sevice_info_list_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/screens/subscription_plan_screen.dart';
+import 'package:Oxygen_Mart/features/pro/widgets/pro_plan_banner_widget.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
@@ -34,6 +38,11 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
     if (AuthHelper.isLoggedIn() &&
         Get.find<ProfileController>().userInfoModel == null) {
       Get.find<ProfileController>().getUserInfo();
+    }
+    if (Get.find<ProfileController>().proStatus) {
+      Get.find<ProController>().getProActiveOffer(
+        moduleType: Get.find<SplashController>().module?.moduleType,
+      );
     }
     if (Get.find<ParcelController>().parcelCategoryList == null) {
       Get.find<ParcelController>().getParcelCategoryList();
@@ -220,6 +229,11 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                           parcelController.parcelCategoryList ==
                                               null,
                                       isDeliveryItem: true),
+                              const SizedBox(
+                                  height: Dimensions.paddingSizeLarge),
+
+                              const _ParcelProPlanBanner(),
+
                               const SizedBox(
                                   height: Dimensions.paddingSizeLarge),
 
@@ -602,5 +616,25 @@ class VideoContentDetailsShimmer extends StatelessWidget {
               },
             ),
           ]);
+  }
+}
+
+class _ParcelProPlanBanner extends StatelessWidget {
+  const _ParcelProPlanBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Get.find<SplashController>().proStaus) return const SizedBox();
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.paddingSizeDefault),
+      child: ProPlanBannerWidget(
+        onSubscribe: () {
+          Get.find<ProController>()
+              .saveCurrentPath(route: RouteHelper.getMainRoute('home'));
+          SubscriptionPlanScreen.open();
+        },
+      ),
+    );
   }
 }

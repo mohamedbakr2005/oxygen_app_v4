@@ -27,6 +27,8 @@ import 'package:Oxygen_Mart/features/parcel/widgets/delivery_instruction_bottom_
 import 'package:Oxygen_Mart/features/parcel/widgets/details_widget.dart';
 import 'package:Oxygen_Mart/features/payment/widgets/offline_payment_button.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -96,6 +98,11 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen> {
     if (Get.find<ProfileController>().userInfoModel == null && _isLoggedIn) {
       Get.find<ProfileController>().getUserInfo();
     }
+    if (_isLoggedIn) {
+      Get.find<ProController>().getProActiveOffer(
+        moduleType: Get.find<SplashController>().module?.moduleType,
+      );
+    }
     Get.find<ParcelController>().updateTips(
       Get.find<AuthController>().getDmTipIndex().isNotEmpty
           ? int.parse(Get.find<AuthController>().getDmTipIndex())
@@ -129,21 +136,26 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen> {
                 double charge = -1;
                 double total = 0;
                 double dmTips = 0;
+                double proDiscount = 0;
+                double proDeliveryDiscount = 0;
                 double additionalCharge = Get.find<SplashController>()
                         .configModel!
                         .additionalChargeStatus!
                     ? Get.find<SplashController>().configModel!.additionCharge!
                     : 0;
-                // bool isOfflinePaymentActive = Get.find<SplashController>().configModel!.offlinePaymentStatus!/* && CheckoutHelper.checkZoneOfflinePaymentOnOff(addressModel: AddressHelper.getUserAddressFromSharedPref())*/;
+
+                final ProActiveBenefit? proBenefit = Get.find<ProController>().activeOfferModel?.benefit;
+                final bool isPro = _isLoggedIn && (Get.find<ProfileController>().userInfoModel?.proStatus ?? false);
 
                 if (parcelController.distance != -1 &&
                     parcelController.extraCharge != null) {
-                  charge = _calculateParcelDeliveryCharge(
-                      parcelController: parcelController,
-                      parcelCategory: widget.parcelCategory,
-                      zoneId: widget.pickedUpAddress.zoneId!);
-                  dmTips = parcelController.tips;
-                  total = charge + dmTips + additionalCharge;
+                  final ParcelBill bill = parcelController.calculateBill(widget.parcelCategory);
+                  charge = bill.charge;
+                  dmTips = bill.dmTips;
+                  additionalCharge = bill.additionalCharge;
+                  proDiscount = bill.proDiscount;
+                  proDeliveryDiscount = bill.proDeliveryDiscount;
+                  total = bill.total;
                 }
 
                 return Column(children: [
@@ -1019,6 +1031,44 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen> {
                                                           .color),
                                         ),
                                       ]),
+                                  if (isPro &&
+                                      proBenefit?.type ==
+                                          ProBenefitType.deliveryFee &&
+                                      proDeliveryDiscount > 0) ...[
+                                    const SizedBox(
+                                        height: Dimensions.paddingSizeSmall),
+                                    Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('delivery_fee_discount_pro'.tr,
+                                              style: robotoRegular),
+                                          Text(
+                                            '(-) ${PriceConverter.convertPrice(proDeliveryDiscount)}',
+                                            style: robotoRegular,
+                                            textDirection: TextDirection.ltr,
+                                          ),
+                                        ]),
+                                  ],
+                                  if (isPro &&
+                                      proBenefit?.type ==
+                                          ProBenefitType.discount &&
+                                      proDiscount > 0) ...[
+                                    const SizedBox(
+                                        height: Dimensions.paddingSizeSmall),
+                                    Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('discount_pro'.tr,
+                                              style: robotoRegular),
+                                          Text(
+                                            '(-) ${PriceConverter.convertPrice(proDiscount)}',
+                                            style: robotoRegular,
+                                            textDirection: TextDirection.ltr,
+                                          ),
+                                        ]),
+                                  ],
                                   SizedBox(
                                       height: Get.find<SplashController>()
                                                   .configModel!

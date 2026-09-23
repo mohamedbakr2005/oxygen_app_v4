@@ -1,11 +1,12 @@
+import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/chat/domain/models/conversation_model.dart';
+import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
-import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
-import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
+import 'package:Oxygen_Mart/features/auth/domain/enum/centralize_login_enum.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/profile/domain/models/update_user_model.dart';
 import 'package:Oxygen_Mart/features/profile/domain/models/userinfo_model.dart';
@@ -24,6 +25,8 @@ class ProfileController extends GetxController implements GetxService {
 
   XFile? _pickedFile;
   XFile? get pickedFile => _pickedFile;
+
+  bool get proStatus => _userInfoModel?.proStatus ?? false;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;

@@ -1,18 +1,28 @@
 import 'dart:convert';
 
 import 'package:Oxygen_Mart/helper/facebook_pixel_helper.dart';
-import 'package:Oxygen_Mart/helper/facebook_pixel_helper.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
+import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/common/widgets/confirmation_dialog.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
+import 'package:Oxygen_Mart/features/cart/domain/models/all_carts_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/services/order_service_interface.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/module_helper.dart';
+import 'package:Oxygen_Mart/helper/route_helper.dart';
+import 'package:Oxygen_Mart/util/images.dart';
 import 'package:universal_html/js.dart' as js;
 
 class OrderController extends GetxController implements GetxService {
@@ -25,6 +35,12 @@ class OrderController extends GetxController implements GetxService {
 
   PaginatedOrderModel? _historyOrderModel;
   PaginatedOrderModel? get historyOrderModel => _historyOrderModel;
+
+  List<MonthlyOrder>? _monthlyOrders;
+  List<MonthlyOrder>? get monthlyOrders => _monthlyOrders;
+
+  int? _reorderingOrderId;
+  int? get reorderingOrderId => _reorderingOrderId;
 
   List<OrderDetailsModel>? _orderDetails;
   List<OrderDetailsModel>? get orderDetails => _orderDetails;
@@ -484,8 +500,10 @@ class OrderController extends GetxController implements GetxService {
       required final String orderID,
       int? storeId,
       required bool createAccount,
-      required String guestId}) {
-    (
+      required String guestId,
+      bool isProSubscription = false,
+      bool isRenew = false}) {
+    orderServiceInterface.paymentRedirect(
       url: url,
       canRedirect: canRedirect,
       contactNumber: contactNumber,
@@ -496,7 +514,134 @@ class OrderController extends GetxController implements GetxService {
       storeId: storeId,
       createAccount: createAccount,
       guestId: guestId,
+      isProSubscription: isProSubscription,
+      isRenew: isRenew,
     );
+  }
+
+  Future<void> reorder(OrderModel order) async {
+    final int? orderId = order.id;
+    final int? storeId = order.store?.id;
+
+    if(orderId == null) {
+      showCustomSnackBar('reorder_failed'.tr);
+      return;
+    }
+
+    if(_reorderingOrderId != null) return;
+
+    _reorderingOrderId = orderId;
+    update();
+
+    final CartController cartController = Get.find<CartController>();
+    if(Get.find<SplashController>().moduleList != null) {
+      for(ModuleModel module in Get.find<SplashController>().moduleList!) {
+        if(module.id == order.moduleId) {
+          Get.find<SplashController>().setModule(module);
+          break;
+        }
+      }
+    }
+    await cartController.getAllCarts(notify: false);
+
+    final AllCartsModel? existing = storeId != null ? cartController.getCartsForStore(storeId) : null;
+
+    if(existing != null) {
+      _reorderingOrderId = null;
+      update();
+      Get.dialog(ConfirmationDialog(
+        icon: Images.warning,
+        title: 'are_you_sure_to_reset'.tr,
+        description: _resetCartDescription(order.moduleType),
+        onYesPressed: () async {
+          if(Get.isDialogOpen ?? false) Get.back();
+          final bool removed = await cartController.removeStoreCart(storeId!);
+          if(removed) {
+            await _performReorder(orderId);
+          }
+        },
+      ), barrierDismissible: false);
+      return;
+    }
+
+    await _performReorder(orderId);
+  }
+
+  String _resetCartDescription(String? moduleType) {
+    bool showRestaurantText = true;
+    if(moduleType != null) {
+      try {
+        showRestaurantText = Get.find<SplashController>().getModuleConfig(moduleType).showRestaurantText ?? true;
+      } catch (_) {}
+    }
+    return showRestaurantText ? 'if_you_continue'.tr : 'if_you_continue_store'.tr;
+  }
+
+  Future<void> _performReorder(int orderId) async {
+    _reorderingOrderId = orderId;
+    update();
+    final ReorderResponseModel? response = await orderServiceInterface.reorder(orderId);
+    _reorderingOrderId = null;
+    update();
+
+    if(response != null) {
+      String statusMessage = _buildReorderStatusMessage(response);
+      showCustomSnackBar(statusMessage, isError: response.unavailableItems?.isNotEmpty ?? false ? true : false);
+
+      final bool hasAdded = response.addedCount != null && response.addedCount! > 0;
+      if(hasAdded) {
+        await Get.find<CartController>().getAllCarts();
+        Get.toNamed(RouteHelper.getGlobalCartRoute(initialModuleId: ModuleHelper.getCacheModule()?.id));
+      }
+    }
+  }
+
+  String _buildReorderStatusMessage(ReorderResponseModel response) {
+    final hasAdded = response.addedCount != null && response.addedCount! > 0;
+    final hasUnavailable = response.unavailableItems != null && response.unavailableItems!.isNotEmpty;
+
+    String unavailableLabel = '';
+    if (hasUnavailable) {
+      final List<String> details = response.unavailableItems!
+          .map((item) {
+            final String name = item.name ?? '';
+            final String message = item.message ?? 'items_unavailable'.tr;
+            return name.isNotEmpty ? '$name $message' : message;
+          }).where((detail) => detail.isNotEmpty).toList();
+      unavailableLabel = details.isNotEmpty ? details.join(', ') : '${response.unavailableItems!.length} ${'items_unavailable'.tr}';
+    }
+
+    if (hasAdded && hasUnavailable) {
+      return '${response.addedCount} ${'items_added_to_cart'.tr}, $unavailableLabel';
+    } else if (hasAdded) {
+      return '${response.addedCount} ${'items_added_to_cart'.tr}';
+    } else if (hasUnavailable) {
+      return unavailableLabel;
+    }
+
+    return 'reorder_completed'.tr;
+  }
+
+  Future<void> getMonthlyOrderList({bool reload = true, String? moduleType, bool notify = true}) async {
+    if(reload) {
+      _monthlyOrders = null;
+      if(notify) update();
+    }
+    final MonthlyOrderModel? result = await orderServiceInterface.getMonthlyOrderList(offset: 1, moduleType: moduleType);
+    if(result != null) {
+      _monthlyOrders = result.items;
+      update();
+    }
+  }
+
+  Future<bool> removeMonthlyOrder(int id) async {
+    update();
+    final bool isSuccess = await orderServiceInterface.removeMonthlyOrder(id);
+    if(isSuccess) {
+      _monthlyOrders?.removeWhere((MonthlyOrder order) => order.id == id);
+    }
+    update();
+    return isSuccess;
   }
 }
 

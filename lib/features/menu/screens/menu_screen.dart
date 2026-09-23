@@ -226,6 +226,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         children: [
                           PortionWidget(icon: Images.profileIcon, title: 'profile'.tr, route: RouteHelper.getProfileRoute()),
                           PortionWidget(icon: Images.addressIcon, title: 'my_address'.tr, route: RouteHelper.getAddressRoute()),
+                          if (Get.find<SplashController>().proStaus)
+                            PortionWidget(icon: Images.proPlanCrown, title: 'my_subscription'.tr, route: RouteHelper.getSubscriptionPlanRoute()),
                           PortionWidget(icon: Images.languageIcon, title: 'language'.tr, hideDivider: true, onTap: () => _manageLanguageFunctionality(), route: ''),
                         ],
                       ),

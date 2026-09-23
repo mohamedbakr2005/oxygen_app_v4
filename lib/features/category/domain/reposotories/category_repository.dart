@@ -99,7 +99,7 @@ class CategoryRepository implements CategoryRepositoryInterface {
     ItemModel? categoryItem;
 
     Response response = await apiClient.getData(
-        '${AppConstants.categoryItemUri}$categoryID?limit=1000&offset=1&type=$type');
+        '${AppConstants.categoryItemUri}$categoryID?limit=10&offset=$offset&type=$type');
 
     if (response.statusCode == 200) {
       categoryItem = ItemModel.fromJson(response.body);

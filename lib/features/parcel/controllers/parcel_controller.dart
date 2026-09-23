@@ -17,9 +17,13 @@ import 'package:Oxygen_Mart/features/parcel/domain/models/video_content_model.da
 import 'package:Oxygen_Mart/features/parcel/domain/models/why_choose_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/services/parcel_service_interface.dart';
 import 'package:Oxygen_Mart/features/payment/domain/models/offline_method_model.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
@@ -310,6 +314,75 @@ class ParcelController extends GetxController implements GetxService {
     update();
   }
 
+  double calculateDeliveryCharge(ParcelCategoryModel category, {double? surgePrice, String? surgePriceType}) {
+    double charge = 0;
+    if (_distance != -1 && _extraCharge != null) {
+      final config = Get.find<SplashController>().configModel!;
+      final double perKmCharge = (category.parcelPerKmShippingCharge ?? 0) > 0
+          ? category.parcelPerKmShippingCharge! : config.parcelPerKmShippingCharge!;
+      final double minimumCharge = (category.parcelMinimumShippingCharge ?? 0) > 0
+          ? category.parcelMinimumShippingCharge! : config.parcelMinimumShippingCharge!;
+      charge = _distance! * perKmCharge;
+      if (charge < minimumCharge) {
+        charge = minimumCharge;
+      }
+      charge = charge + _extraCharge!;
+      if (surgePrice != null && surgePrice > 0) {
+        charge = surgePriceType == 'percent' ? charge + (charge * (surgePrice / 100)) : charge + surgePrice;
+      }
+    }
+    return PriceConverter.toFixed(charge);
+  }
+
+  double calculateProDiscount(double charge, ProActiveBenefit? benefit) {
+    if (benefit == null || benefit.type != ProBenefitType.discount || charge <= 0) return 0;
+    final bool meetsMinOrder = benefit.minOrderStatus != true || charge >= (benefit.minOrderAmount ?? 0);
+    if (!meetsMinOrder) return 0;
+    double proDiscount = charge * ((benefit.percentage ?? 0) / 100);
+    if (benefit.maxAmount != null && benefit.maxAmount! > 0 && proDiscount > benefit.maxAmount!) {
+      proDiscount = benefit.maxAmount!;
+    }
+    if (proDiscount > charge) proDiscount = charge;
+    return PriceConverter.toFixed(proDiscount);
+  }
+
+  double calculateProDeliveryDiscount(double charge, ProActiveBenefit? benefit) {
+    if (benefit == null || benefit.type != ProBenefitType.deliveryFee || charge <= 0) return 0;
+    final bool meetsMinOrder = benefit.minOrderStatus != true || charge >= (benefit.minOrderAmount ?? 0);
+    if (!meetsMinOrder) return 0;
+    if (benefit.offerType == ProOfferType.fullFree) return PriceConverter.toFixed(charge);
+    return PriceConverter.toFixed(charge * ((benefit.chargeDiscountPercentage ?? 0) / 100));
+  }
+
+  ParcelBill calculateBill(ParcelCategoryModel category, {double? surgePrice, String? surgePriceType}) {
+    final config = Get.find<SplashController>().configModel!;
+    final double additionalCharge = (config.additionalChargeStatus ?? false) ? (config.additionCharge ?? 0) : 0;
+    final double tax = 0;
+
+    double charge = 0;
+    double proDiscount = 0;
+    double proDeliveryDiscount = 0;
+    double total = 0;
+
+    if (_distance != -1 && _extraCharge != null) {
+      charge = calculateDeliveryCharge(category, surgePrice: surgePrice, surgePriceType: surgePriceType);
+      total = charge + _tips + additionalCharge + tax;
+
+      final bool isPro = AuthHelper.isLoggedIn() && (Get.find<ProfileController>().userInfoModel?.proStatus ?? false);
+      if (isPro) {
+        final ProActiveBenefit? benefit = Get.find<ProController>().activeOfferModel?.benefit;
+        proDiscount = calculateProDiscount(charge, benefit);
+        proDeliveryDiscount = calculateProDeliveryDiscount(charge, benefit);
+        total = total - proDiscount - proDeliveryDiscount;
+      }
+    }
+
+    return ParcelBill(
+      charge: charge, dmTips: _tips, additionalCharge: additionalCharge, tax: tax,
+      proDiscount: proDiscount, proDeliveryDiscount: proDeliveryDiscount, total: total,
+    );
+  }
+
   void setPayerIndex(int index, bool notify) {
     _payerIndex = index;
     if (_payerIndex == 1) {
@@ -504,4 +577,24 @@ class ParcelController extends GetxController implements GetxService {
       showCustomSnackBar(message);
     }
   }
+}
+
+class ParcelBill {
+  final double charge;
+  final double dmTips;
+  final double additionalCharge;
+  final double tax;
+  final double proDiscount;
+  final double proDeliveryDiscount;
+  final double total;
+
+  const ParcelBill({
+    required this.charge,
+    required this.dmTips,
+    required this.additionalCharge,
+    required this.tax,
+    required this.proDiscount,
+    required this.proDeliveryDiscount,
+    required this.total,
+  });
 }

@@ -1,9 +1,7 @@
-import 'package:Oxygen_Mart/features/home/widgets/views/best_reviewed_item_view.dart';
-import 'package:Oxygen_Mart/features/home/widgets/views/best_store_nearby_view.dart';
-import 'package:Oxygen_Mart/features/home/widgets/views/item_that_you_love_view.dart';
-import 'package:Oxygen_Mart/features/home/widgets/views/new_on_mart_view.dart';
-import 'package:Oxygen_Mart/features/home/widgets/views/top_offers_near_me.dart';
 import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/home/widgets/module_list_widget.dart';
 import 'package:Oxygen_Mart/features/flash_sale/widgets/flash_sale_view_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/highlight_widget.dart';
@@ -15,6 +13,10 @@ import 'package:Oxygen_Mart/features/home/widgets/views/promo_code_banner_view.d
 import 'package:Oxygen_Mart/features/home/widgets/views/promotional_banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/special_offer_view.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/features/home/widgets/shop_upto_offer.dart';
+import 'package:Oxygen_Mart/features/home/widgets/todays_deals_section.dart';
+import 'package:Oxygen_Mart/features/home/widgets/top_picks_near_you_widget.dart';
+import 'package:Oxygen_Mart/util/dimensions.dart';
 import '../../widgets/bad_weather_widget.dart';
 import '../../widgets/views/most_popular_item_view.dart';
 
@@ -39,8 +41,25 @@ class GroceryHomeScreen extends StatelessWidget {
           ),
         ),
 
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
+          child: ShopUpToOffer(variant: TopOfferVariant.grocery),
+        ),
+        const SizedBox(height: Dimensions.paddingSizeSmall),
+
         const ModuleListWidget(),
         const SpecialOfferView(isFood: false, isShop: false),
+        // const TodaysDealsSectionWidget(),
+        const SizedBox(height: Dimensions.paddingSizeSmall),
+        // TopPicksNearYouWidget(title: "recommended_for_you".tr, isRecommended: true),
+        const SizedBox(height: Dimensions.paddingSizeSmall),
+        GetBuilder<ReelsController>(builder: (controller) {
+        final visible = (controller.reelsList == null && controller.isLoading) || (controller.reelsList != null && controller.reelsList!.isNotEmpty);
+        return visible ? const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: ReelsSectionWidget(),
+        ) : const SizedBox();
+      }),
         const HighlightWidget(),
         const FlashSaleViewWidget(),
         // const BestStoreNearbyView(),
@@ -59,3 +78,4 @@ class GroceryHomeScreen extends StatelessWidget {
     );
   }
 }
+

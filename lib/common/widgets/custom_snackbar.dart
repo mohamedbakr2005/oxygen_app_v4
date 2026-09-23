@@ -6,10 +6,11 @@ import 'package:Oxygen_Mart/util/dimensions.dart';
 void showCustomSnackBar(String? message,
     {bool isError = true, bool getXSnackBar = false}) {
   if (message != null && message.isNotEmpty) {
+    final String msg = message.tr;
     if (getXSnackBar) {
       Get.showSnackbar(GetSnackBar(
         backgroundColor: isError ? Colors.red : Colors.green,
-        message: message,
+        message: msg,
         maxWidth: 500,
         duration: const Duration(seconds: 3),
         snackStyle: SnackStyle.FLOATING,
@@ -27,7 +28,7 @@ void showCustomSnackBar(String? message,
         elevation: 0.0,
         backgroundColor: Colors.transparent,
         padding: EdgeInsets.zero,
-        content: CustomToast(text: message, isError: isError),
+        content: CustomToast(text: msg, isError: isError),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ));

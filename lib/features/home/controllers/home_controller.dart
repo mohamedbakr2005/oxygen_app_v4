@@ -1,5 +1,4 @@
-import 'dart:async';
-
+import 'package:Oxygen_Mart/features/home/domain/models/top_offer_model.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:get/get.dart';
@@ -12,6 +11,9 @@ class HomeController extends GetxController implements GetxService {
 
   List<CashBackModel>? _cashBackOfferList;
   List<CashBackModel>? get cashBackOfferList => _cashBackOfferList;
+
+  TopOfferModel? _topOffer;
+  TopOfferModel? get topOffer => _topOffer;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -49,6 +51,13 @@ class HomeController extends GetxController implements GetxService {
 
   void forcefullyNullCashBackOffers() {
     _cashBackOfferList = null;
+    update();
+  }
+
+  Future<void> getTopOffer({bool notify = true}) async {
+    _topOffer = null;
+    if (notify) update();
+    _topOffer = await homeServiceInterface.getTopOffer();
     update();
   }
 

@@ -166,4 +166,14 @@ Future<int> getDmTipMostTapped() async {
         dmTips,
         deliveryInstruction);
   }
+
+  @override
+  List<String> getMonthlyReorderPolicy() => const [
+    'monthly_reorder_policy_step_1',
+    'monthly_reorder_policy_step_2',
+    'monthly_reorder_policy_step_3',
+    'monthly_reorder_policy_step_4',
+    'monthly_reorder_policy_step_5',
+    'monthly_reorder_policy_step_6',
+  ];
 }

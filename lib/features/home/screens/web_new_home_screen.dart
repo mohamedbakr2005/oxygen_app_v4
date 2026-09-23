@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:get/get.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
@@ -152,6 +155,13 @@ class _WebNewHomeScreenState extends State<WebNewHomeScreen> {
                                       : WebCategoryViewWidget(
                                           categoryController: categoryController);
                             }),
+GetBuilder<ReelsController>(builder: (controller) {
+                                final visible = (controller.reelsList == null && controller.isLoading) || (controller.reelsList != null && controller.reelsList!.isNotEmpty);
+                                return visible ? const Padding(
+                                  padding: EdgeInsets.only(bottom: 12),
+                                  child: ReelsSectionWidget(),
+                                ) : const SizedBox();
+                              }),
 
                             _isLogin ? const SizedBox() : const SizedBox(),
 
@@ -375,3 +385,8 @@ class SliverDelegate extends SliverPersistentHeaderDelegate {
         child != oldDelegate.child;
   }
 }
+
+
+
+
+

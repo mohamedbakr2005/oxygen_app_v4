@@ -2,11 +2,16 @@ import 'dart:convert';
 
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository_interface.dart';
 import 'package:Oxygen_Mart/features/order/domain/services/order_service_interface.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:flutter/foundation.dart';
@@ -134,7 +139,9 @@ class OrderService implements OrderServiceInterface {
       required final String orderID,
       int? storeId,
       required bool createAccount,
-      required String guestId}) {
+      required String guestId,
+      bool isProSubscription = false,
+      bool isRenew = false}) {
     bool forOrder = (addFundUrl == '' &&
         addFundUrl!.isEmpty &&
         subscriptionUrl == '' &&
@@ -144,43 +151,45 @@ class OrderService implements OrderServiceInterface {
         addFundUrl == '' &&
         addFundUrl!.isEmpty);
 
-/* bool isSuccess = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-success')
-          : url.contains('succehjss=true');
-      bool isFailed = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-fail')
-          : url.contains('sumnbjkccess=false');
-      bool isCancel = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-cancel')
-          : url.startsWith('${AppConstants.baseUrl}/payment-cancel');
- */
     if (canRedirect) {
-      bool isSuccess = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-success')
-          : (url.contains('success=true') ||
-              url.contains('status=success') ||
-              url.contains('payment-success'));
+      bool isSuccess;
+      bool isFailed;
+      bool isCancel;
 
-      bool isFailed = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-fail')
-          : (url.contains('fail=true') ||
-              url.contains('status=fail') ||
-              url.contains('payment-fail'));
+      if (isProSubscription) {
+        isSuccess = url.startsWith('${AppConstants.baseUrl}/payment-success') ||
+            url.contains('payment-success') ||
+            url.contains('success=true');
+        isFailed = url.startsWith('${AppConstants.baseUrl}/payment-fail') ||
+            url.contains('payment-fail') ||
+            url.contains('fail=true');
+        isCancel = url.startsWith('${AppConstants.baseUrl}/payment-cancel') ||
+            url.contains('cancel');
+      } else {
+        isSuccess = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-success')
+            : (url.contains('success=true') ||
+                url.contains('status=success') ||
+                url.contains('payment-success'));
 
-      bool isCancel = forSubscription
-          ? url.startsWith('${AppConstants.baseUrl}/subscription-cancel')
-          : (url.startsWith('${AppConstants.baseUrl}/payment-cancel') ||
-              url.contains('cancel'));
+        isFailed = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-fail')
+            : (url.contains('fail=true') ||
+                url.contains('status=fail') ||
+                url.contains('payment-fail'));
+
+        isCancel = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-cancel')
+            : (url.startsWith('${AppConstants.baseUrl}/payment-cancel') ||
+                url.contains('cancel'));
+      }
+
       if (isSuccess || isFailed || isCancel) {
         canRedirect = false;
         onClose();
       }
-      print(
-          'ffffffffffffffffffffffffffffffffffffffffffffffff${isFailed}${url}');
       if (forOrder) {
         if (isSuccess) {
-         
-
           Get.offNamed(RouteHelper.getOrderSuccessRoute(
             orderID,
             contactNumber,
@@ -196,7 +205,9 @@ class OrderService implements OrderServiceInterface {
           if (Get.currentRoute.contains(RouteHelper.payment)) {
             Get.back();
           }
-          if (forSubscription) {
+          if (isProSubscription) {
+            _proSubscriptionRedirect(isSuccess, isRenew);
+          } else if (forSubscription) {
             Get.find<HomeController>()
                 .saveRegistrationSuccessfulSharedPref(true);
             Get.find<HomeController>().saveIsStoreRegistrationSharedPref(true);
@@ -221,5 +232,39 @@ class OrderService implements OrderServiceInterface {
         }
       }
     }
+  }
+
+  void _proSubscriptionRedirect(bool isSuccess, bool isRenew) {
+    if (isSuccess) {
+      Get.find<ProfileController>().getUserInfo();
+      Get.find<ProController>().getProPlans();
+      Get.find<ProController>().getProActiveOffer(
+          moduleType: Get.find<SplashController>().module?.moduleType);
+    }
+    Get.find<ProController>().showPlanSubscribeState(isRenew,
+        redirect: true, paymentStatus: isSuccess, isOffAll: false);
+  }
+
+  @override
+  Future<MonthlyOrderModel?> getMonthlyOrderList({required int offset, String? moduleType}) async {
+    return await orderRepositoryInterface.getMonthlyOrderList(offset: offset, moduleType: moduleType);
+  }
+
+  @override
+  Future<bool> removeMonthlyOrder(int id) async {
+    Response response = await orderRepositoryInterface.removeMonthlyOrder(id);
+    if(response.statusCode == 200) {
+      final dynamic body = response.body;
+      if(body is Map<String, dynamic> && body['message'] != null) {
+        showCustomSnackBar(body['message'].toString(), isError: false);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  Future<ReorderResponseModel?> reorder(int orderId) async {
+    return await orderRepositoryInterface.reorder(orderId);
   }
 }

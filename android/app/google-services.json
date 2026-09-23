@@ -168,6 +168,14 @@
           }
         },
         {
+          "client_id": "274927672089-ta9jad4t97jc4t5p06e77nf12frp53ju.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.oxygenmart.app",
+            "certificate_hash": "845b906ded76a33e16bae25914180dca0c8688f7"
+          }
+        },
+        {
           "client_id": "274927672089-0bq7bbj0m9b4ad7km3hkhmeh4n89k34q.apps.googleusercontent.com",
           "client_type": 3
         }

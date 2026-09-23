@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/payment_failed_dialog.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
+import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
@@ -139,16 +142,52 @@ class _OrderSuccessfulDialogState extends State<OrderSuccessfulDialog> {
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          // const SizedBox(height: Dimensions.paddingSizeExtraLarge),
-                          //
-                          // Padding(
-                          //   padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-                          //   child: CustomButton( width: 400, height: 55, buttonText: 'back_to_home'.tr, isBold: false, onPressed: () => Get.offAllNamed(RouteHelper.getInitialRoute())),
-                          // ),
+
+                          _ProSavingsView(success: success),
                         ])),
               )
             : const Center(child: CircularProgressIndicator());
       }),
+    );
+  }
+}
+
+class _ProSavingsView extends StatelessWidget {
+  final bool success;
+  const _ProSavingsView({required this.success});
+
+  @override
+  Widget build(BuildContext context) {
+    final OrderModel? order = Get.find<OrderController>().trackModel;
+    final double proSavings =
+        (order?.proDiscount ?? 0) + (order?.deliveryFeeReductionAmount ?? 0);
+    final bool isProUser = Get.find<ProfileController>().proStatus;
+
+    if (!success || !isProUser || proSavings <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+          horizontal: Dimensions.paddingSizeLarge,
+          vertical: Dimensions.paddingSizeSmall),
+      child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(Images.proPlanCrown,
+                height: 18, width: 18, color: const Color(0xFFFFC107)),
+            const SizedBox(width: Dimensions.paddingSizeExtraSmall),
+            Flexible(
+              child: Text(
+                '${'you_saved'.tr} ${PriceConverter.convertPrice(proSavings)} ${'with_pro'.tr}',
+                textAlign: TextAlign.center,
+                style: robotoMedium.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: Colors.deepPurpleAccent),
+              ),
+            ),
+          ]),
     );
   }
 }

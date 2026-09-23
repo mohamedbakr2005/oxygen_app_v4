@@ -1,8 +1,10 @@
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/styles.dart';
 import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:get/get.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/features/flash_sale/widgets/flash_sale_view_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/banner_view.dart';
@@ -18,13 +20,12 @@ import 'package:Oxygen_Mart/features/home/widgets/views/product_with_categories_
 import 'package:Oxygen_Mart/features/home/widgets/views/promotional_banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/special_offer_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/top_offers_near_me.dart';
+import 'package:Oxygen_Mart/features/home/widgets/shop_upto_offer.dart';
+import 'package:Oxygen_Mart/features/home/widgets/todays_deals_section.dart';
+import 'package:Oxygen_Mart/features/home/widgets/top_picks_near_you_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/visit_again_view.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/util/images.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_utils/src/extensions/internacionalization.dart';
 
 class ShopHomeScreen extends StatelessWidget {
   const ShopHomeScreen({super.key});
@@ -82,11 +83,26 @@ class ShopHomeScreen extends StatelessWidget {
         ),
       ),
 
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
+        child: ShopUpToOffer(variant: TopOfferVariant.shop),
+      ),
       const CategoryView(),
+      const TodaysDealsSectionWidget(),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
+      TopPicksNearYouWidget(title: "recommended_for_you".tr, isRecommended: true),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
       isLoggedIn ? const VisitAgainView() : const SizedBox(),
       const MostPopularItemView(isFood: false, isShop: true),
       const FlashSaleViewWidget(),
       const MiddleSectionBannerView(),
+      GetBuilder<ReelsController>(builder: (controller) {
+        final visible = (controller.reelsList == null && controller.isLoading) || (controller.reelsList != null && controller.reelsList!.isNotEmpty);
+        return visible ? const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: ReelsSectionWidget(),
+        ) : const SizedBox();
+      }),
       const HighlightWidget(),
       const PopularStoreView(),
       const BrandsViewWidget(),
@@ -103,3 +119,4 @@ class ShopHomeScreen extends StatelessWidget {
     ]);
   }
 }
+

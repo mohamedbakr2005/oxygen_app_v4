@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
@@ -55,7 +55,6 @@ class WebMostPopularItemBannerViewWidget extends StatelessWidget {
                                           '${campaignController.basicCampaignList![index1].imageFullUrl}',
                                       fit: BoxFit.cover,
                                       height: 220,
-                                      isHighQuality: true,
                                     ),
                                   ),
                                 );
@@ -78,7 +77,6 @@ class WebMostPopularItemBannerViewWidget extends StatelessWidget {
                                                 height: 220,
                                                 image:
                                                     '${campaignController.basicCampaignList![index2].imageFullUrl}',
-                                                isHighQuality: true,
                                               ),
                                             ),
                                           );
@@ -154,7 +152,7 @@ class WebMostPopularItemBannerViewWidget extends StatelessWidget {
                                 decoration: BoxDecoration(
                                     color: Theme.of(context)
                                         .primaryColor
-                                        .withOpacity(0.5),
+                                        .withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(
                                         Dimensions.radiusDefault)),
                               ),
@@ -204,3 +202,5 @@ period: const Duration(milliseconds: 2000),
     );
   }
 }
+
+

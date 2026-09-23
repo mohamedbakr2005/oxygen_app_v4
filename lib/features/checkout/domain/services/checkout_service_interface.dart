@@ -30,4 +30,5 @@ abstract class CheckoutServiceInterface {
       List<MultipartBody> orderAttachment,
       String dmTips,
       String deliveryInstruction);
+  List<String> getMonthlyReorderPolicy();
 }

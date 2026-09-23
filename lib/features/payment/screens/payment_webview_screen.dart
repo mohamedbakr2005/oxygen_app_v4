@@ -33,6 +33,8 @@ class PaymentWebViewScreen extends StatefulWidget {
   final String? subscriptionUrl;
   final int? storeId;
   final bool? createAccount;
+  final bool isProSubscription;
+  final bool isRenew;
   // final int? contentIds;
   const PaymentWebViewScreen({
     super.key,
@@ -46,6 +48,8 @@ class PaymentWebViewScreen extends StatefulWidget {
     this.subscriptionUrl,
     this.storeId,
     this.createAccount = false,
+    this.isProSubscription = false,
+    this.isRenew = false,
     // this.item,
   });
 
@@ -236,6 +240,8 @@ class PaymentScreenState extends State<PaymentWebViewScreen> {
                     storeId: widget.storeId,
                     createAccount: widget.createAccount!,
                     guestId: widget.guestId,
+                    isProSubscription: widget.isProSubscription,
+                    isRenew: widget.isRenew,
                   );
                 }
 

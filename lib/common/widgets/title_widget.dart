@@ -9,7 +9,15 @@ class TitleWidget extends StatelessWidget {
   final String title;
   final Function? onTap;
   final String? image;
-  const TitleWidget({super.key, required this.title, this.onTap, this.image});
+  final double? titleFontSize;
+  final double? seeAllFontSize;
+  final bool seeAllUnderline;
+  final Color? fontColor;
+
+  const TitleWidget({super.key,
+    required this.title, this.onTap, this.image, this.titleFontSize, this.seeAllFontSize,
+    this.seeAllUnderline = true, this.fontColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +28,10 @@ class TitleWidget extends StatelessWidget {
         children: [
           Text(title,
               style: robotoBold.copyWith(
+                  color: fontColor ?? Theme.of(context).textTheme.bodyLarge?.color,
                   fontSize: ResponsiveHelper.isDesktop(context)
-                      ? Dimensions.fontSizeLarge
-                      : Dimensions.fontSizeLarge)),
+                      ? (titleFontSize ?? Dimensions.fontSizeLarge)
+                      : (titleFontSize ?? Dimensions.fontSizeLarge))),
           const SizedBox(width: Dimensions.paddingSizeSmall),
           image != null
               ? Image.asset(image!, height: 20, width: 20)

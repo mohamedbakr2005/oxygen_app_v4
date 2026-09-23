@@ -22,7 +22,9 @@ class HtmlRepository implements HtmlRepositoryInterface {
                       ? AppConstants.shippingPolicyUri
                       : htmlType == HtmlType.cancellation
                           ? AppConstants.cancellationUri
-                          : AppConstants.refundUri,
+                          : htmlType == HtmlType.proTermsAndCondition
+                              ? AppConstants.proTermsAndConditionUri
+                              : AppConstants.refundUri,
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
         'Accept': 'application/json',

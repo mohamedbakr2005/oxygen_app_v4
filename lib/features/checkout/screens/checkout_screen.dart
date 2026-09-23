@@ -24,6 +24,8 @@ import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -132,6 +134,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     if (isLoggedIn) {
       if (Get.find<ProfileController>().userInfoModel == null) {
         Get.find<ProfileController>().getUserInfo();
+      }
+      if (Get.find<ProfileController>().proStatus) {
+        Get.find<ProController>().getProActiveOffer(
+            moduleType: Get.find<SplashController>().module?.moduleType);
       }
 
       Get.find<CouponController>().getCouponList();
@@ -337,6 +343,13 @@ class CheckoutScreenState extends State<CheckoutScreen> {
             double extraPackagingCharge =
                 _calculateExtraPackagingCharge(checkoutController);
 
+            final ProActiveBenefit? proBenefit = Get.find<ProController>().activeOfferModel?.benefit;
+            final bool isPro = (Get.find<ProfileController>().userInfoModel?.proStatus ?? false);
+            double proDiscount = isPro ? _calculateProDiscount(subTotal, discount, couponDiscount, proBenefit) : 0;
+            double proDeliveryDiscount = (isPro && checkoutController.orderType != 'take_away' && checkoutController.orderType != 'dine_in')
+                ? _calculateProDeliveryDiscount(subTotal - discount - couponDiscount, deliveryCharge, proBenefit) : 0;
+            final bool proFreeDelivery = proDeliveryDiscount > 0 && (proBenefit?.offerType == ProOfferType.fullFree || (proBenefit?.chargeDiscountPercentage ?? 0) >= 100);
+
             double total = _calculateTotal(
               subTotal: subTotal,
               deliveryCharge: deliveryCharge,
@@ -352,7 +365,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
             bool isPrescriptionRequired = _checkPrescriptionRequired();
 
-            total = total - referralDiscount;
+            total = total - referralDiscount - proDiscount - proDeliveryDiscount;
 
             if (widget.storeId != null) {
               checkoutController.setPaymentMethod(0, isUpdate: false);
@@ -515,6 +528,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                                               ),
                                               referralDiscount:
                                                   referralDiscount,
+                                              proDiscount: proDiscount,
+                                              proDeliveryDiscount:
+                                                  proDeliveryDiscount,
+                                              proFreeDelivery: proFreeDelivery,
                                               variationPrice:
                                                   isPassedVariationPrice
                                                       ? variations
@@ -611,6 +628,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                                           isPrescriptionRequired,
                                         ),
                                         referralDiscount: referralDiscount,
+                                        proDiscount: proDiscount,
+                                        proDeliveryDiscount:
+                                            proDeliveryDiscount,
+                                        proFreeDelivery: proFreeDelivery,
                                         variationPrice: isPassedVariationPrice
                                             ? variations
                                             : 0,
@@ -1094,6 +1115,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                           createNewUser:
                               checkoutController.isCreateAccount ? 1 : 0,
                           password: guestPasswordController.text,
+                          monthlySubscribe: checkoutController.monthlySubscribe,
                         );
 
                         if (checkoutController.paymentMethodIndex == 3) {
@@ -1720,6 +1742,39 @@ class CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
     return PriceConverter.toFixed(referralDiscount);
+  }
+
+  double _calculateProDiscount(
+      double subTotal, double discount, double couponDiscount, ProActiveBenefit? benefit) {
+    if (benefit == null || benefit.type != ProBenefitType.discount) return 0;
+    final bool meetsMinOrder =
+        benefit.minOrderStatus != true || subTotal >= (benefit.minOrderAmount ?? 0);
+    if (!meetsMinOrder) return 0;
+    final double base = subTotal - discount - couponDiscount;
+    if (base < 0) return 0;
+    double proDiscount = base * ((benefit.percentage ?? 0) / 100);
+    if (benefit.maxAmount != null &&
+        benefit.maxAmount! > 0 &&
+        proDiscount > benefit.maxAmount!) {
+      proDiscount = benefit.maxAmount!;
+    }
+    if (proDiscount > base) proDiscount = base;
+    return PriceConverter.toFixed(proDiscount);
+  }
+
+  double _calculateProDeliveryDiscount(
+      double base, double deliveryCharge, ProActiveBenefit? benefit) {
+    if (benefit == null || benefit.type != ProBenefitType.deliveryFee) return 0;
+    if (deliveryCharge <= 0) return 0;
+    final bool meetsMinOrder =
+        benefit.minOrderStatus != true || base >= (benefit.minOrderAmount ?? 0);
+    if (!meetsMinOrder) return 0;
+    if (benefit.offerType == ProOfferType.fullFree) {
+      return PriceConverter.toFixed(deliveryCharge);
+    }
+    double discount =
+        deliveryCharge * ((benefit.chargeDiscountPercentage ?? 0) / 100);
+    return PriceConverter.toFixed(discount);
   }
 
   Future<void> showCashBackSnackBar() async {

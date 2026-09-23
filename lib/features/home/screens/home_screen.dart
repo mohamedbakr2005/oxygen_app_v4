@@ -21,6 +21,7 @@ import 'package:Oxygen_Mart/features/home/screens/modules/food_home_screen.dart'
 import 'package:Oxygen_Mart/features/home/screens/modules/grocery_home_screen.dart';
 import 'package:Oxygen_Mart/features/home/screens/modules/pharmacy_home_screen.dart';
 import 'package:Oxygen_Mart/features/home/screens/modules/shop_home_screen.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/module_store_list_view.dart';
 import 'package:Oxygen_Mart/features/home/screens/web_new_home_screen.dart';
 import 'package:Oxygen_Mart/features/home/widgets/cashback_dialog_widget.dart';
@@ -35,6 +36,7 @@ import 'package:Oxygen_Mart/features/notification/controllers/notification_contr
 import 'package:Oxygen_Mart/features/parcel/controllers/parcel_controller.dart';
 import 'package:Oxygen_Mart/features/parcel/screens/parcel_category_screen.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -66,6 +68,9 @@ class HomeScreen extends StatefulWidget {
 
     if (AuthHelper.isLoggedIn()) {
       Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
+      if (Get.find<ProfileController>().proStatus) {
+        Get.find<ProController>().getProActiveOffer(moduleType: Get.find<SplashController>().module?.moduleType);
+      }
     }
 
     final splashCtrl = Get.find<SplashController>();
@@ -87,6 +92,8 @@ class HomeScreen extends StatefulWidget {
       // 2. أولوية أولى: الحاجات اللي فوق في الشاشة (تشتغل فوراً)
       Get.find<BannerController>().getBannerList(reload);
       Get.find<CategoryController>().getCategoryList(reload);
+      Get.find<ReelsController>().getReelsList(offset: 1);
+      Get.find<HomeController>().getTopOffer(notify: false);
       
       if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
         Get.find<FlashSaleController>().getFlashSale(reload, false);
@@ -102,9 +109,9 @@ class HomeScreen extends StatefulWidget {
         Get.find<BannerController>().getPromotionalBannerList(reload);
         Get.find<StoreController>().getPopularStoreList(reload, 'all', false);
         Get.find<CampaignController>().getBasicCampaignList(reload);
+        Get.find<ItemController>().getDiscountedItemList(reload, false, 'all');
         
         if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-          Get.find<ItemController>().getDiscountedItemList(reload, false, 'all');
           Get.find<CampaignController>().getItemCampaignList(reload);
         } else {
            // For non-grocery, we ensure store list is loaded

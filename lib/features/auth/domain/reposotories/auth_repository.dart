@@ -6,6 +6,7 @@ import 'package:get/get_connect/connect.dart';
 import 'package:get/get_utils/src/platform/platform.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/signup_body_model.dart';
@@ -122,20 +123,34 @@ class AuthRepository implements AuthRepositoryInterface{
   @override
   Future<bool> saveUserToken(String token, {bool alreadyInApp = false}) async {
     apiClient.token = token;
-    if(alreadyInApp && sharedPreferences.getString(AppConstants.userAddress) != null){
-      AddressModel? addressModel = AddressModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
-      bool isRideOrService = false;
-      try{
-        isRideOrService = ModuleHelper.getModule() != null && (ModuleHelper.getModule()!.moduleType.toString() == AppConstants.ride || ModuleHelper.getModule()!.moduleType.toString() == AppConstants.service);
-      }catch(_) {}
-      apiClient.updateHeader(
-        token, addressModel.zoneIds, addressModel.areaIds, sharedPreferences.getString(AppConstants.languageCode),
-        ModuleHelper.getModule()?.id, addressModel.latitude, addressModel.longitude,
-      );
-
-    }else{
-      apiClient.updateHeader(token, null, null, sharedPreferences.getString(AppConstants.languageCode), ModuleHelper.getModule()?.id, null, null);
+    AddressModel? addressModel;
+    if (sharedPreferences.getString(AppConstants.userAddress) != null) {
+      try {
+        addressModel = AddressModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
+      } catch (_) {}
     }
+
+    int? activeModuleId = ModuleHelper.getModule()?.id ?? ModuleHelper.getCacheModule()?.id;
+    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.moduleId)) {
+      try {
+        activeModuleId = ModuleModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.moduleId)!)).id;
+      } catch (_) {}
+    }
+    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.cacheModuleId)) {
+      try {
+        activeModuleId = ModuleModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.cacheModuleId)!)).id;
+      } catch (_) {}
+    }
+
+    apiClient.updateHeader(
+      token,
+      addressModel?.zoneIds,
+      addressModel?.areaIds,
+      sharedPreferences.getString(AppConstants.languageCode),
+      activeModuleId,
+      addressModel?.latitude,
+      addressModel?.longitude,
+    );
     return await sharedPreferences.setString(AppConstants.token, token);
   }
 

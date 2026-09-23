@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/models/config_model.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_tool_tip_widget.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/condition_check_box.dart';
@@ -9,6 +10,9 @@ import 'package:Oxygen_Mart/features/checkout/widgets/note_prescription_section.
 import 'package:Oxygen_Mart/features/checkout/widgets/partial_pay_view.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/prescription_image_picker_widget.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
+import 'package:Oxygen_Mart/features/pro/widgets/pro_coupon_benefit_banner_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -39,30 +43,17 @@ class BottomSection extends StatelessWidget {
   final bool isPrescriptionRequired;
   final double referralDiscount;
   final double variationPrice;
+  final double proDiscount;
+  final double proDeliveryDiscount;
+  final bool proFreeDelivery;
 
-  const BottomSection(
-      {super.key,
-      required this.checkoutController,
-      required this.total,
-      required this.module,
-      required this.subTotal,
-      required this.discount,
-      required this.couponController,
-      required this.taxIncluded,
-      required this.tax,
-      required this.deliveryCharge,
-      required this.todayClosed,
-      required this.tomorrowClosed,
-      required this.orderAmount,
-      this.maxCodOrderAmount,
-      this.storeId,
-      this.taxPercent,
-      required this.price,
-      required this.addOns,
-      this.checkoutButton,
-      required this.isPrescriptionRequired,
-      required this.referralDiscount,
-      required this.variationPrice});
+  const BottomSection({super.key,
+    required this.checkoutController, required this.total, required this.module, required this.subTotal, required this.discount,
+    required this.couponController, required this.taxIncluded, required this.tax, required this.deliveryCharge, required this.todayClosed,
+    required this.tomorrowClosed, required this.orderAmount, this.maxCodOrderAmount, this.storeId, this.taxPercent,
+    required this.price, required this.addOns, this.checkoutButton, required this.isPrescriptionRequired, required this.referralDiscount,
+    required this.variationPrice, this.proDiscount = 0, this.proDeliveryDiscount = 0, this.proFreeDelivery = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +198,14 @@ class BottomSection extends StatelessWidget {
   }
 
   Widget pricingView({required BuildContext context, required bool takeAway}) {
+    final ProActiveBenefit? proBenefit = Get.find<ProController>().activeOfferModel?.benefit;
+    final bool isPro = (Get.find<ProfileController>().userInfoModel?.proStatus ?? false);
+
     return Column(children: [
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: ResponsiveHelper.isDesktop(context) ? Dimensions.paddingSizeLarge : 0),
+        child: const ProCouponBenefitBanner(),
+      ),
       ResponsiveHelper.isDesktop(context)
           ? Align(
               alignment: Alignment.topLeft,
@@ -253,12 +251,21 @@ class BottomSection extends StatelessWidget {
                       ])
                 : const SizedBox(),
             const SizedBox(height: Dimensions.paddingSizeSmall),
+
+            (isPro && proBenefit?.type == ProBenefitType.discount && proDiscount > 0) ? Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('discount_pro'.tr, style: robotoRegular),
+                Text('(-) ${PriceConverter.convertPrice(proDiscount)}', style: robotoRegular),
+              ]),
+              const SizedBox(height: Dimensions.paddingSizeSmall),
+            ]) : const SizedBox(),
+
             (couponController.discount! > 0 || couponController.freeDelivery)
                 ? Column(children: [
                     Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('coupon_discount'.tr, style: robotoRegular),
+                          Text(couponController.coupon?.couponType == 'pro_customer' ? 'coupon_discount_pro'.tr : 'coupon_discount'.tr, style: robotoRegular),
                           (couponController.coupon != null &&
                                   couponController.coupon!.couponType ==
                                       'free_delivery')
@@ -376,6 +383,22 @@ class BottomSection extends StatelessWidget {
                                     // textDirection: TextDirection.ltr,
                                   ),
                       ]),
+
+            (isPro && proBenefit?.type == ProBenefitType.deliveryFee && proDeliveryDiscount > 0 && !takeAway && checkoutController.orderType != 'dine_in') ? Column(children: [
+              const SizedBox(height: Dimensions.paddingSizeSmall),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('delivery_fee_discount_pro'.tr, style: robotoRegular),
+                  const SizedBox(width: Dimensions.paddingSizeExtraSmall),
+                  CustomToolTip(
+                    message: '${proBenefit?.offerType == ProOfferType.fullFree ? '100' : (proBenefit?.chargeDiscountPercentage ?? 0).toStringAsFixed(0)}% ${'delivery_fee_discount_applied'.tr}',
+                    size: Dimensions.fontSizeLarge,
+                    preferredDirection: AxisDirection.up,
+                  ),
+                ]),
+                Text('(-) ${PriceConverter.convertPrice(proDeliveryDiscount)}', style: robotoRegular),
+              ]),
+            ]) : const SizedBox(),
             SizedBox(
                 height: Get.find<SplashController>()
                             .configModel!

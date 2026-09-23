@@ -2,10 +2,12 @@ import 'package:get/get_connect/connect.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/refund_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/support_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository_interface.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -182,5 +184,29 @@ class OrderRepository implements OrderRepositoryInterface {
   @override
   Future update(Map<String, dynamic> body, int? id) {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<MonthlyOrderModel?> getMonthlyOrderList({required int offset, String? moduleType}) async {
+    MonthlyOrderModel? monthlyOrderModel;
+    final String moduleParam = (moduleType != null && moduleType.isNotEmpty) ? '&module_type=$moduleType' : '';
+    final Response response = await apiClient.getData('${AppConstants.monthlyOrderListUri}?limit=10&offset=$offset$moduleParam');
+    if(response.statusCode == 200) {
+      monthlyOrderModel = MonthlyOrderModel.fromJson(response.body);
+    }
+    return monthlyOrderModel;
+  }
+
+  @override
+  Future<Response> removeMonthlyOrder(int id) async {
+    return await apiClient.deleteData('${AppConstants.monthlyOrderRemoveUri}?id=$id');
+  }
+
+  @override
+  Future<ReorderResponseModel?> reorder(int orderId) async {
+    ReorderResponseModel? reorderResponse;
+    Response response = await apiClient.postData(AppConstants.reorderUri, {'order_id': orderId}, handleError: false);
+    reorderResponse = ReorderResponseModel.fromJson(response.body);
+    return reorderResponse;
   }
 }

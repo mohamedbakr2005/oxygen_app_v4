@@ -1,6 +1,8 @@
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/helper/type_converter_helper.dart';
 
 class ConfigModel {
+  bool? proMemberStatus;
   String? businessName;
   String? logoFullUrl;
   String? address;
@@ -53,9 +55,6 @@ class ConfigModel {
   List<SocialLogin>? socialLogin;
   List<SocialLogin>? appleLogin;
   bool? refundActiveStatus;
-  bool? isSmsActive;
-  bool? isMailActive;
-  DownloadUserAppLinks? downloadUserAppLinks;
   int? refundPolicyStatus;
   int? cancellationPolicyStatus;
   int? shippingPolicyStatus;
@@ -85,8 +84,12 @@ class ConfigModel {
   bool? firebaseOtpVerification;
   CentralizeLoginSetup? centralizeLoginSetup;
   bool? aiChatStatus;
+  int? monthlyOrderRemainder;
+  bool? isSmsActive;
+  bool? isMailActive;
 
   ConfigModel({
+    this.proMemberStatus,
     this.businessName,
     this.logoFullUrl,
     this.address,
@@ -140,9 +143,6 @@ class ConfigModel {
     this.appleLogin,
     this.refundActiveStatus,
     this.refundPolicyStatus,
-    this.isSmsActive,
-    this.isMailActive,
-    this.downloadUserAppLinks,
     this.cancellationPolicyStatus,
     this.shippingPolicyStatus,
     this.prescriptionStatus,
@@ -169,6 +169,9 @@ class ConfigModel {
     this.firebaseOtpVerification,
     this.centralizeLoginSetup,
     this.aiChatStatus,
+    this.monthlyOrderRemainder,
+    this.isSmsActive,
+    this.isMailActive,
   });
 
   ConfigModel.fromJson(Map<String, dynamic> json) {
@@ -297,6 +300,16 @@ class ConfigModel {
         ? CentralizeLoginSetup.fromJson(json['centralize_login'])
         : null;
     aiChatStatus = json['ai_chat_status'] == 1 || json['ai_chat_status'] == true || json['ai_chat_status']?.toString() == '1' || json['ai_chat_status']?.toString() == 'true';
+    monthlyOrderRemainder = (json['monthly_order_reminder'] == 1 || json['monthly_order_reminder'] == true || json['monthly_order_reminder']?.toString() == '1' || json['monthly_order_reminder']?.toString() == 'true')
+        ? 1
+        : ((json['monthly_order_remainder'] == 1 || json['monthly_order_remainder'] == true || json['monthly_order_remainder']?.toString() == '1' || json['monthly_order_remainder']?.toString() == 'true')
+            ? 1
+            : ((json['monthly_order_status'] == 1 || json['monthly_order_status'] == true || json['monthly_order_status']?.toString() == '1' || json['monthly_order_status']?.toString() == 'true')
+                ? 1
+                : 0));
+    isSmsActive = json['is_sms_active'];
+    isMailActive = json['is_mail_active'];
+    proMemberStatus = TypeConverterHelper.getBool(json['pro_member_status']);
   }
 
   Map<String, dynamic> toJson() {
@@ -401,6 +414,10 @@ class ConfigModel {
     if (centralizeLoginSetup != null) {
       data['centralize_login'] = centralizeLoginSetup!.toJson();
     }
+    data['monthly_order_reminder'] = monthlyOrderRemainder;
+    data['is_sms_active'] = isSmsActive;
+    data['is_mail_active'] = isMailActive;
+    data['pro_member_status'] = proMemberStatus;
     return data;
   }
 }
@@ -854,36 +871,6 @@ class CentralizeLoginSetup {
     data['apple_login_status'] = appleLoginStatus;
     data['email_verification_status'] = emailVerificationStatus;
     data['phone_verification_status'] = phoneVerificationStatus;
-    return data;
-  }
-}
-
-class DownloadUserAppLinks {
-  String? playstoreUrl;
-  String? playstoreUrlStatus;
-  String? appleStoreUrl;
-  String? appleStoreUrlStatus;
-
-  DownloadUserAppLinks({
-    this.playstoreUrl,
-    this.playstoreUrlStatus,
-    this.appleStoreUrl,
-    this.appleStoreUrlStatus,
-  });
-
-  DownloadUserAppLinks.fromJson(Map<String, dynamic> json) {
-    playstoreUrl = json['playstore_url_status'] == '1' ? json['playstore_url'] : null;
-    playstoreUrlStatus = json['playstore_url_status'];
-    appleStoreUrl = json['apple_store_url_status'] == '1' ? json['apple_store_url'] : null;
-    appleStoreUrlStatus = json['apple_store_url_status'];
-  }
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = <String, dynamic>{};
-    data['playstore_url'] = playstoreUrl;
-    data['playstore_url_status'] = playstoreUrlStatus;
-    data['apple_store_url'] = appleStoreUrl;
-    data['apple_store_url_status'] = appleStoreUrlStatus;
     return data;
   }
 }

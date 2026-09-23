@@ -1,5 +1,6 @@
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
+import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 
 class PaginatedOrderModel {
@@ -98,8 +99,17 @@ class OrderModel {
   double? flashStoreDiscountAmount;
   double? extraPackagingAmount;
   double? referrerBonusAmount;
+  int? moduleId;
+  ProBenefitType? benefitType;
+  double? deliveryFeeReductionAmount;
+  ProOfferType? deliveryOfferType;
+  double? proDiscount;
 
   OrderModel({
+    this.benefitType,
+    this.deliveryFeeReductionAmount,
+    this.deliveryOfferType,
+    this.proDiscount,
     this.id,
     this.userId,
     this.orderAmount,
@@ -160,6 +170,7 @@ class OrderModel {
     this.flashStoreDiscountAmount,
     this.extraPackagingAmount,
     this.referrerBonusAmount,
+    this.moduleId,
   });
 
   OrderModel.fromJson(Map<String, dynamic> json) {
@@ -253,6 +264,11 @@ class OrderModel {
     flashStoreDiscountAmount = json['flash_store_discount_amount']?.toDouble();
     extraPackagingAmount = json['extra_packaging_amount']?.toDouble();
     referrerBonusAmount = json['ref_bonus_amount']?.toDouble();
+    moduleId = json['module_id'];
+    benefitType = ProBenefitType.fromString(json['benefit_type']);
+    deliveryFeeReductionAmount = json['delivery_fee_reduction_amount']?.toDouble();
+    deliveryOfferType = ProOfferType.fromString(json['delivery_offer_type']);
+    proDiscount = json['pro_discount']?.toDouble();
   }
 
   Map<String, dynamic> toJson() {
@@ -331,6 +347,11 @@ class OrderModel {
     data['flash_store_discount_amount'] = flashStoreDiscountAmount;
     data['extra_packaging_amount'] = extraPackagingAmount;
     data['ref_bonus_amount'] = referrerBonusAmount;
+    data['module_id'] = moduleId;
+    data['benefit_type'] = benefitType?.name == 'deliveryFee' ? 'delivery_fee' : benefitType?.name;
+    data['delivery_fee_reduction_amount'] = deliveryFeeReductionAmount;
+    data['delivery_offer_type'] = deliveryOfferType?.toJson();
+    data['pro_discount'] = proDiscount;
     return data;
   }
 }

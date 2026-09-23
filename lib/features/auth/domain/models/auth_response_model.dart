@@ -17,6 +17,9 @@ class AuthResponseModel {
     this.email,
   });
 
+  bool get requiresProfileCompletion =>
+      isPersonalInfo != true || isPhoneVerified != true;
+
   AuthResponseModel.fromJson(Map<String, dynamic> json) {
     token = json['token'];
     isPhoneVerified = json['is_phone_verified'] == 1;

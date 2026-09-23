@@ -110,86 +110,65 @@ class CategoryController extends GetxController implements GetxService {
         await categoryServiceInterface.getSubCategoryList(categoryID);
     if (subCategoryList != null) {
       _subCategoryList = [];
-      _subCategoryList!
-          .add(CategoryModel(id: int.parse(categoryID!), name: 'all'.tr));
+      if (subCategoryList.length > 1) {
+        _subCategoryList!.add(CategoryModel(id: int.parse(categoryID!), name: 'all'.tr));
+      }
       _subCategoryList!.addAll(subCategoryList);
       getCategoryItemList(categoryID, 1, 'all', false);
-      
+
       String categoryName = 'Unknown';
       if (_categoryList != null && categoryID != null) {
         try {
           categoryName = _categoryList!.firstWhere((element) => element.id.toString() == categoryID).name ?? 'Unknown';
-        } catch (e) {}
+        } catch (_) {}
       }
-      Get.find<MetaAnalyticsService>().viewCategory(
-        categoryId: categoryID ?? 'unknown',
-        categoryName: categoryName,
-      );
+      try {
+        Get.find<MetaAnalyticsService>().viewCategory(
+          categoryId: categoryID ?? 'unknown',
+          categoryName: categoryName,
+        );
+      } catch (_) {}
     }
   }
 
   void setSubCategoryIndex(int index, String? categoryID) {
     _subCategoryIndex = index;
-    update(['sub_category']);
     if (_isStore) {
       getCategoryStoreList(
-          _subCategoryIndex == 0
-              ? categoryID
-              : _subCategoryList![index].id.toString(),
-          1,
-          _type,
-          true);
+          _subCategoryIndex == 0 ? categoryID : _subCategoryList![index].id.toString(),
+          1, _type, true);
     } else {
       getCategoryItemList(
-          _subCategoryIndex == 0
-              ? categoryID
-              : _subCategoryList![index].id.toString(),
-          1,
-          _type,
-          true);
+          _subCategoryIndex == 0 ? categoryID : _subCategoryList![index].id.toString(),
+          1, _type, true);
     }
   }
 
-  void getCategoryItemList(
-      String? categoryID, int offset, String type, bool notify) async {
-    if (offset > 1) return; // Ignore any pagination requests
-
-    print("ENTER getCategoryItemList");
-    print("categoryID=$categoryID");
-    print("offset=$offset");
-    print("type=$type");
-
-    _offset = 1;
-
-    _categoryItemList = null;
-    
-    if (notify) {
-      update();
+  void getCategoryItemList(String? categoryID, int offset, String type, bool notify) async {
+    _offset = offset;
+    if (offset == 1) {
+      if (_type == type) {
+        _isSearching = false;
+      }
+      _type = type;
+      if (notify) {
+        update();
+      }
+      _categoryItemList = null;
     }
-
-    ItemModel? categoryItem = await categoryServiceInterface
-        .getCategoryItemList(categoryID, 1, type);
-
-    print("API RESULT = ${categoryItem != null}");
-
+    ItemModel? categoryItem = await categoryServiceInterface.getCategoryItemList(categoryID, offset, type);
     if (categoryItem != null) {
-      print("ITEMS COUNT = ${categoryItem.items?.length}");
-      print("TOTAL SIZE = ${categoryItem.totalSize}");
-
-      // Store all returned products directly, replacing addAll to prevent duplicates
-      _categoryItemList = categoryItem.items ?? [];
-
-      print("FINAL LIST COUNT = ${_categoryItemList!.length}");
-
+      if (offset == 1) {
+        _categoryItemList = [];
+      }
+      _categoryItemList!.addAll(categoryItem.items!);
       _pageSize = categoryItem.totalSize;
       _isLoading = false;
     }
-
     update();
   }
 
-  void getCategoryStoreList(
-      String? categoryID, int offset, String type, bool notify) async {
+  void getCategoryStoreList(String? categoryID, int offset, String type, bool notify) async {
     _offset = offset;
     if (offset == 1) {
       if (_type == type) {
@@ -201,8 +180,7 @@ class CategoryController extends GetxController implements GetxService {
       }
       _categoryStoreList = null;
     }
-    StoreModel? categoryStore = await categoryServiceInterface
-        .getCategoryStoreList(categoryID, offset, type);
+    StoreModel? categoryStore = await categoryServiceInterface.getCategoryStoreList(categoryID, offset, type);
     if (categoryStore != null) {
       if (offset == 1) {
         _categoryStoreList = [];
@@ -276,5 +254,13 @@ class CategoryController extends GetxController implements GetxService {
   void setRestaurant(bool isRestaurant) {
     _isStore = isRestaurant;
     update();
+  }
+
+  String? getCategoryNameById(int? id) {
+    if (id == null || _categoryList == null) return null;
+    for (CategoryModel category in _categoryList!) {
+      if (category.id == id) return category.name;
+    }
+    return null;
   }
 }

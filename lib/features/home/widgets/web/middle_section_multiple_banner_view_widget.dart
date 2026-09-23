@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
@@ -54,7 +54,6 @@ class MiddleSectionMultipleBannerViewWidget extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 height: 230,
                                 width: double.infinity,
-                                isHighQuality: true,
                               ),
                             ),
                           ),
@@ -105,3 +104,4 @@ class MiddleSectionMultipleBannerShimmer extends StatelessWidget {
     );
   }
 }
+

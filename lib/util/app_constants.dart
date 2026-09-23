@@ -4,9 +4,6 @@ import 'package:Oxygen_Mart/features/language/domain/models/language_model.dart'
 import 'package:Oxygen_Mart/util/images.dart';
 
 class AppConstants {
-  static const String googleServerClientId = '491987943015-agln6biv84krpnngdphj87jkko7r9lb8.apps.googleusercontent.com';
-  static const String otpUserNumber = '6ammart_otp_user_number';
-  static const String otpUserCountryCode = '6ammart_otp_user_country_code';
   static const String appName = 'Oxygen Mart';
   static const double appVersion = 3.3;
 
@@ -18,9 +15,16 @@ class AppConstants {
   static const String webHostedUrl = 'https://new.oxygenmart.online';
   static const bool useReactWebsite = false;
 
+  // Google OAuth Client IDs
+  static const String googleServerClientId = '274927672089-0bq7bbj0m9b4ad7km3hkhmeh4n89k34q.apps.googleusercontent.com';
+  static const String googleIosClientId = '274927672089-1ldpuikpph6ein1qai01h45kcl89sv8f.apps.googleusercontent.com';
+
   static const String baseUrl = 'https://new.oxygenmart.online';
   static const String categoryUri = '/api/v1/categories';
+  static const String topCategoriesUri = '/api/v1/categories/top';
+  static const String trendingSearchesUri = '/api/v1/trending-searches';
   static const String bannerUri = '/api/v1/banners';
+  static const String smartBannerUri = '/api/v1/smart-banners';
   static const String storeItemUri = '/api/v1/items/latest';
   static const String popularItemUri = '/api/v1/items/popular';
   static const String reviewedItemUri = '/api/v1/items/most-reviewed';
@@ -59,6 +63,14 @@ class AppConstants {
   static const String historyOrderListUri = '/api/v1/customer/order/list';
   static const String orderCancelUri = '/api/v1/customer/order/cancel';
   static const String codSwitchUri = '/api/v1/customer/order/payment-method';
+  static const String reorderUri = '/api/v1/customer/order-again/reorder';
+  static const String monthlyOrderListUri = '/api/v1/customer/monthly-order/list';
+  static const String monthlyOrderRemoveUri = '/api/v1/customer/monthly-order/remove';
+  static const String reelListUri = '/api/v1/customer/reels/list';
+  static const String reelDetailsUri = '/api/v1/customer/reels/details';
+  static const String reelStatsUri = '/api/v1/customer/reels/stats';
+  static const String reelLikeUri = '/api/v1/customer/reels/like';
+  static const String reelVisitUri = '/api/v1/customer/reels/visit';
   static const String orderDetailsUri =
       '/api/v1/customer/order/details?order_id=';
   static const String wishListGetUri = '/api/v1/customer/wish-list';
@@ -79,6 +91,11 @@ class AppConstants {
   static const String popularStoreUri = '/api/v1/stores/popular';
   static const String latestStoreUri = '/api/v1/stores/latest';
   static const String topOfferStoreUri = '/api/v1/stores/top-offer-near-me';
+  static const String topOfferUri = '/api/v1/module/top-offer';
+  static const String offerItemsUri = '/api/v1/offers/items';
+  static const String offerStoresUri = '/api/v1/offers/stores';
+  static const String exclusiveDealsUri = '/api/v1/stores/exclusive-deals';
+  static const String serviceOfferItemsUri = '/api/v1/service/offers/items';
   static const String storeDetailsUri = '/api/v1/stores/details/';
   static const String basicCampaignUri = '/api/v1/campaigns/basic';
   static const String itemCampaignUri = '/api/v1/campaigns/item';
@@ -208,6 +225,8 @@ class AppConstants {
   static const String userAddress = '6ammart_user_address';
   static const String userNumber = '6ammart_user_number';
   static const String userCountryCode = '6ammart_user_country_code';
+  static const String otpUserNumber = '6ammart_otp_user_number';
+  static const String otpUserCountryCode = '6ammart_otp_user_country_code';
   static const String notification = '6ammart_notification';
   static const String notificationIdList = 'notification_id_list';
   static const String searchHistory = '6ammart_search_history';
@@ -223,6 +242,8 @@ class AppConstants {
   static const String referBottomSheet = '6ammart_reffer_bottomsheet_show';
   static const String dmRegisterSuccess = '6ammart_dm_registration_success';
   static const String isRestaurantRegister = '6ammart_store_registration';
+  static const String savedRoute = 'savedRoute';
+  static const String renewBottomSheetShown = 'sixam_mart_renew_bottomsheet_shown';
 
   static const String topic = 'all_zone_customer';
   static const String zoneId = 'zoneId';
@@ -351,10 +372,12 @@ class AppConstants {
   static const String parcel = 'parcel';
   static const String taxi = 'rental';
   static const String ride = 'ride-share';
-  static const String walletSwitchUri = '/api/v1/customer/order/wallet-payment';
-  static const String getOrderTaxUri = '/api/v1/customer/order/get-Tax';
-  static const String getSurgePriceUri = '/api/v1/customer/order/get-surge-price';
-  static const String savedFilesUri = '/api/v1/customer/saved-files';
-  static const String deleteSavedFilesUri = '/api/v1/customer/saved-files/delete-all';
-  static const String storeSavedFilesUri = '/api/v1/customer/saved-files/store';
+
+  // pro
+  static const String proPlansUri = '/api/v1/pro-customer/plans';
+  static const String proFaqsUri = '/api/v1/pro-customer/faqs';
+  static const String proCustomerSubscribeUri = '/api/v1/customer/pro-customer/subscribe';
+  static const String proCancelSubscriptionsUri = '/api/v1/customer/pro-customer/cancel';
+  static const String proActiveOfferUri = '/api/v1/customer/pro-customer/active-offer';
+  static const String proTermsAndConditionUri = '/api/v1/pro-customer/terms-and-conditions';
 }

@@ -1,3 +1,4 @@
+import 'package:Oxygen_Mart/helper/auth_event_logger_firebase.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -7,7 +8,7 @@ import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
-// import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/profile/domain/models/update_user_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
@@ -15,6 +16,7 @@ import 'package:Oxygen_Mart/features/auth/domain/models/social_log_in_body.dart'
 import 'package:Oxygen_Mart/features/auth/domain/models/signup_body_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/services/auth_service_interface.dart';
 import 'package:Oxygen_Mart/features/verification/screens/verification_screen.dart';
+import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 
@@ -103,10 +105,14 @@ class AuthController extends GetxController implements GetxService {
     return responseModel;
   }
 
-  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInBody) async {
+  Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInBody, {bool alreadyInApp = false}) async {
     _isLoading = true;
     update();
-    ResponseModel responseModel = await authServiceInterface.loginWithSocialMedia(socialLogInBody, isCustomerVerificationOn: Get.find<SplashController>().configModel!.customerVerification??false);
+    ResponseModel responseModel = await authServiceInterface.loginWithSocialMedia(
+      socialLogInBody,
+      isCustomerVerificationOn: Get.find<SplashController>().configModel!.customerVerification ?? false,
+      alreadyInApp: alreadyInApp,
+    );
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
@@ -141,7 +147,9 @@ class AuthController extends GetxController implements GetxService {
         && responseModel.authResponseModel!.isExistUser == null) {
       Get.find<ProfileController>().getUserInfo();
       Get.find<CartController>().getAllCarts();
-      Get.find<HomeController>().getCashBackOfferList();
+      if (ModuleHelper.getModule() != null || ModuleHelper.getCacheModule() != null) {
+        Get.find<HomeController>().getCashBackOfferList();
+      }
     }
   }
 
@@ -189,13 +197,14 @@ class AuthController extends GetxController implements GetxService {
     if(!ResponsiveHelper.isDesktop(Get.context)){
       Get.find<SplashController>().setModule(null);
     }
-    // Get.find<ProController>().saveRenewBottomSheetStatus(false);
+    Get.find<ProController>().saveRenewBottomSheetStatus(false);
     return await authServiceInterface.clearSharedData(removeToken: removeToken);
   }
 
-  Future<void> socialLogout() async {
-    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+   Future<void> socialLogout() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn();
     googleSignIn.disconnect();
+    AuthEventLogger.logout();
     await FacebookAuth.instance.logOut();
   }
 
