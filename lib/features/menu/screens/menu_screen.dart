@@ -1,5 +1,6 @@
 import 'package:Oxygen_Mart/common/widgets/confirmation_dialog.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/auth_dialog_widget.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
@@ -342,13 +343,15 @@ class _MenuScreenState extends State<MenuScreen> {
                                   description: 'are_you_sure_to_logout'.tr,
                                   isLogOut: true,
                                   onYesPressed: () async {
+                                    Get.find<AuthController>().resetOtpView();
                                     Get.find<ProfileController>().clearUserInfo();
                                     Get.find<AuthController>().socialLogout();
                                     Get.find<CartController>().clearCartList();
                                     Get.find<FavouriteController>().removeFavourite();
                                     await Get.find<AuthController>().clearSharedData();
                                     Get.find<HomeController>().forcefullyNullCashBackOffers();
-                                    Get.offAllNamed(RouteHelper.getSplashRoute(null));
+                                    Get.back();
+                                    showCustomSnackBar('logout_successful'.tr, isError: false);
                                   },
                                 ),
                                 useSafeArea: false,

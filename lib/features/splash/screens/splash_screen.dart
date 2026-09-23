@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/no_internet_screen.dart';
@@ -25,49 +26,47 @@ class SplashScreen extends StatefulWidget {
 class SplashScreenState extends State<SplashScreen> {
   final GlobalKey<ScaffoldState> _globalKey = GlobalKey();
   StreamSubscription<List<ConnectivityResult>>? _onConnectivityChanged;
-  Timer? _debounceTimer;
-
-  /// Guard: ensures getConfigData fires only once
-  bool _configLoaded = false;
-
-  void _loadConfigOnce() {
-    if (_configLoaded) return;
-    _configLoaded = true;
-    Get.find<SplashController>().getConfigData(
-      notificationBody: widget.body,
-      fromMainFunction: true,
-    );
-  }
 
   @override
   void initState() {
     super.initState();
 
-    // 1) Initialize shared data (pure state, no API calls)
-    Get.find<SplashController>().initSharedData();
+    bool firstTime = true;
+    _onConnectivityChanged = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> result) {
+      bool isConnected = result.contains(ConnectivityResult.wifi) || result.contains(ConnectivityResult.mobile);
 
-    // 2) Cart is now loaded by onModuleActivated — no duplicate here
-
-    // 3) Connectivity listener — guarded to fire config ONCE
-    _onConnectivityChanged = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      bool isConnected = result.contains(ConnectivityResult.wifi) ||
-          result.contains(ConnectivityResult.mobile);
-
-      if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
-
-      _debounceTimer = Timer(const Duration(seconds: 3), () {
-        if (isConnected) {
-          _loadConfigOnce();
+      if(!firstTime) {
+        isConnected ? ScaffoldMessenger.of(Get.context!).hideCurrentSnackBar() : const SizedBox();
+        ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
+          backgroundColor: isConnected ? Colors.green : Colors.red,
+          duration: Duration(seconds: isConnected ? 3 : 6000),
+          content: Text(isConnected ? 'connected'.tr : 'no_connection'.tr, textAlign: TextAlign.center),
+        ));
+        if(isConnected) {
+          if (kDebugMode) {
+            print('=========SplashScreen connectivity reconnected, deeplinkRoute: ${Get.find<SplashController>().deeplinkRoute}');
+          }
+          if(Get.find<SplashController>().deeplinkRoute == null) {
+            Get.find<SplashController>().getConfigData(notificationBody: widget.body, fromSplash: true);
+          }
         }
-      });
+      }
+
+      firstTime = false;
     });
 
-    // 4) Fixed timer — also guarded to fire ONCE
-    Timer(const Duration(seconds: 3), () {
-      _loadConfigOnce();
-    });
+    Get.find<SplashController>().resetSplashRouted();
+    Get.find<SplashController>().initSharedData();
+    if((AuthHelper.getGuestId().isNotEmpty || AuthHelper.isLoggedIn()) && Get.find<SplashController>().cacheModule != null) {
+      Get.find<CartController>().getAllCarts();
+    }
+    if (kDebugMode) {
+      print('=========SplashScreen initState, deeplinkRoute == null: ${Get.find<SplashController>().deeplinkRoute == null}');
+    }
+    if(Get.find<SplashController>().deeplinkRoute == null) {
+      Get.find<SplashController>().getConfigData(notificationBody: widget.body, fromSplash: true);
+    }
+    _route();
   }
 
   @override
@@ -75,6 +74,10 @@ class SplashScreenState extends State<SplashScreen> {
     super.dispose();
 
     _onConnectivityChanged?.cancel();
+  }
+
+  void _route() {
+    Get.find<SplashController>().getConfigData(handleMaintenanceMode: false, notificationBody: widget.body, fromSplash: true);
   }
 
   // void _route() {

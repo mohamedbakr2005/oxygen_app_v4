@@ -24,4 +24,5 @@ abstract class SplashRepositoryInterface extends RepositoryInterface {
   Future<void> saveSuggestedLocationStatus(bool data);
   bool getReferBottomSheetStatus();
   Future<void> saveReferBottomSheetStatus(bool data);
+  bool handleInitialTopicSubscription();
 }

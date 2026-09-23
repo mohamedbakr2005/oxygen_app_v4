@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -30,6 +31,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
     final configModel = Get.find<SplashController>().configModel;
     final centralizeLogin = configModel?.centralizeLoginSetup;
 
@@ -91,10 +93,10 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                   Row(spacing: 8, children: <Widget>[
                     if(facebookLoginActive)
                       Expanded(child: SocialLoginButton(
-                        iconPath: Images.facebook,
+                        iconPath: Images.facebook2,
                         onTap: () {
                           Get.back();
-                          _openSignInScreen();
+                          _facebookLogin();
                         },
                       )),
 
@@ -103,7 +105,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                         iconPath: Images.google,
                         onTap: () {
                           Get.back();
-                          _openSignInScreen();
+                          _googleLogin(googleSignIn);
                         },
                       )),
 
@@ -112,7 +114,7 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
                         iconPath: Images.appleLogo,
                         onTap: () {
                           Get.back();
-                          _openSignInScreen();
+                          _appleLogin();
                         },
                       )),
                   ]),
@@ -218,55 +220,48 @@ class LoginSuggestionBottomSheet extends StatelessWidget {
   }
 
   void _googleLogin(GoogleSignIn googleSignIn) async {
-    try {
-      GoogleSignInAccount? googleAccount = await googleSignIn.signIn();
-      if (googleAccount == null) {
-        print('❌ Google Sign-In cancelled');
-        return; // User canceled the sign-in
-      }
+    if (kIsWeb) {
+      await _googleWebSignIn();
+    } else {
+      try {
+        if (googleSignIn.supportsAuthenticate()) {
+          await googleSignIn
+              .initialize(serverClientId: AppConstants.googleServerClientId)
+              .then((_) async {
+            googleSignIn.signOut();
+            GoogleSignInAccount googleAccount =
+                await googleSignIn.authenticate();
+            const List<String> scopes = <String>['email'];
+            GoogleSignInClientAuthorization? auth = await googleAccount
+                .authorizationClient
+                .authorizationForScopes(scopes);
 
-      GoogleSignInAuthentication auth = await googleAccount.authentication;
+            SocialLogInBody googleBodyModel = SocialLogInBody(
+              email: googleAccount.email,
+              token: auth?.accessToken,
+              uniqueId: googleAccount.id,
+              medium: 'google',
+              accessToken: 1,
+              loginType: CentralizeLoginType.social.name,
+            );
 
-      print('========== GOOGLE LOGIN DEBUG ==========');
-      print('Email: ${googleAccount.email}');
-      print('Google ID: ${googleAccount.id}');
-      print('ID Token exists: ${auth.idToken != null}');
-      print('ID Token length: ${auth.idToken?.length}');
-      print('========================================');
-
-      if (auth.idToken == null || auth.idToken!.isEmpty) {
-        print('❌ Google ID Token is NULL/EMPTY');
-        showCustomSnackBar('Google Sign-In failed: ID Token is missing.');
-        return;
-      }
-
-      SocialLogInBody googleBodyModel = SocialLogInBody(
-        email: googleAccount.email,
-        token: auth.idToken!,
-        uniqueId: googleAccount.id,
-        medium: 'google',
-        loginType: CentralizeLoginType.social.name,
-      );
-
-      Get.find<AuthController>()
-          .loginWithSocialMedia(googleBodyModel, alreadyInApp: true)
-          .then((response) {
-        if (response.isSuccess) {
-          _processSocialSuccessSetup(response, googleBodyModel, null, null);
+            Get.find<AuthController>()
+                .loginWithSocialMedia(googleBodyModel, alreadyInApp: true)
+                .then((response) {
+              if (response.isSuccess) {
+                _processSocialSuccessSetup(
+                    response, googleBodyModel, null, null);
+              } else {
+                showCustomSnackBar(response.message);
+              }
+            });
+          });
         } else {
-          showCustomSnackBar(response.message);
+          debugPrint("Google Sign-In not supported on this device.");
         }
-      });
-    } catch (error) {
-      print('Google Sign-In Error: $error');
-      showCustomSnackBar('Google Sign-In failed. Please try again.');
-      FirebaseAnalytics.instance.logEvent(
-        name: 'login_failed',
-        parameters: {
-          'method': 'google',
-          'error': error.toString(),
-        },
-      );
+      } catch (e) {
+        debugPrint('Error in google sign in: $e');
+      }
     }
   }
 

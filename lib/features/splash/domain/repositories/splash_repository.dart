@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -343,6 +344,20 @@ class SplashRepository implements SplashRepositoryInterface {
       await sharedPreferences.setBool(AppConstants.referBottomSheet, data);
     } catch (e) {
       rethrow;
+    }
+  }
+
+  @override
+  bool handleInitialTopicSubscription() {
+    try {
+      if (!GetPlatform.isWeb) {
+        FirebaseMessaging.instance.subscribeToTopic(AppConstants.topic);
+        FirebaseMessaging.instance.subscribeToTopic(AppConstants.maintenanceModeTopic);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Topic Subscription Failed, $e');
+      return false;
     }
   }
 

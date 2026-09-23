@@ -1,6 +1,7 @@
 import 'package:Oxygen_Mart/helper/auth_event_logger_firebase.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -65,9 +66,18 @@ class AuthController extends GetxController implements GetxService {
   }
 
   Future<ResponseModel> login({required String emailOrPhone, required String password, required String loginType, required String fieldType, bool alreadyInApp = false}) async {
+    if (kDebugMode) {
+      print('[AUTH INIT START] login initiated -> emailOrPhone: $emailOrPhone, loginType: $loginType, currentRoute: ${Get.currentRoute}');
+    }
     _isLoading = true;
     update();
     ResponseModel responseModel = await authServiceInterface.login(emailOrPhone: emailOrPhone, password: password, loginType: loginType, fieldType: fieldType, alreadyInApp: alreadyInApp);
+    if (kDebugMode) {
+      print('[AUTH INIT COMPLETE] login result: ${responseModel.isSuccess}, message: ${responseModel.message}');
+      if (responseModel.isSuccess) {
+        print('[LOGIN SUCCESS] user authenticated -> isLoggedIn: ${isLoggedIn()}, currentRoute: ${Get.currentRoute}');
+      }
+    }
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
@@ -75,9 +85,18 @@ class AuthController extends GetxController implements GetxService {
   }
 
   Future<ResponseModel> otpLogin({required String phone, required String loginType, required String otp, required String verified, bool alreadyInApp = false}) async {
+    if (kDebugMode) {
+      print('[AUTH INIT START] otpLogin initiated -> phone: $phone, loginType: $loginType, currentRoute: ${Get.currentRoute}');
+    }
     _isLoading = true;
     update();
     ResponseModel responseModel = await authServiceInterface.otpLogin(phone: phone, otp: otp, loginType: loginType, verified: verified, alreadyInApp: alreadyInApp);
+    if (kDebugMode) {
+      print('[AUTH INIT COMPLETE] otpLogin result: ${responseModel.isSuccess}, message: ${responseModel.message}');
+      if (responseModel.isSuccess) {
+        print('[LOGIN SUCCESS] OTP user authenticated -> isLoggedIn: ${isLoggedIn()}, currentRoute: ${Get.currentRoute}');
+      }
+    }
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
@@ -97,15 +116,24 @@ class AuthController extends GetxController implements GetxService {
   }
 
   Future<ResponseModel> guestLogin() async {
+    if (kDebugMode) {
+      print('[AUTH INIT START] guestLogin initiated, currentRoute: ${Get.currentRoute}');
+    }
     _guestLoading = true;
     update();
     ResponseModel responseModel = await authServiceInterface.guestLogin();
+    if (kDebugMode) {
+      print('[AUTH INIT COMPLETE] guestLogin result: ${responseModel.isSuccess}, guestId: ${getGuestId()}');
+    }
     _guestLoading = false;
     update();
     return responseModel;
   }
 
   Future<ResponseModel> loginWithSocialMedia(SocialLogInBody socialLogInBody, {bool alreadyInApp = false}) async {
+    if (kDebugMode) {
+      print('[AUTH INIT START] socialLogin initiated -> medium: ${socialLogInBody.medium}, email: ${socialLogInBody.email}, currentRoute: ${Get.currentRoute}');
+    }
     _isLoading = true;
     update();
     ResponseModel responseModel = await authServiceInterface.loginWithSocialMedia(
@@ -113,6 +141,12 @@ class AuthController extends GetxController implements GetxService {
       isCustomerVerificationOn: Get.find<SplashController>().configModel!.customerVerification ?? false,
       alreadyInApp: alreadyInApp,
     );
+    if (kDebugMode) {
+      print('[AUTH INIT COMPLETE] socialLogin result: ${responseModel.isSuccess}, message: ${responseModel.message}');
+      if (responseModel.isSuccess) {
+        print('[LOGIN SUCCESS] social user authenticated -> isLoggedIn: ${isLoggedIn()}, currentRoute: ${Get.currentRoute}');
+      }
+    }
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
@@ -145,6 +179,9 @@ class AuthController extends GetxController implements GetxService {
     if(responseModel.isSuccess && responseModel.authResponseModel != null && responseModel.authResponseModel!.isPhoneVerified!
         && responseModel.authResponseModel!.isEmailVerified! && responseModel.authResponseModel!.isPersonalInfo!
         && responseModel.authResponseModel!.isExistUser == null) {
+      if (kDebugMode) {
+        print('[POST-LOGIN INIT] Fetching user info, carts, and offers...');
+      }
       Get.find<ProfileController>().getUserInfo();
       Get.find<CartController>().getAllCarts();
       if (ModuleHelper.getModule() != null || ModuleHelper.getCacheModule() != null) {
@@ -202,7 +239,7 @@ class AuthController extends GetxController implements GetxService {
   }
 
    Future<void> socialLogout() async {
-    final GoogleSignIn googleSignIn = GoogleSignIn();
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
     googleSignIn.disconnect();
     AuthEventLogger.logout();
     await FacebookAuth.instance.logOut();

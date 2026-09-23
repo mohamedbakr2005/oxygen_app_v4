@@ -1,5 +1,6 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
@@ -29,18 +30,13 @@ class SocialLoginWidget extends StatelessWidget {
   final bool showWelcomeText;
   final Function()? onOtpViewClick;
   final bool backFromThis;
-  const SocialLoginWidget({super.key, this.onlySocialLogin = false, this.showWelcomeText = true, this.onOtpViewClick, required this.backFromThis});
+  const SocialLoginWidget({super.key,
+    this.onlySocialLogin = false, this.showWelcomeText = true, this.onOtpViewClick, required this.backFromThis,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: GetPlatform.isIOS ? AppConstants.googleIosClientId : null,
-      serverClientId: AppConstants.googleServerClientId,
-      scopes: [
-        'email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-      ],
-    );
+    final GoogleSignIn googleSignIn = GoogleSignIn.instance;
 
     bool canAppleLogin = Get.find<SplashController>().configModel!.centralizeLoginSetup!.appleLoginStatus! && !GetPlatform.isAndroid;
 
@@ -184,7 +180,7 @@ class SocialLoginWidget extends StatelessWidget {
 
       Wrap(spacing: 15, runSpacing: 15, children: [
         if(facebookLoginActive)
-          SocialLoginButton(iconPath: Images.facebook, label: 'facebook'.tr,
+          SocialLoginButton(iconPath: Images.facebook2, label: 'facebook'.tr,
             onTap: () {
               if(ResponsiveHelper.isDesktop(context)) {
                 Get.back();
@@ -274,84 +270,41 @@ class SocialLoginWidget extends StatelessWidget {
 
     ]) : const SizedBox();
   }
-void _googleLogin(GoogleSignIn googleSignIn) async {
-  try {
-    final GoogleSignInAccount? googleAccount =
-        await googleSignIn.signIn();
+  void _googleLogin(GoogleSignIn googleSignIn) async {
+    if(kIsWeb) {
+      await _googleWebSignIn();
 
-    if (googleAccount == null) {
-      print('❌ Google Sign-In cancelled');
-      return;
-    }
+    }else{
+      try{
+        if(googleSignIn.supportsAuthenticate()) {
+          await googleSignIn.initialize(serverClientId: AppConstants.googleServerClientId).then((_) async {
 
-    final GoogleSignInAuthentication auth =
-        await googleAccount.authentication;
+            googleSignIn.signOut();
+            GoogleSignInAccount googleAccount = await googleSignIn.authenticate();
+            const List<String> scopes = <String>['email'];
+            GoogleSignInClientAuthorization? auth = await googleAccount.authorizationClient.authorizationForScopes(scopes);
 
-    print('========== GOOGLE LOGIN DEBUG ==========');
-    print('Email: ${googleAccount.email}');
-    print('Google ID: ${googleAccount.id}');
-    print('ID Token exists: ${auth.idToken != null}');
-    print('ID Token length: ${auth.idToken?.length}');
-    print('========================================');
+            SocialLogInBody googleBodyModel = SocialLogInBody(
+              email: googleAccount.email, token: auth?.accessToken, uniqueId: googleAccount.id,
+              medium: 'google', accessToken: 1, loginType: CentralizeLoginType.social.name,
+            );
 
-    // IMPORTANT: Don't send the request if Google didn't provide an ID token.
-    if (auth.idToken == null || auth.idToken!.isEmpty) {
-      print('❌ Google ID Token is NULL/EMPTY');
-
-      showCustomSnackBar(
-        'Google Sign-In failed: ID Token is missing.',
-      );
-
-      return;
-    }
-
-    final SocialLogInBody googleBodyModel = SocialLogInBody(
-      email: googleAccount.email,
-      token: auth.idToken!,
-      uniqueId: googleAccount.id,
-      medium: 'google',
-      loginType: CentralizeLoginType.social.name,
-    );
-
-    print('✅ Google ID Token ready');
-    print('➡️ Sending Google login request to backend');
-
-    Get.find<AuthController>()
-        .loginWithSocialMedia(googleBodyModel, alreadyInApp: backFromThis)
-        .then((response) {
-      if (response.isSuccess) {
-        print('✅ Google Login API Success');
-
-        _processSocialSuccessSetup(
-          response,
-          googleBodyModel,
-          null,
-          null,
-        );
-      } else {
-        print('❌ Google Login API Failed');
-        print('Message: ${response.message}');
-
-        showCustomSnackBar(response.message);
+            Get.find<AuthController>().loginWithSocialMedia(googleBodyModel).then((response) {
+              if (response.isSuccess) {
+                _processSocialSuccessSetup(response, googleBodyModel, null, null);
+              } else {
+                showCustomSnackBar(response.message);
+              }
+            });
+          });
+        }else {
+          debugPrint("Google Sign-In not supported on this device.");
+        }
+      }catch(e){
+        debugPrint('Error in google sign in: $e');
       }
-    });
-  } catch (error, stackTrace) {
-    print('❌ Google Sign-In Error: $error');
-    print(stackTrace);
-
-    showCustomSnackBar(
-      'Google Sign-In failed. Please try again.',
-    );
-
-    FirebaseAnalytics.instance.logEvent(
-      name: 'login_failed',
-      parameters: {
-        'method': 'google',
-        'error': error.toString(),
-      },
-    );
+    }
   }
-}
 
   Future<void> _googleWebSignIn() async {
     final FirebaseAuth auth = FirebaseAuth.instance;
@@ -369,7 +322,7 @@ void _googleLogin(GoogleSignIn googleSignIn) async {
         loginType: CentralizeLoginType.social.name,
       );
 
-      Get.find<AuthController>().loginWithSocialMedia(googleBodyModel, alreadyInApp: backFromThis).then((response) {
+      Get.find<AuthController>().loginWithSocialMedia(googleBodyModel).then((response) {
         if (response.isSuccess) {
           _processSocialSuccessSetup(response, googleBodyModel, null, null);
         } else {
@@ -395,7 +348,7 @@ void _googleLogin(GoogleSignIn googleSignIn) async {
         medium: 'facebook', loginType: CentralizeLoginType.social.name,
       );
 
-      Get.find<AuthController>().loginWithSocialMedia(facebookBodyModel, alreadyInApp: backFromThis).then((response) {
+      Get.find<AuthController>().loginWithSocialMedia(facebookBodyModel).then((response) {
         if (response.isSuccess) {
           _processSocialSuccessSetup(response, null, null, facebookBodyModel);
         } else {
@@ -425,7 +378,7 @@ void _googleLogin(GoogleSignIn googleSignIn) async {
       medium: 'apple', loginType: CentralizeLoginType.social.name, platform: GetPlatform.isIOS ? 'flutter_app' : 'flutter_web',
     );
 
-    Get.find<AuthController>().loginWithSocialMedia(appleBodyModel, alreadyInApp: backFromThis).then((response) {
+    Get.find<AuthController>().loginWithSocialMedia(appleBodyModel).then((response) {
       if (response.isSuccess) {
         _processSocialSuccessSetup(response, null, appleBodyModel, null);
       } else {
@@ -455,7 +408,7 @@ void _googleLogin(GoogleSignIn googleSignIn) async {
           socialLogInBodyModel: googleBodyModel ?? appleBodyModel ?? facebookBodyModel, email: email, backFromThis: backFromThis,
         ));
       }
-    } else if(response.isSuccess && response.authResponseModel != null && response.authResponseModel!.requiresProfileCompletion) {
+    } else if(response.isSuccess && response.authResponseModel != null && !response.authResponseModel!.isPersonalInfo!) {
 
       String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
 

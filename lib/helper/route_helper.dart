@@ -82,8 +82,8 @@ import 'package:Oxygen_Mart/features/store/screens/store_item_search_screen.dart
 import 'package:Oxygen_Mart/features/store/screens/store_screen.dart';
 import 'package:Oxygen_Mart/features/support/screens/support_screen.dart';
 import 'package:Oxygen_Mart/features/update/screens/update_screen.dart';
-import 'package:Oxygen_Mart/features/verification/screens/forget_pass_screen.dart';
-import 'package:Oxygen_Mart/features/verification/screens/new_pass_screen.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/verification_new/forget_pass_new_screen.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/verification_new/new_pass_new_screen.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/verification_new/verification_new_screen.dart';
 import 'package:Oxygen_Mart/features/wallet/screens/wallet_screen.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -120,6 +120,11 @@ class RouteHelper {
   static const String orderTracking = '/track-order';
   static const String basicCampaign = '/basic-campaign';
   static const String html = '/html-page';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String cancellationPolicy = '/cancellation-policy';
+  static const String refundPolicy = '/refund-policy';
+  static const String termsAndCondition = '/terms-and-condition';
+  static const String shippingPolicy = '/shipping-policy';
   static const String categories = '/categories';
   static const String categoryItem = '/category-item';
   static const String popularItems = '/popular-items';
@@ -290,6 +295,11 @@ class RouteHelper {
   }
 
   static String getHtmlRoute(String page) => '$html?page=$page';
+  static String getPrivacyPolicyRoute() => privacyPolicy;
+  static String getCancellationPolicyRoute() => cancellationPolicy;
+  static String getRefundPolicyRoute() => refundPolicy;
+  static String getTermsAndConditionRoute() => termsAndCondition;
+  static String getShippingPolicyRoute() => shippingPolicy;
   static String getCategoryRoute() => categories;
   static String getCategoryItemRoute(int? id, String name, {int? moduleId, String? slug}) {
     List<int> encoded = utf8.encode(name);
@@ -474,7 +484,7 @@ class RouteHelper {
               fromNotification: Get.parameters['page'] == notification,
               fromResetPassword: Get.parameters['page'] == resetPassword,
             )),
-    GetPage(name: signUp, page: () => const SignUpScreen()),
+    GetPage(name: signUp, page: () => SignUpScreen(referCode: Get.parameters['code'] != 'null' ? Get.parameters['code'] : null)),
     /*GetPage(name: verification, page: () {
       List<int> decode = base64Decode(Get.parameters['pass']!.replaceAll(' ', '+'));
       String data = utf8.decode(decode);
@@ -581,13 +591,14 @@ class RouteHelper {
       return ForgetPassScreen(fromSocialLogin: Get.parameters['page'] == 'social-login', socialLogInBody: data);
     }),*/
 
-    GetPage(name: forgotPassword, page: () => const ForgetPassScreen()),
+    GetPage(name: forgotPassword, page: () => const ForgetPassNewScreen()),
     GetPage(
         name: resetPassword,
-        page: () => NewPassScreen(
+        page: () => NewPassNewScreen(
               resetToken: Get.parameters['token'],
               number: Get.parameters['phone'],
               fromPasswordChange: Get.parameters['page'] == 'password-change',
+              email: Get.parameters['email'],
             )),
     GetPage(
         name: search,
@@ -764,6 +775,11 @@ class RouteHelper {
                   base64Decode(Get.parameters['data']!.replaceAll(' ', '+')))));
           return getRoute(CampaignScreen(campaign: data));
         }),
+    GetPage(name: privacyPolicy, page: () => const HtmlViewerScreen(htmlType: HtmlType.privacyPolicy)),
+    GetPage(name: cancellationPolicy, page: () => const HtmlViewerScreen(htmlType: HtmlType.cancellation)),
+    GetPage(name: refundPolicy, page: () => const HtmlViewerScreen(htmlType: HtmlType.refund)),
+    GetPage(name: termsAndCondition, page: () => const HtmlViewerScreen(htmlType: HtmlType.termsAndCondition)),
+    GetPage(name: shippingPolicy, page: () => const HtmlViewerScreen(htmlType: HtmlType.shippingPolicy)),
     GetPage(
         name: html,
         page: () => HtmlViewerScreen(

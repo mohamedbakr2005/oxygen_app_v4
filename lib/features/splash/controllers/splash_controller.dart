@@ -27,6 +27,7 @@ import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/services/splash_service_interface.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/maintance_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/helper/splash_route_helper.dart';
 
@@ -80,10 +81,17 @@ class SplashController extends GetxController implements GetxService {
   bool _showReferBottomSheet = false;
   bool get showReferBottomSheet => _showReferBottomSheet;
 
-  /// Guard: prevents concurrent getConfigData calls
-  bool _isConfigLoading = false;
+  Uri? _deeplinkRoute;
+  Uri? get deeplinkRoute => _deeplinkRoute;
 
-  /// Guard: prevents concurrent onModuleActivated calls
+  void setDeeplink(Uri? route) {
+    _deeplinkRoute = route;
+  }
+
+  // Latch so cold-start splash routing (notification target OR normal home) runs
+  // exactly once, no matter how many local/client config responses race. Guards ONLY
+  // the splash user/notification routing — never maintenance/demo/main-function routes.
+  bool _splashRouted = false;
   bool _isModuleActivating = false;
 
   DateTime get currentTime => DateTime.now();
@@ -93,103 +101,117 @@ class SplashController extends GetxController implements GetxService {
     update();
   }
 
-  Future<void> getConfigData(
-      {NotificationBodyModel? notificationBody,
-      bool loadModuleData = false,
-      bool loadLandingData = false,
-      bool fromMainFunction = false,
-      bool fromDemoReset = false}) async {
-    // Guard: prevent concurrent config loads
-    if (_isConfigLoading) return;
-    _isConfigLoading = true;
-
+  Future<void> getConfigData({
+    bool handleMaintenanceMode = false,
+    NotificationBodyModel? notificationBody,
+    bool loadModuleData = false,
+    bool loadLandingData = false,
+    DataSourceEnum source = DataSourceEnum.local,
+    bool fromMainFunction = false,
+    bool fromDemoReset = false,
+    bool canRoute = true,
+    bool fromSplash = false,
+  }) async {
     _hasConnection = true;
     _moduleIndex = 0;
-
-    try {
-      // Phase 1: Serve cached data instantly for fast UI
-      if (!fromDemoReset) {
-        Response localResponse = await splashServiceInterface.getConfigData(
-            source: DataSourceEnum.local);
-        if (localResponse.statusCode == 200) {
-          _data = localResponse.body;
-          _configModel = ConfigModel.fromJson(localResponse.body);
-          update(); // UI gets cached data immediately
-        }
-      }
-
-      // Phase 2: Fetch fresh server data (ONE request only)
-      Response clientResponse = await splashServiceInterface.getConfigData(
-          source: DataSourceEnum.client);
-
-      if (clientResponse.statusCode == 200) {
-        _data = clientResponse.body;
-        _configModel = ConfigModel.fromJson(clientResponse.body);
-
-        // Set module (pure state, no API calls)
-        if (_configModel!.module != null) {
-          await setModule(_configModel!.module);
-        } else if (GetPlatform.isWeb || (loadModuleData && _module != null)) {
-          ModuleModel? savedModule =
-              GetPlatform.isWeb ? splashServiceInterface.getModule() : _module;
-
-          // On web: if no saved module, auto-select grocery module
-          if (GetPlatform.isWeb && savedModule == null) {
-            List<ModuleModel>? modules = await splashServiceInterface.getModules(
-                source: DataSourceEnum.client);
-            if (modules != null && modules.isNotEmpty) {
-              // Try to find grocery module first, otherwise pick the first module
-              ModuleModel? groceryModule;
-              for (var m in modules) {
-                if (m.moduleType == AppConstants.grocery) {
-                  groceryModule = m;
-                  break;
-                }
-              }
-              savedModule = groceryModule ?? modules.first;
-              _prepareModuleList(modules);
-            }
-          }
-
-          await setModule(savedModule);
-        }
-
-        // Load module data ONCE after module is set
-        if (_module != null) {
-          await onModuleActivated();
-        }
-
-        if (loadLandingData) {
-          await getLandingPageData();
-        }
-
-        // Routing — runs ONCE
-        if (fromMainFunction) {
-          _mainConfigRouting();
-          route(body: notificationBody);
-        } else if (fromDemoReset) {
-          Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: true));
-        } else {
-          route(body: notificationBody);
-        }
-
-        _onRemoveLoader();
-      } else {
-        if (clientResponse.statusText == ApiClient.noInternetMessage) {
-          _hasConnection = false;
-        }
-      }
-    } finally {
-      _isConfigLoading = false;
-      update();
+    Response response;
+    if (source == DataSourceEnum.local && !fromDemoReset) {
+      response = await splashServiceInterface.getConfigData(source: DataSourceEnum.local);
+      _handleConfigResponse(response, handleMaintenanceMode, loadModuleData, loadLandingData, fromMainFunction, fromDemoReset, notificationBody, canRoute, fromSplash);
+      getConfigData(handleMaintenanceMode: handleMaintenanceMode, loadModuleData: loadModuleData, loadLandingData: loadLandingData, source: DataSourceEnum.client, notificationBody: notificationBody, canRoute: canRoute, fromSplash: fromSplash);
+    } else {
+      response = await splashServiceInterface.getConfigData(source: DataSourceEnum.client);
+      _handleConfigResponse(response, handleMaintenanceMode, loadModuleData, loadLandingData, fromMainFunction, fromDemoReset, notificationBody, canRoute, fromSplash);
     }
   }
 
-  /// Routing after config is loaded from main function.
-  /// Does NOT call getFavouriteList — that's handled by onModuleActivated.
-  _mainConfigRouting() {
+  Future<void> _handleConfigResponse(
+    Response response,
+    bool handleMaintenanceMode,
+    bool loadModuleData,
+    bool loadLandingData,
+    bool fromMainFunction,
+    bool fromDemoReset,
+    NotificationBodyModel? notificationBody,
+    bool canRoute,
+    bool fromSplash,
+  ) async {
+    if (response.statusCode == 200) {
+      _data = response.body;
+      _configModel = ConfigModel.fromJson(response.body);
+      if (_configModel!.module != null) {
+        setModule(_configModel!.module);
+      } else if (GetPlatform.isWeb || (loadModuleData && _module != null)) {
+        setModule(GetPlatform.isWeb ? splashServiceInterface.getModule() : _module);
+      }
+
+      if (kDebugMode) {
+        print('[SPLASH CONFIG] deeplink url: $_deeplinkRoute and canRoute: $canRoute, fromSplash: $fromSplash, fromMainFunction: $fromMainFunction, currentRoute: ${Get.currentRoute}');
+      }
+      if (!canRoute || _deeplinkRoute != null) {
+        return;
+      }
+
+      bool isMaintenanceMode = _configModel!.maintenanceMode ?? false;
+      bool isInMaintenance = MaintenanceHelper.isMaintenanceEnable();
+
+      splashServiceInterface.handleInitialTopicSubscription();
+      if (isInMaintenance && handleMaintenanceMode) {
+        Get.offNamed(RouteHelper.getUpdateRoute(false));
+        _onRemoveLoader();
+        update();
+        return;
+      } else if (handleMaintenanceMode && ((Get.currentRoute.contains(RouteHelper.update) && !isMaintenanceMode) || !isInMaintenance)) {
+        Get.offNamed(RouteHelper.getInitialRoute());
+      }
+
+      if (fromMainFunction) {
+        if (kDebugMode) {
+          print('[SPLASH] fromMainFunction routing executed (no dashboard navigation, background sync only)');
+        }
+        _mainConfigRouting();
+      } else if (fromDemoReset) {
+        if (kDebugMode) {
+          print('[DASHBOARD NAVIGATION] reason: fromDemoReset, currentRoute: ${Get.currentRoute}');
+        }
+        Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: true));
+      } else if (!fromSplash) {
+        if (kDebugMode) {
+          print('[SPLASH NAVIGATION] reason: !fromSplash, currentRoute: ${Get.currentRoute}');
+        }
+        route(body: notificationBody);
+      } else if (!_splashRouted) {
+        _splashRouted = true;
+        if (kDebugMode) {
+          print('[SPLASH NAVIGATION] reason: initial cold-start splash routing, currentRoute: ${Get.currentRoute}');
+        }
+        route(body: notificationBody);
+      } else {
+        if (kDebugMode) {
+          print('[SPLASH] Splash routing already completed (_splashRouted=true), suppressing unexpected dashboard navigation. currentRoute: ${Get.currentRoute}');
+        }
+      }
+      _onRemoveLoader();
+    } else {
+      if (response.statusText == ApiClient.noInternetMessage) {
+        _hasConnection = false;
+      }
+    }
+    update();
+  }
+
+  Future<void> _mainConfigRouting() async {
+    if (GetPlatform.isWeb) {
+      bool isInMaintenance = MaintenanceHelper.isMaintenanceEnable();
+      if (isInMaintenance) {
+        Get.offNamed(RouteHelper.getUpdateRoute(false));
+      }
+    }
     if (Get.find<AuthController>().isLoggedIn()) {
       Get.find<AuthController>().updateToken();
+      if (Get.find<SplashController>().module != null && Get.find<SplashController>().module!.moduleType.toString() != AppConstants.ride) {
+        await Get.find<FavouriteController>().getFavouriteList();
+      }
     }
   }
 
@@ -221,7 +243,12 @@ class SplashController extends GetxController implements GetxService {
     update();
   }
 
+  void resetSplashRouted() {
+    _splashRouted = false;
+  }
+
   Future<void> initSharedData() async {
+    _splashRouted = false;
     if (!GetPlatform.isWeb) {
       _module = null;
       splashServiceInterface.initSharedData();

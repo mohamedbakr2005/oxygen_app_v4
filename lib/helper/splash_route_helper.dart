@@ -1,10 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
+import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_body_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/maintance_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
@@ -12,9 +15,12 @@ import 'package:Oxygen_Mart/util/app_constants.dart';
 
 void route({NotificationBodyModel? body}) {
   double? minimumVersion = _getMinimumVersion();
-  bool isMaintenanceMode =
-      Get.find<SplashController>().configModel!.maintenanceMode!;
+  bool isMaintenanceMode = MaintenanceHelper.isMaintenanceEnable();
   bool needsUpdate = AppConstants.appVersion < minimumVersion!;
+
+  if (kDebugMode) {
+    print('[SPLASH ROUTE] route() called: needsUpdate: $needsUpdate, isMaintenanceMode: $isMaintenanceMode, currentRoute: ${Get.currentRoute}, authState: ${AuthHelper.isLoggedIn() ? 'authenticated' : (AuthHelper.isGuestLoggedIn() ? 'guest' : 'unauthenticated')}');
+  }
 
   if (needsUpdate || isMaintenanceMode) {
     Get.offNamed(RouteHelper.getUpdateRoute(needsUpdate));
@@ -72,7 +78,12 @@ void _forNotificationRouteProcess(NotificationBodyModel? notificationBody) {
 Future<void> _forLoggedInUserRouteProcess() async {
   Get.find<AuthController>().updateToken();
   if (AddressHelper.getUserAddressFromSharedPref() != null) {
-    // Favourites are now loaded by onModuleActivated — no duplicate here
+    if (Get.find<SplashController>().module != null && Get.find<SplashController>().module!.moduleType.toString() != AppConstants.ride) {
+      await Get.find<FavouriteController>().getFavouriteList();
+    }
+    if (kDebugMode) {
+      print('[DASHBOARD NAVIGATION] reason: splash user routing for logged in user -> currentRoute: ${Get.currentRoute}, navigating to: ${RouteHelper.getInitialRoute(fromSplash: true)}');
+    }
     Get.offNamed(RouteHelper.getInitialRoute(fromSplash: true));
   } else {
     Get.find<LocationController>()
@@ -90,6 +101,9 @@ void _newlyRegisteredRouteProcess() {
 
 void _forGuestUserRouteProcess() {
   if (AddressHelper.getUserAddressFromSharedPref() != null) {
+    if (kDebugMode) {
+      print('[DASHBOARD NAVIGATION] reason: splash user routing for guest user -> currentRoute: ${Get.currentRoute}, navigating to: ${RouteHelper.getInitialRoute(fromSplash: true)}');
+    }
     Get.offNamed(RouteHelper.getInitialRoute(fromSplash: true));
   } else {
     Get.find<LocationController>()

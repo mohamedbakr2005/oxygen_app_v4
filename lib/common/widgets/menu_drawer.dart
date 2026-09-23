@@ -200,9 +200,6 @@ class MenuDrawerState extends State<MenuDrawer>
                         Get.offAllNamed(
                             RouteHelper.getSignInRoute(RouteHelper.splash));
                       }
-                      final splash = Get.find<SplashController>();
-                      // splash.resetStateForLogout();
-                      Get.offAllNamed(RouteHelper.getSplashRoute(null));
                     }),
                 useSafeArea: false);
           } else {

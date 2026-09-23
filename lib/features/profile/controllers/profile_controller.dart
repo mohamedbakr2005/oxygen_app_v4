@@ -31,46 +31,13 @@ class ProfileController extends GetxController implements GetxService {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  // ==========================
-  // Guards
-  // ==========================
-  bool _isFetching = false; // لمنع parallel API calls
-  bool _loadedOnce = false; // لمنع client requests الكتير
-  bool _refreshingBlocked = false; // لمنع calls وقت splash refresh
-
-  // ==========================
-  // Get User info
-  // ==========================
-  Future<void> getUserInfo(
-      {bool reload = false, bool fromRecall = false}) async {
-    final splash = Get.find<SplashController>();
-
-    // ⛔ تم منع Calls أثناء splash refresh
-    if (splash.isRefreshing && !fromRecall) return;
-
-    // ⛔ تم منع parallel requests
-    if (_isFetching) return;
-
-    // ⛔ لو already loaded ومفيش reload
-    if (_loadedOnce && !reload && !fromRecall) return;
-
-    _isFetching = true;
-
-    try {
-      UserInfoModel? userInfo = await profileServiceInterface.getUserInfo();
-
-      if (userInfo != null) {
-        _userInfoModel = userInfo;
-        _loadedOnce = true;
-      } else {
-        // مهم جداً
-        _loadedOnce = false;
-      }
-
-      update();
-    } finally {
-      _isFetching = false;
+  Future<void> getUserInfo() async {
+    _pickedFile = null;
+    UserInfoModel? userInfoModel = await profileServiceInterface.getUserInfo();
+    if (userInfoModel != null) {
+      _userInfoModel = userInfoModel;
     }
+    update();
   }
 
   // ==========================
@@ -169,7 +136,7 @@ class ProfileController extends GetxController implements GetxService {
         responseModel.updateProfileResponseModel == null) {
       if (Get.isDialogOpen!) Get.back();
 
-      await getUserInfo(reload: true);
+      await getUserInfo();
 
       if (!ResponsiveHelper.isDesktop(Get.context)) {
         Get.back();

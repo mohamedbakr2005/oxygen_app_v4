@@ -372,6 +372,7 @@ class AppConstants {
   static const String parcel = 'parcel';
   static const String taxi = 'rental';
   static const String ride = 'ride-share';
+  static const String maintenanceModeTopic = 'maintenance_mode_user_app';
 
   // pro
   static const String proPlansUri = '/api/v1/pro-customer/plans';

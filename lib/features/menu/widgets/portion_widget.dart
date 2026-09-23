@@ -28,12 +28,18 @@ class PortionWidget extends StatelessWidget {
             const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
         child: Column(children: [
           Row(children: [
-            Image.asset(icon, height: 16, width: 16),
+            Image.asset(
+              icon,
+              height: 16,
+              width: 16,
+              color: Theme.of(context).textTheme.bodyLarge!.color!.withValues(alpha: 0.6),
+            ),
             const SizedBox(width: Dimensions.paddingSizeSmall),
             Expanded(
                 child: Text(title,
                     style: robotoRegular.copyWith(
-                        fontSize: Dimensions.fontSizeDefault))),
+                        fontSize: Dimensions.fontSizeDefault,
+                        color: Theme.of(context).textTheme.bodyLarge!.color!.withValues(alpha: 0.7)))),
             suffix != null
                 ? Container(
                     decoration: BoxDecoration(

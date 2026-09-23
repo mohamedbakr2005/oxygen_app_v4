@@ -124,4 +124,9 @@ class SplashService implements SplashServiceInterface {
   Future<void> saveReferBottomSheetStatus(bool data) async {
     return await splashRepositoryInterface.saveReferBottomSheetStatus(data);
   }
+
+  @override
+  bool handleInitialTopicSubscription() {
+    return splashRepositoryInterface.handleInitialTopicSubscription();
+  }
 }

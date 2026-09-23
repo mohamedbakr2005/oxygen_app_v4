@@ -3,7 +3,7 @@ import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 
 class AuthHelper {
   static bool isGuestLoggedIn() {
-    return !isLoggedIn();
+    return Get.find<AuthController>().isGuestLoggedIn();
   }
 
   static String getGuestId() {
