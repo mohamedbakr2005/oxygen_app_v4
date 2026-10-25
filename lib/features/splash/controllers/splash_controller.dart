@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:Oxygen_Mart/helper/responsive_helper.dart';
+import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
-import 'package:Oxygen_Mart/common/models/config_model.dart';
+import 'package:Oxygen_Mart/common/models/config_model.dart' hide DownloadUserAppLinks;
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
@@ -13,17 +16,17 @@ import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/banner/controllers/banner_controller.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/category/controllers/category_controller.dart';
-import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/features/flash_sale/controllers/flash_sale_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
-import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/features/item/controllers/campaign_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_body_model.dart';
 import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
-import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart';
+import 'package:Oxygen_Mart/features/smart_banner/controllers/smart_banner_controller.dart';
+import 'package:Oxygen_Mart/features/splash/domain/models/app_download_section_model.dart';
+import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart' hide DownloadUserAppLinks;
 import 'package:Oxygen_Mart/features/splash/domain/services/splash_service_interface.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -66,6 +69,9 @@ class SplashController extends GetxController implements GetxService {
   int _selectedModuleIndex = 0;
   int get selectedModuleIndex => _selectedModuleIndex;
 
+  int _moduleSwitchToken = 0;
+  Timer? _moduleLoadDebounce;
+
   LandingModel? _landingModel;
   LandingModel? get landingModel => _landingModel;
 
@@ -88,17 +94,36 @@ class SplashController extends GetxController implements GetxService {
     _deeplinkRoute = route;
   }
 
-  // Latch so cold-start splash routing (notification target OR normal home) runs
-  // exactly once, no matter how many local/client config responses race. Guards ONLY
-  // the splash user/notification routing — never maintenance/demo/main-function routes.
   bool _splashRouted = false;
-  bool _isModuleActivating = false;
 
   DateTime get currentTime => DateTime.now();
 
-  void selectModuleIndex(int index) {
+  void selectModuleIndex(int index, {bool canUpdate = true}) {
     _selectedModuleIndex = index;
-    update();
+    if (canUpdate) {
+      update();
+    }
+  }
+
+  void selectModuleByTabIndex(int tabIndex) {
+    selectModuleIndex(tabIndex);
+    if (tabIndex == 0) return;
+    final int moduleListIndex = tabIndex - 1;
+    if (_moduleList != null && moduleListIndex >= 0 && moduleListIndex < _moduleList!.length) {
+      switchModule(moduleListIndex, true);
+    }
+  }
+
+  void selectHomeModule() {
+    selectModuleIndex(0);
+    if (!ResponsiveHelper.isDesktop(Get.context) &&
+        _module != null &&
+        _configModel?.module == null &&
+        _moduleList != null &&
+        _moduleList!.length != 1) {
+      removeModule();
+      Get.find<StoreController>().resetStoreData();
+    }
   }
 
   Future<void> getConfigData({
@@ -277,12 +302,13 @@ class SplashController extends GetxController implements GetxService {
     _firstTimeConnectionCheck = isChecked;
   }
 
-  /// PURE state setter — ZERO API calls.
-  /// All downstream API calls are handled by onModuleActivated().
-  Future<void> setModule(ModuleModel? module, {bool notify = true}) async {
+  Future<void> setModule(ModuleModel? module, {bool notify = true, bool fromModuleDialog = false}) async {
     _module = module;
     splashServiceInterface.setModule(module);
     if (module != null) {
+      if (kDebugMode) {
+        print('[MODULE CONTEXT] Active module set: ${module.id} (${module.moduleName} - ${module.moduleType})');
+      }
       if (_configModel != null && _data != null) {
         final moduleConfigData = _data!['module_config'];
         if (moduleConfigData != null &&
@@ -291,43 +317,28 @@ class SplashController extends GetxController implements GetxService {
               Module.fromJson(moduleConfigData[module.moduleType]);
         }
       }
-      await splashServiceInterface.setCacheModule(module);
+      _cacheModule = await splashServiceInterface.setCacheModule(module);
+      if ((AuthHelper.isLoggedIn() || AuthHelper.isGuestLoggedIn()) && _cacheModule != null) {
+        Get.find<CartController>().getAllCarts();
+      }
+    } else {
+      if (kDebugMode) {
+        print('[MODULE CONTEXT] Active module cleared (null)');
+      }
     }
+
+    if (AuthHelper.isLoggedIn()) {
+      if (_module != null) {
+        Get.find<HomeController>().getCashBackOfferList();
+        if (Get.find<ProfileController>().userInfoModel?.proStatus ?? false) {
+          Get.find<ProController>().getProActiveOffer(moduleType: module?.moduleType);
+        }
+        Get.find<FavouriteController>().getFavouriteList();
+      }
+    }
+
     if (notify) {
       update();
-    }
-  }
-
-  /// Single orchestrator for all post-module-set API calls.
-  /// Runs ONCE per module activation — guarded against concurrent calls.
-  Future<void> onModuleActivated() async {
-    if (_module == null) return;
-    if (_isModuleActivating) return;
-    _isModuleActivating = true;
-
-    try {
-      final int? storeId = await Get.find<StoreController>().resolveAndSetActiveStoreForModule(_module!.id);
-
-      final futures = <Future>[];
-
-      // Cart: load for logged-in or guest users
-      if ((AuthHelper.isLoggedIn() || AuthHelper.isGuestLoggedIn()) &&
-          cacheModule != null) {
-        futures.add(Get.find<CartController>().getCartDataOnline(storeId: storeId));
-      }
-
-      // User-specific data
-      if (AuthHelper.isLoggedIn()) {
-        futures.add(Get.find<HomeController>().getCashBackOfferList());
-        futures.add(Get.find<FavouriteController>().getFavouriteList());
-        if (Get.find<ProfileController>().userInfoModel?.proStatus ?? false) {
-          futures.add(Get.find<ProController>().getProActiveOffer(moduleType: _module?.moduleType));
-        }
-      }
-
-      await Future.wait(futures);
-    } finally {
-      _isModuleActivating = false;
     }
   }
 
@@ -345,84 +356,117 @@ class SplashController extends GetxController implements GetxService {
     return module;
   }
 
-  Future<void> getModules({Map<String, String>? headers}) async {
+  Future<bool> getModules({Map<String, String>? headers, DataSourceEnum dataSource = DataSourceEnum.local}) async {
     _moduleIndex = 0;
-
-    // Phase 1: local cache for instant UI
-    List<ModuleModel>? localModules = await splashServiceInterface.getModules(
-        headers: headers, source: DataSourceEnum.local);
-    _prepareModuleList(localModules);
-
-    // Phase 2: fresh server data (one request)
-    List<ModuleModel>? clientModules = await splashServiceInterface.getModules(
-        headers: headers, source: DataSourceEnum.client);
-    _prepareModuleList(clientModules);
+    List<ModuleModel>? moduleList;
+    if (dataSource == DataSourceEnum.local) {
+      moduleList = await splashServiceInterface.getModules(headers: headers, source: DataSourceEnum.local);
+      getModules(headers: headers, dataSource: DataSourceEnum.client);
+      return _prepareModuleList(moduleList);
+    } else {
+      moduleList = await splashServiceInterface.getModules(headers: headers, source: DataSourceEnum.client);
+      return _prepareModuleList(moduleList);
+    }
   }
 
-  _prepareModuleList(List<ModuleModel>? moduleList) {
-    if (moduleList == null) return;
-    print("MODULES:++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-    for (var m in moduleList) {
-      print("${m.id} - ${m.moduleName} - ${m.moduleType}");
-    }
+  bool _prepareModuleList(List<ModuleModel>? moduleList) {
     if (moduleList != null) {
       _moduleList = [];
       _moduleList!.addAll(moduleList);
+      if (kDebugMode) {
+        print('[MODULES LOADED] Count: ${_moduleList!.length}');
+        for (var m in _moduleList!) {
+          print(' -> ${m.id}: ${m.moduleName} (${m.moduleType})');
+        }
+      }
+      update();
+      return true;
+    } else {
+      update();
+      return false;
     }
-    update();
   }
 
   Future<void> _showInterestPage() async {
-    if (!Get.find<ProfileController>()
-            .userInfoModel!
-            .selectedModuleForInterest!
-            .contains(Get.find<SplashController>().module!.id) &&
-        (Get.find<SplashController>().module!.moduleType == 'food' ||
-            Get.find<SplashController>().module!.moduleType == 'grocery' ||
-            Get.find<SplashController>().module!.moduleType == 'ecommerce')) {
-      print('interest page${Get.find<SplashController>().module?.toJson()}');
-      await Get.toNamed(RouteHelper.getInterestRoute());
+    final user = Get.find<ProfileController>().userInfoModel;
+    final ModuleModel? module = _module;
+    if (user == null || module == null) {
+      return;
     }
+    final String moduleType = module.moduleType?.toString() ?? '';
+    final bool isInterestModule = moduleType == AppConstants.food ||
+        moduleType == AppConstants.pharmacy ||
+        moduleType == AppConstants.grocery ||
+        moduleType == AppConstants.ecommerce;
+    final bool alreadySelected =
+        user.selectedModuleForInterest?.contains(module.id) ?? false;
+    if (!isInterestModule || alreadySelected) {
+      return;
+    }
+
+    await Get.find<CategoryController>()
+        .getCategoryList(true, allCategory: false)
+        .then((_) async {
+      if (Get.find<CategoryController>().categoryList != null &&
+          Get.find<CategoryController>().categoryList!.isNotEmpty) {
+        await Get.toNamed(RouteHelper.getInterestRoute());
+      }
+    });
   }
 
-  Future<void> switchModule(ModuleModel newModule) async {
-    if (_module == null || _module!.id != newModule.id) {
-      if (kDebugMode) {
-        print('--- SWITCHING MODULE ---');
-        print('Old Module: ${_module?.moduleName}');
-        print('New Module: ${newModule.moduleName}');
+  void switchModule(dynamic moduleOrIndex, [bool? fromPhone]) async {
+    ModuleModel? targetModule;
+    if (moduleOrIndex is int) {
+      if (_moduleList != null && moduleOrIndex >= 0 && moduleOrIndex < _moduleList!.length) {
+        targetModule = _moduleList![moduleOrIndex];
       }
+    } else if (moduleOrIndex is ModuleModel) {
+      targetModule = moduleOrIndex;
+    }
+    if (targetModule == null) return;
+    await switchModuleByModel(targetModule);
+  }
 
-      // 1. Pure state set
-      await setModule(newModule);
+  Future<void> switchModuleByModel(ModuleModel targetModule) async {
+    if (kDebugMode) {
+      print('=============================================');
+      print('[MODULE ENTER] Target: ${targetModule.id} (${targetModule.moduleName} - ${targetModule.moduleType}) | Current: ${_module?.id}');
+      print('=============================================');
+    }
+    if (_module == null || _module!.id != targetModule.id) {
+      final int token = ++_moduleSwitchToken;
 
-      // 2. Clear stale data from previous module
+      await setModule(targetModule);
+
+      if (token != _moduleSwitchToken) return;
+
+      Get.find<CartController>().getAllCarts();
       Get.find<ItemController>().clearItemLists();
-      Get.find<StoreController>().clearStoreData(); // New clear method
-      Get.find<HomeController>().clearModuleData();
+      Get.find<StoreController>().clearStoreData();
       Get.find<BannerController>().clearBanner();
       Get.find<CategoryController>().clearCategoryList();
       Get.find<CampaignController>().itemAndBasicCampaignNull();
       Get.find<FlashSaleController>().setEmptyFlashSale(fromModule: true);
-      Get.find<HomeController>().forcefullyNullCashBackOffers();
 
-      // 3. Fetch specific zone config based on new module headers
-      await Get.find<LocationController>().syncZoneData();
-
-      if (kDebugMode) {
-        print('Zone ID after sync: ${Get.find<LocationController>().zoneID}');
+      if (AuthHelper.isLoggedIn()) {
+        Get.find<HomeController>().getCashBackOfferList();
+        try {
+          await _showInterestPage();
+        } catch (_) {}
+        if (token != _moduleSwitchToken) return;
       }
 
-      // 4. Load new module data ONCE via orchestrator (no duplicates)
-      await onModuleActivated();
-
-      // 5. Force UI rebuild by tearing down all screens and returning to dash
-      Get.offAllNamed(RouteHelper.getInitialRoute());
+      _moduleLoadDebounce?.cancel();
+      _moduleLoadDebounce = Timer(const Duration(milliseconds: 350), () {
+        if (token == _moduleSwitchToken) {
+          HomeScreen.loadData(true, fromModule: true);
+        }
+      });
     }
   }
 
-  int getCacheModule() {
-    return splashServiceInterface.getCacheModule()?.id ?? 0;
+  ModuleModel? getCacheModule() {
+    return splashServiceInterface.getCacheModule();
   }
 
   void setModuleIndex(int index) {
@@ -431,22 +475,39 @@ class SplashController extends GetxController implements GetxService {
   }
 
   Future<void> removeModule() async {
+    if (kDebugMode) {
+      print('=============================================');
+      print('[MODULE EXIT] Leaving module: ${_module?.id} (${_module?.moduleName})');
+      print('=============================================');
+    }
     await setModule(null);
+    Get.find<BannerController>().getFeaturedBanner();
+    Get.find<SmartBannerController>().getSmartBanners(notify: false);
+    getModules();
     Get.find<HomeController>().forcefullyNullCashBackOffers();
+    if (AuthHelper.isLoggedIn()) {
+      Get.find<AddressController>().getAddressList();
+    }
+    Get.find<StoreController>().getFeaturedStoreList();
     Get.find<CampaignController>().itemAndBasicCampaignNull();
-
-    // These are legitimate — they fetch module-selector screen data
-    await Future.wait([
-      Get.find<BannerController>().getFeaturedBanner(),
-      getModules(),
-      Get.find<StoreController>().getFeaturedStoreList(),
-      if (AuthHelper.isLoggedIn())
-        Get.find<AddressController>().getAddressList(),
-    ]);
+    if (_deeplinkRoute != null) {
+      setDeeplink(null);
+      HomeScreen.loadData(false);
+    }
   }
 
-  void removeCacheModule() {
-    splashServiceInterface.setCacheModule(null);
+  Future<void> removeCacheModule() async {
+    _cacheModule = await splashServiceInterface.setCacheModule(null);
+  }
+
+  void clearDataNull(ModuleModel foundModule) {
+    Get.find<CartController>().getAllCarts();
+    Get.find<ItemController>().clearItemLists();
+    Get.find<StoreController>().clearStoreData();
+    Get.find<BannerController>().clearBanner();
+    Get.find<CategoryController>().clearCategoryList();
+    Get.find<CampaignController>().itemAndBasicCampaignNull();
+    Get.find<FlashSaleController>().setEmptyFlashSale(fromModule: true);
   }
 
   Future<bool> subscribeMail(String email) async {
@@ -519,4 +580,31 @@ class SplashController extends GetxController implements GetxService {
 
   void savePaymentIncompleteSheetStatus(bool hide) {
   }
+
+  AppDownloadSectionModel? _appDownloadSection;
+  AppDownloadSectionModel? get appDownloadSection => _appDownloadSection;
+
+  String? _pusherConnectionStatus;
+  String? get pusherConnectionStatus => _pusherConnectionStatus;
+
+  void setPusherStatus(String? connection) {
+    _pusherConnectionStatus = connection;
+  }
+
+  Future<void> fetchAppDownloadSection() async {
+    AppDownloadSectionModel? appDownloadSectionModel = await splashServiceInterface.getAppDownloadSection();
+    if (appDownloadSectionModel == null) return;
+    _appDownloadSection = appDownloadSectionModel;
+    update();
+  }
+
+  DownloadUserAppLinks? get links => _appDownloadSection?.downloadUserAppLinks;
+
+  String get appDownloadQrUrl {
+    if (links?.appleStoreUrl?.isNotEmpty ?? false) return links!.appleStoreUrl!;
+    if (links?.playstoreUrl?.isNotEmpty ?? false) return links!.playstoreUrl!;
+    return '';
+  }
+
+  bool get showAppDownloadSection => (links?.playstoreUrl?.isNotEmpty ?? false) && (links?.appleStoreUrl?.isNotEmpty ?? false);
 }

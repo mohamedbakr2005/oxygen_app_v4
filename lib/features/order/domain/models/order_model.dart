@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
 import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
@@ -21,7 +22,13 @@ class PaginatedOrderModel {
     if (json['orders'] != null) {
       orders = [];
       json['orders'].forEach((v) {
-        orders!.add(OrderModel.fromJson(v));
+        if (v is Map<String, dynamic>) {
+          orders!.add(OrderModel.fromJson(v));
+        } else if (v is String) {
+          try {
+            orders!.add(OrderModel.fromJson(jsonDecode(v)));
+          } catch (_) {}
+        }
       });
     }
   }
@@ -104,8 +111,10 @@ class OrderModel {
   double? deliveryFeeReductionAmount;
   ProOfferType? deliveryOfferType;
   double? proDiscount;
+  bool? canReorder;
 
   OrderModel({
+    this.canReorder,
     this.benefitType,
     this.deliveryFeeReductionAmount,
     this.deliveryOfferType,
@@ -176,19 +185,19 @@ class OrderModel {
   OrderModel.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     userId = json['user_id'];
-    orderAmount = json['order_amount'].toDouble();
-    couponDiscountAmount = json['coupon_discount_amount'].toDouble();
+    orderAmount = json['order_amount'] != null ? double.tryParse(json['order_amount'].toString()) : null;
+    couponDiscountAmount = json['coupon_discount_amount'] != null ? double.tryParse(json['coupon_discount_amount'].toString()) : null;
     couponDiscountTitle = json['coupon_discount_title'];
     paymentStatus = json['payment_status'];
     orderStatus = json['order_status'];
-    totalTaxAmount = json['total_tax_amount'].toDouble();
+    totalTaxAmount = json['total_tax_amount'] != null ? double.tryParse(json['total_tax_amount'].toString()) : null;
     paymentMethod = json['payment_method'];
     couponCode = json['coupon_code'];
     orderNote = json['order_note'];
     orderType = json['order_type'];
     createdAt = json['created_at'];
     updatedAt = json['updated_at'];
-    deliveryCharge = json['delivery_charge'].toDouble();
+    deliveryCharge = json['delivery_charge'] != null ? double.tryParse(json['delivery_charge'].toString()) : null;
     scheduleAt = json['schedule_at'];
     otp = json['otp'];
     pending = json['pending'];
@@ -202,7 +211,7 @@ class OrderModel {
     refundRequested = json['refund_requested'];
     refunded = json['refunded'];
     scheduled = json['scheduled'];
-    storeDiscountAmount = json['store_discount_amount'].toDouble();
+    storeDiscountAmount = json['store_discount_amount'] != null ? double.tryParse(json['store_discount_amount'].toString()) : null;
     failed = json['failed'];
     detailsCount = json['details_count'];
     if (json['order_attachment_full_url'] != null) {
@@ -213,23 +222,63 @@ class OrderModel {
     }
     chargePayer = json['charge_payer'];
     moduleType = json['module_type'];
-    deliveryMan = json['delivery_man'] != null
-        ? DeliveryMan.fromJson(json['delivery_man'])
-        : null;
-    store = json['store'] != null ? Store.fromJson(json['store']) : null;
-    deliveryAddress = json['delivery_address'] != null
-        ? AddressModel.fromJson(json['delivery_address'])
-        : null;
-    receiverDetails = json['receiver_details'] != null
-        ? AddressModel.fromJson(json['receiver_details'])
-        : null;
-    parcelCategory = json['parcel_category'] != null
-        ? ParcelCategoryModel.fromJson(json['parcel_category'])
-        : null;
-    dmTips = json['dm_tips'].toDouble();
+    if (json['delivery_man'] != null) {
+      try {
+        deliveryMan = json['delivery_man'] is String
+            ? DeliveryMan.fromJson(jsonDecode(json['delivery_man']))
+            : DeliveryMan.fromJson(json['delivery_man']);
+      } catch (_) {
+        deliveryMan = null;
+      }
+    }
+    if (json['store'] != null) {
+      try {
+        store = json['store'] is String
+            ? Store.fromJson(jsonDecode(json['store']))
+            : Store.fromJson(json['store']);
+      } catch (_) {
+        store = null;
+      }
+    }
+    if (json['delivery_address'] != null) {
+      try {
+        deliveryAddress = json['delivery_address'] is String
+            ? AddressModel.fromJson(jsonDecode(json['delivery_address']))
+            : AddressModel.fromJson(json['delivery_address']);
+      } catch (_) {
+        deliveryAddress = null;
+      }
+    }
+    if (json['receiver_details'] != null) {
+      try {
+        receiverDetails = json['receiver_details'] is String
+            ? AddressModel.fromJson(jsonDecode(json['receiver_details']))
+            : AddressModel.fromJson(json['receiver_details']);
+      } catch (_) {
+        receiverDetails = null;
+      }
+    }
+    if (json['parcel_category'] != null) {
+      try {
+        parcelCategory = json['parcel_category'] is String
+            ? ParcelCategoryModel.fromJson(jsonDecode(json['parcel_category']))
+            : ParcelCategoryModel.fromJson(json['parcel_category']);
+      } catch (_) {
+        parcelCategory = null;
+      }
+    }
+    dmTips = json['dm_tips'] != null ? double.tryParse(json['dm_tips'].toString()) : null;
     refundCancellationNote = json['refund_cancellation_note'];
     refundCustomerNote = json['refund_customer_note'];
-    refund = json['refund'] != null ? Refund.fromJson(json['refund']) : null;
+    if (json['refund'] != null) {
+      try {
+        refund = json['refund'] is String
+            ? Refund.fromJson(jsonDecode(json['refund']))
+            : Refund.fromJson(json['refund']);
+      } catch (_) {
+        refund = null;
+      }
+    }
     prescriptionOrder = json['prescription_order'];
     taxStatus = json['tax_status'] == 'included' ? true : false;
     cancellationReason = json['cancellation_reason'];
@@ -237,16 +286,22 @@ class OrderModel {
     cutlery = json['cutlery'];
     unavailableItemNote = json['unavailable_item_note'];
     deliveryInstruction = json['delivery_instruction'];
-    taxPercentage = json['tax_percentage']?.toDouble();
-    additionalCharge = json['additional_charge']?.toDouble() ?? 0;
+    taxPercentage = json['tax_percentage'] != null ? double.tryParse(json['tax_percentage'].toString()) : null;
+    additionalCharge = json['additional_charge'] != null ? double.tryParse(json['additional_charge'].toString()) ?? 0 : 0;
     if (json['partially_paid_amount'] != null) {
       partiallyPaidAmount =
-          double.parse(json['partially_paid_amount'].toString());
+          double.tryParse(json['partially_paid_amount'].toString());
     }
     if (json['payments'] != null) {
       payments = <Payments>[];
       json['payments'].forEach((v) {
-        payments!.add(Payments.fromJson(v));
+        if (v is Map<String, dynamic>) {
+          payments!.add(Payments.fromJson(v));
+        } else if (v is String) {
+          try {
+            payments!.add(Payments.fromJson(jsonDecode(v)));
+          } catch (_) {}
+        }
       });
     }
     if (json['order_proof_full_url'] != null) {
@@ -257,18 +312,25 @@ class OrderModel {
         }
       });
     }
-    offlinePayment = json['offline_payment'] != null
-        ? OfflinePayment.fromJson(json['offline_payment'])
-        : null;
-    flashAdminDiscountAmount = json['flash_admin_discount_amount']?.toDouble();
-    flashStoreDiscountAmount = json['flash_store_discount_amount']?.toDouble();
-    extraPackagingAmount = json['extra_packaging_amount']?.toDouble();
-    referrerBonusAmount = json['ref_bonus_amount']?.toDouble();
-    moduleId = json['module_id'];
+    if (json['offline_payment'] != null) {
+      try {
+        offlinePayment = json['offline_payment'] is String
+            ? OfflinePayment.fromJson(jsonDecode(json['offline_payment']))
+            : OfflinePayment.fromJson(json['offline_payment']);
+      } catch (_) {
+        offlinePayment = null;
+      }
+    }
+    flashAdminDiscountAmount = json['flash_admin_discount_amount'] != null ? double.tryParse(json['flash_admin_discount_amount'].toString()) : null;
+    flashStoreDiscountAmount = json['flash_store_discount_amount'] != null ? double.tryParse(json['flash_store_discount_amount'].toString()) : null;
+    extraPackagingAmount = json['extra_packaging_amount'] != null ? double.tryParse(json['extra_packaging_amount'].toString()) : null;
+    referrerBonusAmount = json['ref_bonus_amount'] != null ? double.tryParse(json['ref_bonus_amount'].toString()) : null;
+    moduleId = json['module_id'] is String ? int.tryParse(json['module_id']) : json['module_id'];
     benefitType = ProBenefitType.fromString(json['benefit_type']);
-    deliveryFeeReductionAmount = json['delivery_fee_reduction_amount']?.toDouble();
+    deliveryFeeReductionAmount = json['delivery_fee_reduction_amount'] != null ? double.tryParse(json['delivery_fee_reduction_amount'].toString()) : null;
     deliveryOfferType = ProOfferType.fromString(json['delivery_offer_type']);
-    proDiscount = json['pro_discount']?.toDouble();
+    proDiscount = json['pro_discount'] != null ? double.tryParse(json['pro_discount'].toString()) : null;
+    canReorder = json['can_reorder'] == true || json['can_reorder'] == 1;
   }
 
   Map<String, dynamic> toJson() {
@@ -352,6 +414,7 @@ class OrderModel {
     data['delivery_fee_reduction_amount'] = deliveryFeeReductionAmount;
     data['delivery_offer_type'] = deliveryOfferType?.toJson();
     data['pro_discount'] = proDiscount;
+    data['can_reorder'] = canReorder;
     return data;
   }
 }

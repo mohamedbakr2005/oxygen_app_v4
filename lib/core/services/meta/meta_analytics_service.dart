@@ -10,7 +10,7 @@ class MetaAnalyticsService extends GetxService {
   Future<void> activateApp() async {
     try {
       // Typically, setting advertiser tracking and auto log is enough for activate app on startup
-      await _facebookAppEvents.setAdvertiserTracking(enabled: true);
+      await _facebookAppEvents.setAdvertiserIdCollectionEnabled(true);
       await _facebookAppEvents.setAutoLogAppEventsEnabled(true);
       debugPrint('Meta: activateApp triggered');
     } catch (e) {

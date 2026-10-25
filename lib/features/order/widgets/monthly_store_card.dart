@@ -33,8 +33,8 @@ class MonthlyStoreCard extends StatelessWidget {
   final MonthlyOrder order;
   const MonthlyStoreCard({super.key, required this.order});
 
-  static const double _tileWidth = 95;
-  static const double _stripHeight = 175;
+  static const double _tileWidth = 100;
+  static const double _stripHeight = 195;
 
   void _openDetail() => Get.to(() => MyItemsDetailScreen(order: order));
 

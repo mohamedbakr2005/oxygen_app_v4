@@ -12,6 +12,7 @@ import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/recommended_product_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_banner_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_category_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/repositories/store_repository_interface.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -72,12 +73,13 @@ class StoreRepository implements StoreRepositoryInterface {
       {required DataSourceEnum source}) async {
     StoreModel? storeModel;
     String cacheId =
-        '${AppConstants.storeUri}/$filterBy?store_type=$storeType&offset=$offset&limit=12-${Get.find<SplashController>().module!.id!}';
+        '${AppConstants.storeUri}/$filterBy?store_type=$storeType&offset=$offset&limit=12-${Get.find<SplashController>().module?.id ?? ''}';
 
     switch (source) {
       case DataSourceEnum.client:
         Response response = await apiClient.getData(
-            '${AppConstants.storeUri}/$filterBy?store_type=$storeType&offset=$offset&limit=12');
+            '${AppConstants.storeUri}/$filterBy?store_type=$storeType&offset=$offset&limit=12',
+            moduleScoped: true);
         if (response.statusCode == 200) {
           storeModel = StoreModel.fromJson(response.body);
           LocalClient.organize(DataSourceEnum.client, cacheId,
@@ -103,7 +105,7 @@ class StoreRepository implements StoreRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response = await apiClient
-            .getData('${AppConstants.popularStoreUri}?type=$type');
+            .getData('${AppConstants.popularStoreUri}?type=$type', moduleScoped: true);
         if (response.statusCode == 200) {
           popularStoreList = [];
           response.body['stores']
@@ -133,7 +135,7 @@ class StoreRepository implements StoreRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response = await apiClient
-            .getData('${AppConstants.latestStoreUri}?type=$type');
+            .getData('${AppConstants.latestStoreUri}?type=$type', moduleScoped: true);
         if (response.statusCode == 200) {
           latestStoreList = [];
           response.body['stores']
@@ -164,7 +166,7 @@ class StoreRepository implements StoreRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response =
-            await apiClient.getData(AppConstants.topOfferStoreUri);
+            await apiClient.getData(AppConstants.topOfferStoreUri, moduleScoped: true);
         if (response.statusCode == 200) {
           topOfferStoreList = [];
           response.body['stores'].forEach(
@@ -203,6 +205,7 @@ class StoreRepository implements StoreRepositoryInterface {
                   Get.find<SplashController>().configModel!.module == null
               ? HeaderHelper.featuredHeader()
               : null,
+          moduleScoped: true,
         );
         if (response.statusCode == 200) {
           featuredStoreList = [];
@@ -232,7 +235,7 @@ class StoreRepository implements StoreRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response =
-            await apiClient.getData(AppConstants.visitAgainStoreUri);
+            await apiClient.getData(AppConstants.visitAgainStoreUri, moduleScoped: true);
         if (response.statusCode == 200) {
           visitAgainStoreList = [];
           response.body.forEach(
@@ -271,9 +274,10 @@ class StoreRepository implements StoreRepositoryInterface {
         addressModel?.zoneIds,
         addressModel?.areaIds,
         languageCode,
-        module == null ? cacheModuleId : moduleId,
+        module == null ? cacheModuleId?.toString() : moduleId?.toString(),
         addressModel?.latitude,
         addressModel?.longitude,
+        null,
         setHeader: false,
       );
     }
@@ -283,9 +287,10 @@ class StoreRepository implements StoreRepositoryInterface {
         [],
         [],
         languageCode,
-        0,
+        "0",
         '',
         '',
+        null,
         setHeader: false,
       );
     }
@@ -347,9 +352,10 @@ class StoreRepository implements StoreRepositoryInterface {
       addressModel?.zoneIds,
       addressModel?.areaIds,
       languageCode,
-      module == null ? cacheModuleId : moduleId,
+      module == null ? cacheModuleId?.toString() : moduleId?.toString(),
       addressModel?.latitude,
       addressModel?.longitude,
+      null,
       setHeader: false,
     );
     Response response = await apiClient.getData(
@@ -382,7 +388,7 @@ class StoreRepository implements StoreRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response =
-            await apiClient.getData(AppConstants.recommendedStoreUri);
+            await apiClient.getData(AppConstants.recommendedStoreUri, moduleScoped: true);
         if (response.statusCode == 200) {
           recommendedStoreList = [];
           response.body['stores'].forEach(
@@ -402,6 +408,48 @@ class StoreRepository implements StoreRepositoryInterface {
     }
 
     return recommendedStoreList;
+  }
+
+  @override
+  Future<StoreModel?> getQuickDeliveryStores({int offset = 1, int limit = 10, int? moduleId, String name = ''}) async {
+    final String nameQuery = name.isNotEmpty ? '&search=${Uri.encodeComponent(name)}' : '';
+    final Response response = await apiClient.getData(
+      '${AppConstants.quickDeliveryStoresUri}?limit=$limit&offset=$offset&with_items=1$nameQuery',
+      headers: _headersWithModule(moduleId), moduleScoped: moduleId == null,
+    );
+    if (response.statusCode == 200) {
+      return StoreModel.fromJson(response.body);
+    }
+    return null;
+  }
+
+  @override
+  Future<StoreModel?> getNearbyStores({int offset = 1, int limit = 10, int? moduleId, String name = ''}) async {
+    final Response response = await apiClient.getData(
+      '${AppConstants.distanceStoresUri}?type=all&name=${Uri.encodeComponent(name)}&limit=$limit&offset=$offset',
+      headers: _headersWithModule(moduleId),
+    );
+    if (response.statusCode == 200) {
+      return StoreModel.fromJson(response.body);
+    }
+    return null;
+  }
+
+  @override
+  Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId) async {
+    StoreCategoryItemModel? model;
+    Response response = await apiClient.getData('${AppConstants.storeCategoryItemsUri}?store_id=$storeId');
+    if (response.statusCode == 200) {
+      model = StoreCategoryItemModel.fromJson(response.body);
+    }
+    return model;
+  }
+
+  Map<String, String>? _headersWithModule(int? moduleId) {
+    if (moduleId == null) return null;
+    final Map<String, String> headers = Map<String, String>.from(apiClient.getHeader());
+    headers[AppConstants.moduleId] = '$moduleId';
+    return headers;
   }
 
   @override

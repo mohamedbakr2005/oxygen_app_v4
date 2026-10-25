@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
@@ -32,6 +34,9 @@ import '../domain/models/parcel_instruction_model.dart';
 class ParcelController extends GetxController implements GetxService {
   final ParcelServiceInterface parcelServiceInterface;
   ParcelController({required this.parcelServiceInterface});
+
+  List<AddressModel> _parcelRecentAddresses = [];
+  List<AddressModel> get parcelRecentAddresses => _parcelRecentAddresses;
 
   List<ParcelCategoryModel>? _parcelCategoryList;
   List<ParcelCategoryModel>? get parcelCategoryList => _parcelCategoryList;
@@ -193,6 +198,53 @@ class ParcelController extends GetxController implements GetxService {
     if (notify) {
       update();
     }
+  }
+
+  void loadParcelRecentAddresses() {
+    try {
+      final SharedPreferences prefs = Get.find<SharedPreferences>();
+      final String? raw = prefs.getString(AppConstants.parcelRecentAddresses);
+      if (raw == null || raw.isEmpty) {
+        _parcelRecentAddresses = [];
+        return;
+      }
+      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+      _parcelRecentAddresses = decoded
+          .map((e) => AddressModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Parcel recent addresses load error: $e');
+      }
+      _parcelRecentAddresses = [];
+    }
+  }
+
+  Future<void> addParcelRecentAddress(AddressModel address) async {
+    if (address.latitude == null || address.longitude == null) {
+      return;
+    }
+    if (_parcelRecentAddresses.isEmpty) {
+      loadParcelRecentAddresses();
+    }
+    _parcelRecentAddresses.removeWhere((a) =>
+        a.latitude == address.latitude
+        && a.longitude == address.longitude
+        && a.address == address.address);
+    _parcelRecentAddresses.insert(0, address);
+    if (_parcelRecentAddresses.length > AppConstants.parcelRecentAddressesMax) {
+      _parcelRecentAddresses = _parcelRecentAddresses.sublist(0, AppConstants.parcelRecentAddressesMax);
+    }
+    try {
+      final SharedPreferences prefs = Get.find<SharedPreferences>();
+      final String encoded = jsonEncode(_parcelRecentAddresses.map((a) => a.toJson()).toList());
+      await prefs.setString(AppConstants.parcelRecentAddresses, encoded);
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Parcel recent addresses save error: $e');
+      }
+    }
+    update();
   }
 
   void setDestinationAddress(AddressModel? addressModel, {bool notify = true}) {
@@ -493,6 +545,10 @@ class ParcelController extends GetxController implements GetxService {
       orderID = response.body['order_id'].toString();
       int createUserId = response.body['user_id'];
 
+      if(forParcel && _destinationAddress != null) {
+        await addParcelRecentAddress(_destinationAddress!);
+      }
+
       if (!isOfflinePay) {
         parcelCallback(
             true,
@@ -503,7 +559,14 @@ class ParcelController extends GetxController implements GetxService {
             maximumCodOrderAmount,
             isCashOnDeliveryActive,
             placeOrderBody.contactPersonNumber,
-            createUserId: createUserId);
+            createUserId: createUserId,
+            customerName: placeOrderBody.contactPersonName,
+            customerEmail: placeOrderBody.guestEmail);
+      } else {
+        Get.offNamed(RouteHelper.getOfflinePaymentScreen(
+          zoneId: zoneID, total: amount, orderId: orderID, contactNumber: placeOrderBody.contactPersonNumber??'',
+          maxCodOrderAmount: maximumCodOrderAmount, fromCart: false, isCodActive: isCashOnDeliveryActive, forParcel: true,
+        ));
       }
       if (kDebugMode) {
         print('-------- Order placed successfully $orderID ----------');
@@ -537,7 +600,7 @@ class ParcelController extends GetxController implements GetxService {
       double? maxCodAmount,
       bool isCashOnDeliveryActive,
       String? contactNumber,
-      {int? createUserId}) async {
+      {int? createUserId, String? customerName, String? customerEmail}) async {
     Get.find<ParcelController>().startLoader(false);
     if (isSuccess) {
       if (isDmTipSave) {
@@ -569,8 +632,13 @@ class ParcelController extends GetxController implements GetxService {
           ));
         }
       } else {
-        Get.offNamed(RouteHelper.getOrderSuccessRoute(orderID, contactNumber,
-            createAccount: Get.find<CheckoutController>().isCreateAccount));
+        Get.offNamed(RouteHelper.getOrderSuccessRoute(
+          orderID,
+          contactNumber,
+          createAccount: Get.find<CheckoutController>().isCreateAccount,
+          customerName: customerName,
+          customerEmail: customerEmail,
+        ));
       }
       updateTips(0, notify: false);
     } else {

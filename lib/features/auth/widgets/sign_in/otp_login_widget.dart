@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
+import 'package:Oxygen_Mart/features/auth/widgets/condition_check_box_widget.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/social_login_widget.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
@@ -19,19 +20,33 @@ class OtpLoginWidget extends StatelessWidget {
   final Function() onClickLoginButton;
   final bool socialEnable;
   final bool backFromThis;
-  const OtpLoginWidget({super.key, required this.phoneController, required this.phoneFocus, required this.onCountryChanged, required this.countryDialCode,
-    required this.onClickLoginButton, this.socialEnable = false, required this.backFromThis});
+
+  const OtpLoginWidget({
+    super.key,
+    required this.phoneController,
+    required this.phoneFocus,
+    required this.onCountryChanged,
+    required this.countryDialCode,
+    required this.onClickLoginButton,
+    this.socialEnable = false,
+    this.backFromThis = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     bool isDesktop = ResponsiveHelper.isDesktop(context);
     return GetBuilder<AuthController>(builder: (authController) {
       return Padding(
-        padding: EdgeInsets.symmetric(horizontal: isDesktop ? Dimensions.paddingSizeLarge : 0),
+        padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? Dimensions.paddingSizeLarge : 0),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('hey_there_welcome_back'.tr, style: robotoBold.copyWith(fontSize: Dimensions.fontSizeExtraLarge)),
-          const SizedBox(height: Dimensions.paddingSizeExtraOverLarge),
-
+          Align(
+            alignment: Alignment.topLeft,
+            child: Text('login'.tr,
+                style: robotoBold.copyWith(
+                    fontSize: Dimensions.fontSizeExtraLarge)),
+          ),
+          const SizedBox(height: Dimensions.paddingSizeLarge),
           CustomTextField(
             titleText: 'xxx-xxx-xxxxx'.tr,
             controller: phoneController,
@@ -40,58 +55,60 @@ class OtpLoginWidget extends StatelessWidget {
             inputType: TextInputType.phone,
             isPhone: true,
             onCountryChanged: onCountryChanged,
-            countryDialCode: countryDialCode ?? Get.find<LocalizationController>().locale.countryCode,
+            countryDialCode: countryDialCode ??
+                Get.find<LocalizationController>().locale.countryCode,
             labelText: 'phone'.tr,
             required: true,
-            validator: (value) => ValidateCheck.validateEmptyText(value, "please_enter_phone_number".tr),
+            validator: (value) => ValidateCheck.validateEmptyText(
+                value, "please_enter_phone_number".tr),
           ),
           const SizedBox(height: Dimensions.paddingSizeExtraLarge),
-
           Align(
             alignment: Alignment.centerLeft,
             child: InkWell(
-              onTap: () => authController.toggleRememberMeOtp(),
+              onTap: () => authController.toggleRememberMe(),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(
-                    height: 24, width: 24,
+                    height: 24,
+                    width: 24,
                     child: Checkbox(
                       side: BorderSide(color: Theme.of(context).hintColor),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       activeColor: Theme.of(context).primaryColor,
-                      value: authController.isActiveRememberMeOtp,
-                      onChanged: (bool? isChecked) => authController.toggleRememberMeOtp(),
+                      value: authController.isActiveRememberMe,
+                      onChanged: (bool? isChecked) =>
+                          authController.toggleRememberMe(),
                     ),
                   ),
                   const SizedBox(width: Dimensions.paddingSizeSmall),
-
                   Text('remember_me'.tr, style: robotoRegular),
                 ],
               ),
             ),
           ),
           const SizedBox(height: Dimensions.paddingSizeLarge),
-
-          // const ConditionCheckBoxWidget(forSignUp: true),
-          // const SizedBox(height: Dimensions.paddingSizeLarge),
-
+          const ConditionCheckBoxWidget(forSignUp: true),
+          const SizedBox(height: Dimensions.paddingSizeLarge),
           CustomButton(
             buttonText: 'login'.tr,
             radius: Dimensions.radiusDefault,
             isBold: isDesktop ? false : true,
             isLoading: authController.isLoading,
             onPressed: onClickLoginButton,
-            fontSize: isDesktop ? Dimensions.fontSizeSmall : Dimensions.fontSizeDefault,
+            fontSize: isDesktop
+                ? Dimensions.fontSizeSmall
+                : Dimensions.fontSizeDefault,
           ),
           const SizedBox(height: Dimensions.paddingSizeLarge),
-
-          socialEnable ? SocialLoginWidget(onlySocialLogin: false, backFromThis: backFromThis) : const SizedBox(),
-
-          socialEnable && isDesktop ? const SizedBox(height: Dimensions.paddingSizeLarge) : const SizedBox(),
-
+          socialEnable
+              ? SocialLoginWidget(onlySocialLogin: false, backFromThis: backFromThis)
+              : const SizedBox(),
+          socialEnable && isDesktop
+              ? const SizedBox(height: Dimensions.paddingSizeLarge)
+              : const SizedBox(),
           !socialEnable ? const SizedBox(height: 100) : const SizedBox(),
-
         ]),
       );
     });

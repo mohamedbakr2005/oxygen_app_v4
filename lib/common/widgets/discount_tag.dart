@@ -26,51 +26,53 @@ class DiscountTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    bool isRightSide =
-        Get.find<SplashController>().configModel!.currencySymbolDirection ==
-            'right';
-    String currencySymbol =
-        Get.find<SplashController>().configModel!.currencySymbol!;
+    final splash = Get.find<SplashController>();
+    final bool isRightSide = splash.configModel?.currencySymbolDirection == 'right';
+    final String currencySymbol = splash.configModel?.currencySymbol ?? '';
 
-    return (discount! > 0 || freeDelivery!)
-        ? Positioned(
-            top: fromTop,
-            left: inLeft
-                ? isFloating!
-                    ? Dimensions.paddingSizeSmall
-                    : 0
-                : null,
-            right: inLeft ? null : 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.error.withOpacity(0.8),
-                borderRadius: BorderRadius.horizontal(
-                  right: Radius.circular(isFloating!
-                      ? Dimensions.radiusLarge
-                      : inLeft
-                          ? Dimensions.radiusSmall
-                          : 0),
-                  left: Radius.circular(isFloating!
-                      ? Dimensions.radiusLarge
-                      : inLeft
-                          ? 0
-                          : Dimensions.radiusSmall),
-                ),
-              ),
-              child: Text(
-                discount! > 0
-                    ? '${(isRightSide || discountType == 'percent') ? '' : currencySymbol}$discount${discountType == 'percent' ? '%' : isRightSide ? currencySymbol : ''} ${'off'.tr}'
-                    : 'free_delivery'.tr,
-                style: robotoMedium.copyWith(
-                  color: Theme.of(context).cardColor,
-                  fontSize:
-                      fontSize ?? (ResponsiveHelper.isMobile(context) ? 8 : 12),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          )
-        : const SizedBox();
+    final bool hasDiscount = (discount != null && discount! > 0);
+    final bool isFree = freeDelivery == true;
+
+    if (!hasDiscount && !isFree) {
+      return const SizedBox.shrink();
+    }
+
+    final bool floating = isFloating == true;
+
+    return Positioned(
+      top: fromTop,
+      left: inLeft
+          ? (floating ? Dimensions.paddingSizeSmall : 0)
+          : null,
+      right: inLeft ? null : 0,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.85),
+          borderRadius: BorderRadius.horizontal(
+            right: Radius.circular(floating
+                ? Dimensions.radiusLarge
+                : inLeft
+                    ? Dimensions.radiusSmall
+                    : 0),
+            left: Radius.circular(floating
+                ? Dimensions.radiusLarge
+                : inLeft
+                    ? 0
+                    : Dimensions.radiusSmall),
+          ),
+        ),
+        child: Text(
+          hasDiscount
+              ? '${(isRightSide || discountType == 'percent') ? '' : currencySymbol}$discount${discountType == 'percent' ? '%' : isRightSide ? currencySymbol : ''} ${'off'.tr}'
+              : 'free_delivery'.tr,
+          style: robotoMedium.copyWith(
+            color: Theme.of(context).cardColor,
+            fontSize: fontSize ?? (ResponsiveHelper.isMobile(context) ? 8 : 12),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 }

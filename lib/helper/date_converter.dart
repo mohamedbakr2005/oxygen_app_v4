@@ -29,6 +29,20 @@ class DateConverter {
     return DateFormat('dd MMM, yyy').format(dateTime);
   }
 
+  static String isoStringToReadableDateTime(String dateTime) {
+    DateTime d;
+    try {
+      d = DateFormat('yyyy-MM-dd HH:mm:ss').parse(dateTime);
+    } catch (_) {
+      try {
+        d = DateTime.parse(dateTime).toLocal();
+      } catch (_) {
+        return dateTime;
+      }
+    }
+    return DateFormat('dd MMM, yyy').format(d);
+  }
+
   static String dateTimeStringToDateTime(String dateTime) {
     DateTime d;
     try{

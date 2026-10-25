@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:get/get.dart';
-import 'package:get/get_connect/connect.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
@@ -11,7 +10,6 @@ import 'package:Oxygen_Mart/features/parcel/domain/models/video_content_model.da
 import 'package:Oxygen_Mart/features/parcel/domain/models/why_choose_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/repositories/parcel_repository_interface.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
-import 'package:Oxygen_Mart/local/cache_response.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class ParcelRepository implements ParcelRepositoryInterface {
@@ -110,10 +108,17 @@ class ParcelRepository implements ParcelRepositoryInterface {
   Future<List<ParcelCategoryModel>?> _getParcelCategory() async {
     List<ParcelCategoryModel>? parcelCategoryList;
     Response response = await apiClient.getData(AppConstants.parcelCategoryUri);
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 && response.body != null) {
       parcelCategoryList = [];
-      response.body.forEach((parcel) =>
-          parcelCategoryList!.add(ParcelCategoryModel.fromJson(parcel)));
+      if (response.body is List) {
+        for (var parcel in response.body) {
+          parcelCategoryList.add(ParcelCategoryModel.fromJson(parcel));
+        }
+      } else if (response.body is Map && response.body['data'] is List) {
+        for (var parcel in response.body['data']) {
+          parcelCategoryList.add(ParcelCategoryModel.fromJson(parcel));
+        }
+      }
     }
     return parcelCategoryList;
   }

@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:Oxygen_Mart/common/widgets/address_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_dropdown.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
@@ -12,6 +9,9 @@ import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class DeliverySection extends StatelessWidget {
   final CheckoutController checkoutController;
@@ -22,6 +22,7 @@ class DeliverySection extends StatelessWidget {
   final TextEditingController guestEmailController;
   final FocusNode guestNumberNode;
   final FocusNode guestEmailNode;
+
   const DeliverySection({
     super.key,
     required this.checkoutController,
@@ -29,8 +30,8 @@ class DeliverySection extends StatelessWidget {
     required this.addressList,
     required this.guestNameTextEditingController,
     required this.guestNumberTextEditingController,
-    required this.guestNumberNode,
     required this.guestEmailController,
+    required this.guestNumberNode,
     required this.guestEmailNode,
   });
 
@@ -39,250 +40,306 @@ class DeliverySection extends StatelessWidget {
     bool isGuestLoggedIn = AuthHelper.isGuestLoggedIn();
     bool takeAway = (checkoutController.orderType == 'take_away');
     bool isDesktop = ResponsiveHelper.isDesktop(context);
-    return Column(children: [
-      isGuestLoggedIn
-          ? GuestDeliveryAddress(
-              checkoutController: checkoutController,
-              guestNumberNode: guestNumberNode,
-              guestNameTextEditingController: guestNameTextEditingController,
-              guestNumberTextEditingController:
-                  guestNumberTextEditingController,
-              guestEmailController: guestEmailController,
-              guestEmailNode: guestEmailNode,
-            )
-          : !takeAway
-              ? Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    boxShadow: [
-                      BoxShadow(
-                          color:
-                              Theme.of(context).primaryColor.withOpacity(0.05),
-                          blurRadius: 10)
-                    ],
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: Dimensions.paddingSizeLarge),
-                  child: Column(
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        isGuestLoggedIn
+            ? GuestDeliveryAddress(
+                checkoutController: checkoutController,
+                guestNumberNode: guestNumberNode,
+                guestNameTextEditingController: guestNameTextEditingController,
+                guestNumberTextEditingController:
+                    guestNumberTextEditingController,
+                guestEmailController: guestEmailController,
+                guestEmailNode: guestEmailNode,
+              )
+            : !takeAway
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.disabledColor.withValues(alpha: 0.15),
+                        width: 1,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Dimensions.paddingSizeLarge,
+                      vertical: Dimensions.paddingSizeDefault,
+                    ),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('deliver_to'.tr, style: robotoMedium),
-                              TextButton.icon(
-                                onPressed: () async {
-                                  var address = await Get.toNamed(
-                                      RouteHelper.getAddAddressRoute(
-                                          true,
-                                          false,
-                                          checkoutController.store!.zoneId));
-                                  if (address != null) {
-                                    checkoutController.getDistanceInKM(
-                                      LatLng(double.parse(address.latitude),
-                                          double.parse(address.longitude)),
-                                      LatLng(
-                                          double.parse(checkoutController
-                                              .store!.latitude!),
-                                          double.parse(checkoutController
-                                              .store!.longitude!)),
-                                    );
-                                    checkoutController.streetNumberController
-                                        .text = address.streetNumber ?? '';
-                                    checkoutController.houseController.text =
-                                        address.house ?? '';
-                                    checkoutController.floorController.text =
-                                        address.floor ?? '';
-                                  }
-                                },
-                                icon: const Icon(Icons.add, size: 20),
-                                label: Text('add_new'.tr,
-                                    style: robotoMedium.copyWith(
-                                        fontSize: Dimensions.fontSizeSmall)),
-                              ),
-                            ]),
-                        isDesktop
-                            ? Stack(children: [
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
                                 Container(
-                                  constraints:
-                                      const BoxConstraints(minHeight: 90),
+                                  padding: const EdgeInsets.all(7),
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                        Dimensions.radiusDefault),
-                                    color: Theme.of(context)
-                                        .primaryColor
-                                        .withOpacity(0.1),
+                                    color: theme.primaryColor.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: Container(
-                                    height: 45,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical:
-                                          Dimensions.paddingSizeExtraSmall,
-                                      horizontal:
-                                          Dimensions.paddingSizeExtraSmall,
-                                    ),
-                                    child: AddressWidget(
-                                      address: address[
-                                          checkoutController.addressIndex!],
-                                      fromAddress: false,
-                                      fromCheckout: true,
-                                    ),
+                                  child: Icon(
+                                    Icons.location_on_rounded,
+                                    size: 18,
+                                    color: theme.primaryColor,
                                   ),
                                 ),
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: PopupMenuButton(
+                                const SizedBox(width: Dimensions.paddingSizeSmall),
+                                Text(
+                                  'deliver_to'.tr,
+                                  style: robotoBold.copyWith(
+                                    fontSize: Dimensions.fontSizeDefault,
+                                    color: theme.textTheme.bodyLarge?.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            InkWell(
+                              onTap: () async {
+                                var newAddress = await Get.toNamed(
+                                  RouteHelper.getAddAddressRoute(
+                                    true,
+                                    false,
+                                    checkoutController.store!.zoneId,
+                                  ),
+                                );
+                                if (newAddress != null) {
+                                  checkoutController.getDistanceInKM(
+                                    LatLng(
+                                      double.parse(newAddress.latitude),
+                                      double.parse(newAddress.longitude),
+                                    ),
+                                    LatLng(
+                                      double.parse(
+                                          checkoutController.store!.latitude!),
+                                      double.parse(
+                                          checkoutController.store!.longitude!),
+                                    ),
+                                  );
+                                  checkoutController.streetNumberController.text =
+                                      newAddress.streetNumber ?? '';
+                                  checkoutController.houseController.text =
+                                      newAddress.house ?? '';
+                                  checkoutController.floorController.text =
+                                      newAddress.floor ?? '';
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: Dimensions.paddingSizeSmall + 2,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: theme.primaryColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.add_rounded,
+                                      size: 16,
+                                      color: theme.primaryColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'add_new'.tr,
+                                      style: robotoBold.copyWith(
+                                        fontSize: Dimensions.fontSizeSmall,
+                                        color: theme.primaryColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                        isDesktop
+                            ? Stack(
+                                children: [
+                                  Container(
+                                    constraints:
+                                        const BoxConstraints(minHeight: 70),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      color: theme.primaryColor.withValues(alpha: 0.06),
+                                      border: Border.all(
+                                        color: theme.primaryColor.withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: Dimensions.paddingSizeSmall,
+                                        horizontal: Dimensions.paddingSizeSmall,
+                                      ),
+                                      child: AddressWidget(
+                                        address: address[
+                                            checkoutController.addressIndex!],
+                                        fromAddress: false,
+                                        fromCheckout: true,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned.fill(
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: PopupMenuButton(
                                         position: PopupMenuPosition.under,
                                         icon: const Icon(
-                                            Icons.keyboard_arrow_down),
+                                            Icons.keyboard_arrow_down_rounded),
                                         onSelected: (value) {},
                                         itemBuilder: (context) => List.generate(
-                                            address.length,
-                                            (index) => PopupMenuItem(
-                                                  child: InkWell(
-                                                    onTap: () {
-                                                      checkoutController
-                                                          .getDistanceInKM(
-                                                        LatLng(
-                                                          double.parse(
-                                                              address[index]
-                                                                  .latitude!),
-                                                          double.parse(
-                                                              address[index]
-                                                                  .longitude!),
-                                                        ),
-                                                        LatLng(
-                                                            double.parse(
-                                                                checkoutController
-                                                                    .store!
-                                                                    .latitude!),
-                                                            double.parse(
-                                                                checkoutController
-                                                                    .store!
-                                                                    .longitude!)),
-                                                      );
-                                                      checkoutController
-                                                          .setAddressIndex(
-                                                              index);
-                                                      checkoutController
-                                                          .streetNumberController
-                                                          .text = address[
-                                                                  checkoutController
-                                                                      .addressIndex!]
-                                                              .streetNumber ??
-                                                          '';
-                                                      checkoutController
-                                                          .houseController
-                                                          .text = address[
-                                                                  checkoutController
-                                                                      .addressIndex!]
-                                                              .house ??
-                                                          '';
-                                                      checkoutController
-                                                          .floorController
-                                                          .text = address[
-                                                                  checkoutController
-                                                                      .addressIndex!]
-                                                              .floor ??
-                                                          '';
-                                                      Navigator.pop(context);
-                                                    },
-                                                    child: Row(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Container(
-                                                            height: 20,
-                                                            width: 20,
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(3),
+                                          address.length,
+                                          (index) => PopupMenuItem(
+                                            child: InkWell(
+                                              onTap: () {
+                                                checkoutController.getDistanceInKM(
+                                                  LatLng(
+                                                    double.parse(
+                                                        address[index].latitude!),
+                                                    double.parse(
+                                                        address[index].longitude!),
+                                                  ),
+                                                  LatLng(
+                                                    double.parse(
+                                                        checkoutController
+                                                            .store!.latitude!),
+                                                    double.parse(
+                                                        checkoutController
+                                                            .store!.longitude!),
+                                                  ),
+                                                );
+                                                checkoutController
+                                                    .setAddressIndex(index);
+                                                checkoutController
+                                                    .streetNumberController
+                                                    .text = address[
+                                                            checkoutController
+                                                                .addressIndex!]
+                                                        .streetNumber ??
+                                                    '';
+                                                checkoutController
+                                                    .houseController
+                                                    .text = address[
+                                                            checkoutController
+                                                                .addressIndex!]
+                                                        .house ??
+                                                    '';
+                                                checkoutController
+                                                    .floorController
+                                                    .text = address[
+                                                            checkoutController
+                                                                .addressIndex!]
+                                                        .floor ??
+                                                    '';
+                                                Navigator.pop(context);
+                                              },
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    height: 20,
+                                                    width: 20,
+                                                    padding:
+                                                        const EdgeInsets.all(3),
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: checkoutController
+                                                                    .addressIndex ==
+                                                                index
+                                                            ? theme.primaryColor
+                                                            : theme.disabledColor,
+                                                      ),
+                                                    ),
+                                                    child: checkoutController
+                                                                .addressIndex ==
+                                                            index
+                                                        ? Container(
+                                                            height: 14,
+                                                            width: 14,
                                                             decoration:
                                                                 BoxDecoration(
-                                                              shape: BoxShape
-                                                                  .circle,
-                                                              border: Border.all(
-                                                                  color: checkoutController
-                                                                              .addressIndex ==
-                                                                          index
-                                                                      ? Theme.of(
-                                                                              context)
-                                                                          .primaryColor
-                                                                      : Theme.of(
-                                                                              context)
-                                                                          .disabledColor),
+                                                              shape:
+                                                                  BoxShape.circle,
+                                                              color: theme
+                                                                  .primaryColor,
                                                             ),
-                                                            child: checkoutController
-                                                                        .addressIndex ==
-                                                                    index
-                                                                ? Container(
-                                                                    height: 15,
-                                                                    width: 15,
-                                                                    decoration: BoxDecoration(
-                                                                        shape: BoxShape
-                                                                            .circle,
-                                                                        color: Theme.of(context)
-                                                                            .primaryColor),
-                                                                  )
-                                                                : const SizedBox(),
-                                                          ),
-                                                          const SizedBox(
-                                                              width: Dimensions
-                                                                  .paddingSizeSmall),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                    address[index]
-                                                                        .addressType!
-                                                                        .tr,
-                                                                    style: robotoMedium.copyWith(
-                                                                        fontSize:
-                                                                            Dimensions.fontSizeSmall)),
-                                                                const SizedBox(
-                                                                    height: Dimensions
-                                                                        .paddingSizeExtraSmall),
-                                                                Text(
-                                                                  address[index]
-                                                                      .address!,
-                                                                  maxLines: 1,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                  style: robotoRegular.copyWith(
-                                                                      fontSize:
-                                                                          Dimensions
-                                                                              .fontSizeExtraSmall,
-                                                                      color: Theme.of(
-                                                                              context)
-                                                                          .disabledColor),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ]),
+                                                          )
+                                                        : const SizedBox(),
                                                   ),
-                                                ))),
+                                                  const SizedBox(
+                                                      width: Dimensions
+                                                          .paddingSizeSmall),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          address[index]
+                                                              .addressType!
+                                                              .tr,
+                                                          style: robotoMedium.copyWith(
+                                                              fontSize: Dimensions
+                                                                  .fontSizeSmall),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 2),
+                                                        Text(
+                                                          address[index].address!,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: robotoRegular
+                                                              .copyWith(
+                                                            fontSize: Dimensions
+                                                                .fontSizeExtraSmall,
+                                                            color: theme
+                                                                .disabledColor,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ])
+                                ],
+                              )
                             : Container(
                                 constraints: BoxConstraints(
-                                    minHeight:
-                                        ResponsiveHelper.isDesktop(context)
-                                            ? 90
-                                            : 75),
+                                  minHeight: isDesktop ? 90 : 70,
+                                ),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                      Dimensions.radiusDefault),
-                                  color: Theme.of(context)
-                                      .primaryColor
-                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: theme.primaryColor.withValues(alpha: 0.05),
+                                  border: Border.all(
+                                    color: theme.primaryColor.withValues(alpha: 0.18),
+                                    width: 1,
+                                  ),
                                 ),
                                 child: CustomDropdown<int>(
                                   onChange: (int? value, int index) {
@@ -292,10 +349,11 @@ class DeliverySection extends StatelessWidget {
                                         double.parse(address[index].longitude!),
                                       ),
                                       LatLng(
-                                          double.parse(checkoutController
-                                              .store!.latitude!),
-                                          double.parse(checkoutController
-                                              .store!.longitude!)),
+                                        double.parse(checkoutController
+                                            .store!.latitude!),
+                                        double.parse(checkoutController
+                                            .store!.longitude!),
+                                      ),
                                     );
                                     checkoutController.setAddressIndex(index);
 
@@ -316,22 +374,17 @@ class DeliverySection extends StatelessWidget {
                                             '';
                                   },
                                   dropdownButtonStyle: DropdownButtonStyle(
-                                    height: 45,
+                                    height: isDesktop ? 70 : 68,
                                     padding: const EdgeInsets.symmetric(
-                                      vertical:
-                                          Dimensions.paddingSizeExtraSmall,
-                                      horizontal:
-                                          Dimensions.paddingSizeExtraSmall,
+                                      vertical: 2,
+                                      horizontal: Dimensions.paddingSizeSmall,
                                     ),
-                                    primaryColor: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge!
-                                        .color,
+                                    primaryColor:
+                                        theme.textTheme.bodyLarge!.color,
                                   ),
                                   dropdownStyle: DropdownStyle(
                                     elevation: 10,
-                                    borderRadius: BorderRadius.circular(
-                                        Dimensions.radiusDefault),
+                                    borderRadius: BorderRadius.circular(16),
                                     padding: const EdgeInsets.all(
                                         Dimensions.paddingSizeExtraSmall),
                                   ),
@@ -344,7 +397,8 @@ class DeliverySection extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                        const SizedBox(height: Dimensions.paddingSizeLarge),
+                        const SizedBox(height: Dimensions.paddingSizeDefault),
+
                         !isDesktop
                             ? CustomTextField(
                                 labelText: 'street_number'.tr,
@@ -354,57 +408,60 @@ class DeliverySection extends StatelessWidget {
                                 nextFocus: checkoutController.houseNode,
                                 controller:
                                     checkoutController.streetNumberController,
+                                prefixIcon: Icons.signpost_outlined,
                               )
                             : const SizedBox(),
                         SizedBox(
-                            height:
-                                !isDesktop ? Dimensions.paddingSizeLarge : 0),
-                        Row(children: [
-                          isDesktop
-                              ? Expanded(
-                                  child: CustomTextField(
-                                    titleText: 'write_street_number'.tr,
-                                    labelText: 'street_number'.tr,
-                                    inputType: TextInputType.streetAddress,
-                                    focusNode: checkoutController.streetNode,
-                                    nextFocus: checkoutController.houseNode,
-                                    controller: checkoutController
-                                        .streetNumberController,
-                                  ),
-                                )
-                              : const SizedBox(),
-                          SizedBox(
-                              width:
-                                  isDesktop ? Dimensions.paddingSizeSmall : 0),
-
-                          Expanded(
-                            child: CustomTextField(
-                              titleText: 'write_house_number'.tr,
-                              labelText: 'house'.tr,
-                              inputType: TextInputType.text,
-                              focusNode: checkoutController.houseNode,
-                              nextFocus: checkoutController.floorNode,
-                              controller: checkoutController.houseController,
+                            height: !isDesktop
+                                ? Dimensions.paddingSizeSmall
+                                : 0),
+                        Row(
+                          children: [
+                            if (isDesktop) ...[
+                              Expanded(
+                                child: CustomTextField(
+                                  titleText: 'write_street_number'.tr,
+                                  labelText: 'street_number'.tr,
+                                  inputType: TextInputType.streetAddress,
+                                  focusNode: checkoutController.streetNode,
+                                  nextFocus: checkoutController.houseNode,
+                                  controller: checkoutController
+                                      .streetNumberController,
+                                  prefixIcon: Icons.signpost_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: Dimensions.paddingSizeSmall),
+                            ],
+                            Expanded(
+                              child: CustomTextField(
+                                titleText: 'write_house_number'.tr,
+                                labelText: 'house'.tr,
+                                inputType: TextInputType.text,
+                                focusNode: checkoutController.houseNode,
+                                nextFocus: checkoutController.floorNode,
+                                controller: checkoutController.houseController,
+                                prefixIcon: Icons.apartment_rounded,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: Dimensions.paddingSizeSmall),
-
-                          Expanded(
-                            child: CustomTextField(
-                              titleText: 'write_floor_number'.tr,
-                              labelText: 'floor'.tr,
-                              inputType: TextInputType.text,
-                              focusNode: checkoutController.floorNode,
-                              inputAction: TextInputAction.done,
-                              controller: checkoutController.floorController,
+                            const SizedBox(width: Dimensions.paddingSizeSmall),
+                            Expanded(
+                              child: CustomTextField(
+                                titleText: 'write_floor_number'.tr,
+                                labelText: 'floor'.tr,
+                                inputType: TextInputType.text,
+                                focusNode: checkoutController.floorNode,
+                                inputAction: TextInputAction.done,
+                                controller: checkoutController.floorController,
+                                prefixIcon: Icons.layers_outlined,
+                              ),
                             ),
-                          ),
-                          //const SizedBox(height: Dimensions.paddingSizeLarge),
-                        ]),
-                        const SizedBox(height: Dimensions.paddingSizeLarge),
-                      ]),
-                )
-              : const SizedBox(),
-    ]);
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox(),
+      ],
+    );
   }
 }

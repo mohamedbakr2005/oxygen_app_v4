@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 
 class AddressModel {
@@ -9,6 +10,7 @@ class AddressModel {
   String? latitude;
   String? longitude;
   int? zoneId;
+  int? rideZoneId;
   List<int>? zoneIds;
   String? method;
   String? contactPersonName;
@@ -28,6 +30,7 @@ class AddressModel {
     this.latitude,
     this.longitude,
     this.zoneId,
+    this.rideZoneId,
     this.zoneIds,
     this.method,
     this.contactPersonName,
@@ -39,18 +42,55 @@ class AddressModel {
     this.email,
   });
 
+  AddressModel copyWith({
+    String? contactPersonName,
+    String? contactPersonNumber,
+  }) {
+    return AddressModel(
+      id: id,
+      addressType: addressType,
+      contactPersonNumber: contactPersonNumber ?? this.contactPersonNumber,
+      address: address,
+      additionalAddress: additionalAddress,
+      latitude: latitude,
+      longitude: longitude,
+      zoneId: zoneId,
+      rideZoneId: rideZoneId,
+      zoneIds: zoneIds,
+      method: method,
+      contactPersonName: contactPersonName ?? this.contactPersonName,
+      streetNumber: streetNumber,
+      house: house,
+      floor: floor,
+      zoneData: zoneData,
+      areaIds: areaIds,
+      email: email,
+    );
+  }
+
   AddressModel.fromJson(Map<String, dynamic> json) {
-    id = json['id'];
+    id = json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '');
     addressType = json['address_type'];
-    contactPersonNumber = json['contact_person_number'].toString();
+    contactPersonNumber = json['contact_person_number']?.toString();
     address = json['address'];
     additionalAddress = json['additional_address'];
-    latitude = json['latitude'].toString();
-    longitude = json['longitude'].toString();
+    latitude = json['latitude']?.toString();
+    longitude = json['longitude']?.toString();
     zoneId = (json['zone_id'] != null && json['zone_id'] != 'null')
-        ? int.parse(json['zone_id'].toString())
+        ? int.tryParse(json['zone_id'].toString())
         : null;
-    zoneIds = json['zone_ids']?.cast<int>();
+    rideZoneId = (json['ride_zone_id'] != null && json['ride_zone_id'] != 'null')
+        ? int.tryParse(json['ride_zone_id'].toString())
+        : null;
+    if (json['zone_ids'] != null && json['zone_ids'] is List) {
+      zoneIds = [];
+      json['zone_ids'].forEach((id) {
+        if (id != null) {
+          int? parsed = int.tryParse(id.toString());
+          if (parsed != null) zoneIds!.add(parsed);
+        }
+      });
+    }
     method = json['_method'];
     contactPersonName = json['contact_person_name'];
     streetNumber = json['road'];
@@ -58,11 +98,27 @@ class AddressModel {
     floor = json['floor'];
     if (json['zone_data'] != null) {
       zoneData = [];
-      json['zone_data'].forEach((v) {
-        zoneData!.add(ZoneData.fromJson(v));
+      if (json['zone_data'] is List) {
+        json['zone_data'].forEach((v) {
+          if (v is Map<String, dynamic>) {
+            zoneData!.add(ZoneData.fromJson(v));
+          } else if (v is String) {
+            try {
+              zoneData!.add(ZoneData.fromJson(jsonDecode(v)));
+            } catch (_) {}
+          }
+        });
+      }
+    }
+    if (json['area_ids'] != null && json['area_ids'] is List) {
+      areaIds = [];
+      json['area_ids'].forEach((id) {
+        if (id != null) {
+          int? parsed = int.tryParse(id.toString());
+          if (parsed != null) areaIds!.add(parsed);
+        }
       });
     }
-    areaIds = json['area_ids']?.cast<int>();
     if (json['contact_person_email'] != null) {
       email = json['contact_person_email'];
     }
@@ -78,6 +134,7 @@ class AddressModel {
     data['latitude'] = latitude;
     data['longitude'] = longitude;
     data['zone_id'] = zoneId;
+    data['ride_zone_id'] = rideZoneId;
     data['zone_ids'] = zoneIds;
     data['_method'] = method;
     data['contact_person_name'] = contactPersonName;

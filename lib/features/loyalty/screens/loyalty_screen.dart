@@ -33,16 +33,13 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
   @override
   void initState() {
     super.initState();
-
     initCall();
   }
 
   void initCall() {
     if (AuthHelper.isLoggedIn()) {
       Get.find<ProfileController>().getUserInfo();
-
       Get.find<LoyaltyController>().getLoyaltyTransactionList('1', false);
-
       Get.find<LoyaltyController>().setOffset(1);
 
       scrollController.addListener(() {
@@ -69,9 +66,8 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
 
   @override
   void dispose() {
-    super.dispose();
-
     scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -88,44 +84,86 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         endDrawer: const MenuDrawer(),
         endDrawerEnableOpenDragGesture: false,
         appBar: CustomAppBar(
-            title: 'loyalty_points'.tr,
-            backButton: true,
-            onBackPressed: () {
-              if (widget.fromNotification) {
-                Get.offAllNamed(RouteHelper.getInitialRoute());
-              } else {
-                Get.back();
-              }
-            }),
+          title: 'loyalty_points'.tr,
+          backButton: true,
+          onBackPressed: () {
+            if (widget.fromNotification) {
+              Get.offAllNamed(RouteHelper.getInitialRoute());
+            } else {
+              Get.back();
+            }
+          },
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: isLoggedIn && !ResponsiveHelper.isDesktop(context)
-            ? FloatingActionButton.extended(
-                backgroundColor: Theme.of(context).primaryColor,
-                label: Text('convert_to_wallet_money'.tr,
-                    style: robotoBold.copyWith(
-                        color: Colors.white,
-                        fontSize: Dimensions.fontSizeDefault)),
-                onPressed: () {
-                  Get.dialog(
-                    Dialog(
-                        backgroundColor: Colors.transparent,
-                        child: LoyaltyBottomSheetWidget(
-                          amount: Get.find<ProfileController>()
-                                      .userInfoModel!
-                                      .loyaltyPoint ==
-                                  null
-                              ? '0'
-                              : Get.find<ProfileController>()
-                                  .userInfoModel!
-                                  .loyaltyPoint
-                                  .toString(),
-                        )),
-                  );
-                },
+            ? Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0F7A42), Color(0xFF1EA35D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1EA35D).withOpacity(0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Get.dialog(
+                        Dialog(
+                          backgroundColor: Colors.transparent,
+                          surfaceTintColor: Colors.transparent,
+                          child: LoyaltyBottomSheetWidget(
+                            amount: Get.find<ProfileController>()
+                                        .userInfoModel!
+                                        .loyaltyPoint ==
+                                    null
+                                ? '0'
+                                : Get.find<ProfileController>()
+                                    .userInfoModel!
+                                    .loyaltyPoint
+                                    .toString(),
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(30),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 14),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.currency_exchange_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'convert_to_wallet_money'.tr,
+                            style: robotoBold.copyWith(
+                              color: Colors.white,
+                              fontSize: Dimensions.fontSizeDefault,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               )
             : null,
         body: GetBuilder<ProfileController>(builder: (profileController) {

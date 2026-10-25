@@ -6,6 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
+		<string>applinks:new.oxygenmart.online</string>
 		<string>applinks:oxygenmart.online</string>
 		<string>applinks:www.oxygenmart.online</string>
 	</array>

@@ -10,58 +10,96 @@ class ProfileButtonWidget extends StatelessWidget {
   final Function onTap;
   final Color? color;
   final String? iconImage;
-  const ProfileButtonWidget(
-      {super.key,
-      this.icon,
-      required this.title,
-      required this.onTap,
-      this.isButtonActive,
-      this.color,
-      this.iconImage});
+  final bool showDivider;
+
+  const ProfileButtonWidget({
+    super.key,
+    this.icon,
+    required this.title,
+    required this.onTap,
+    this.isButtonActive,
+    this.color,
+    this.iconImage,
+    this.showDivider = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap as void Function()?,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: Dimensions.paddingSizeSmall,
-          vertical: isButtonActive != null
-              ? Dimensions.paddingSizeExtraSmall
-              : Dimensions.paddingSizeDefault,
-        ),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-          border: Border.all(color: Theme.of(context).primaryColor, width: 0.1),
-          boxShadow: [
-            BoxShadow(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                spreadRadius: 1,
-                blurRadius: 5)
-          ],
-        ),
-        child: Row(children: [
-          iconImage != null
-              ? Image.asset(iconImage!, height: 18, width: 25, color: color ?? Theme.of(context).textTheme.bodyMedium!.color)
-              : Icon(icon,
-                  size: 25,
-                  color:
-                      color ?? Theme.of(context).textTheme.bodyMedium!.color),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
-          Expanded(child: Text(title, style: robotoRegular)),
-          isButtonActive != null
-              ? Transform.scale(
-                  scale: 0.7,
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color itemColor = color ?? Theme.of(context).primaryColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap as void Function()?,
+        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Dimensions.paddingSizeDefault,
+            vertical: 12,
+          ),
+          child: Row(
+            children: [
+              // 🚀 Modern Icon Squircle Container
+              Container(
+                height: 38,
+                width: 38,
+                decoration: BoxDecoration(
+                  color: itemColor.withOpacity(isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: itemColor.withOpacity(isDark ? 0.3 : 0.15),
+                    width: 0.8,
+                  ),
+                ),
+                padding: const EdgeInsets.all(8),
+                child: iconImage != null
+                    ? Image.asset(
+                        iconImage!,
+                        color: itemColor,
+                        fit: BoxFit.contain,
+                      )
+                    : Icon(
+                        icon,
+                        size: 20,
+                        color: itemColor,
+                      ),
+              ),
+              const SizedBox(width: Dimensions.paddingSizeDefault),
+
+              // 🚀 Title
+              Expanded(
+                child: Text(
+                  title,
+                  style: robotoMedium.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: color ?? Theme.of(context).textTheme.bodyLarge?.color,
+                  ),
+                ),
+              ),
+
+              // 🚀 Action: Switch or Chevron
+              if (isButtonActive != null)
+                Transform.scale(
+                  scale: 0.8,
                   child: CupertinoSwitch(
                     value: isButtonActive!,
                     activeColor: Theme.of(context).primaryColor,
+                    trackColor: isDark
+                        ? Colors.grey.shade800
+                        : Theme.of(context).disabledColor.withOpacity(0.3),
                     onChanged: (bool? value) => onTap(),
-                    trackColor: Theme.of(context).primaryColor.withOpacity(0.5),
                   ),
                 )
-              : const SizedBox()
-        ]),
+              else
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.35),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

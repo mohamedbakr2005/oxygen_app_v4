@@ -41,44 +41,43 @@ class ApiClient extends GetxService {
       } catch (_) {}
     }
     updateHeader(
-        token,
-        addressModel?.zoneIds,
-        addressModel?.areaIds,
-        sharedPreferences.getString(AppConstants.languageCode),
-        moduleID,
-        addressModel?.latitude,
-        addressModel?.longitude);
+      token,
+      addressModel?.zoneIds,
+      addressModel?.areaIds,
+      sharedPreferences.getString(AppConstants.languageCode),
+      moduleID,
+      addressModel?.latitude,
+      addressModel?.longitude,
+      null,
+    );
   }
 
   Map<String, String> updateHeader(
-      String? token,
-      List<int>? zoneIDs,
-      List<int>? operationIds,
-      String? languageCode,
-      int? moduleID,
-      String? latitude,
-      String? longitude,
-      {bool setHeader = true}) {
+    String? token,
+    List<int>? zoneIDs,
+    List<int>? operationIds,
+    String? languageCode,
+    dynamic moduleID,
+    String? latitude,
+    String? longitude,
+    int? zoneId, {
+    bool setHeader = true,
+    bool fromModule = false,
+  }) {
     Map<String, String> header = {};
 
-    int? activeModuleId = moduleID;
-    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.moduleId)) {
-      try {
-        activeModuleId = ModuleModel.fromJson(
-                jsonDecode(sharedPreferences.getString(AppConstants.moduleId)!))
-            .id;
-      } catch (_) {}
-    }
-    if (activeModuleId == null && sharedPreferences.containsKey(AppConstants.cacheModuleId)) {
-      try {
-        activeModuleId = ModuleModel.fromJson(
-                jsonDecode(sharedPreferences.getString(AppConstants.cacheModuleId)!))
-            .id;
-      } catch (_) {}
-    }
+    final String? effectiveModuleId = (moduleID != null && moduleID != 'null' && moduleID != '') ? moduleID.toString() : null;
 
-    if (activeModuleId != null) {
-      header.addAll({AppConstants.moduleId: '$activeModuleId'});
+    if (effectiveModuleId != null) {
+      header[AppConstants.moduleId] = effectiveModuleId;
+    } else if (!fromModule && sharedPreferences.getString(AppConstants.cacheModuleId) != null) {
+      try {
+        int? cacheId = ModuleModel.fromJson(
+            jsonDecode(sharedPreferences.getString(AppConstants.cacheModuleId)!)).id;
+        if (cacheId != null) {
+          header[AppConstants.moduleId] = '$cacheId';
+        }
+      } catch (_) {}
     }
 
     List<int>? activeZoneIDs = zoneIDs;
@@ -96,18 +95,28 @@ class ApiClient extends GetxService {
 
     header.addAll({
       'Content-Type': 'application/json; charset=UTF-8',
-      AppConstants.zoneId: activeZoneIDs != null ? jsonEncode(activeZoneIDs) : '',
-
-      ///this will add in ride module
-      // AppConstants.operationAreaId: operationIds != null ? jsonEncode(operationIds) : '',
-      AppConstants.localizationKey:
-          languageCode ?? AppConstants.languages[0].languageCode!,
+      AppConstants.zoneId: (zoneId != null && fromModule)
+          ? '$zoneId'
+          : activeZoneIDs != null
+              ? jsonEncode(activeZoneIDs)
+              : '',
+      AppConstants.localizationKey: languageCode ??
+          sharedPreferences.getString(AppConstants.languageCode) ??
+          AppConstants.languages[0].languageCode!,
       AppConstants.latitude: activeLat != null ? jsonEncode(activeLat) : '',
       AppConstants.longitude: activeLng != null ? jsonEncode(activeLng) : '',
     });
+
     if (token != null && token.isNotEmpty) {
       header['Authorization'] = 'Bearer $token';
     }
+
+    String? guestId = sharedPreferences.getString(AppConstants.guestId);
+    if (guestId != null && guestId.isNotEmpty) {
+      header[AppConstants.guestId] = guestId;
+      header['guest-id'] = guestId;
+    }
+
     if (setHeader) {
       _mainHeaders = header;
     }
@@ -116,20 +125,38 @@ class ApiClient extends GetxService {
 
   Map<String, String> getHeader() => _mainHeaders;
 
-  Future<Response> getData(String uri,
-      {Map<String, dynamic>? query,
-      Map<String, String>? headers,
-      bool handleError = true}) async {
+  Future<Response> getData(
+    String uri, {
+    Map<String, dynamic>? query,
+    Map<String, String>? headers,
+    bool handleError = true,
+    bool moduleScoped = false,
+  }) async {
     try {
+      final Map<String, String> requestHeaders = headers ?? _mainHeaders;
+      final String? requestModuleId =
+          moduleScoped ? requestHeaders[AppConstants.moduleId] : null;
+
       if (kDebugMode) {
-        print('====> API Call: $uri\nHeader: ${headers ?? _mainHeaders}');
+        print(
+            '[API CALL] $uri | Module: ${requestHeaders[AppConstants.moduleId]} | Zone: ${requestHeaders[AppConstants.zoneId]} | Auth: ${requestHeaders['Authorization'] != null}');
       }
+
       http.Response response = await http
           .get(
             Uri.parse(appBaseUrl + uri),
-            headers: headers ?? _mainHeaders,
+            headers: requestHeaders,
           )
           .timeout(Duration(seconds: timeoutInSeconds));
+
+      if (moduleScoped && requestModuleId != _mainHeaders[AppConstants.moduleId]) {
+        if (kDebugMode) {
+          print(
+              '[API DROP] Stale module response dropped for $uri (requested: $requestModuleId, current: ${_mainHeaders[AppConstants.moduleId]})');
+        }
+        return const Response(statusCode: 499, statusText: 'stale module response');
+      }
+
       return handleResponse(response, uri, handleError);
     } catch (e) {
       if (kDebugMode) {

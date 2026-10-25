@@ -31,9 +31,9 @@ class CategoryRepository implements CategoryRepositoryInterface {
       return await _getCategoryList(
           allCategory!, source ?? DataSourceEnum.client);
     } else if (subCategoryList) {
-      return await _getSubCategoryList(id);
+      return await _getSubCategoryList(id, source ?? DataSourceEnum.client);
     } else if (categoryItemList) {
-      return await _getCategoryItemList(id, offset!, type!);
+      return await _getCategoryItemList(id, offset!, type!, source ?? DataSourceEnum.client);
     } else if (categoryStoreList) {
       return await _getCategoryStoreList(id, offset!, type!);
     }
@@ -53,7 +53,7 @@ class CategoryRepository implements CategoryRepositoryInterface {
     Map<String, String>? cacheHeader = header ?? apiClient.getHeader();
 
     String cacheId = AppConstants.categoryUri +
-        Get.find<SplashController>().module!.id!.toString();
+        (Get.find<SplashController>().module?.id?.toString() ?? '0');
 
     switch (source) {
       case DataSourceEnum.client:
@@ -82,27 +82,54 @@ class CategoryRepository implements CategoryRepositoryInterface {
     return categoryList;
   }
 
-  Future<List<CategoryModel>?> _getSubCategoryList(String? parentID) async {
+  Future<List<CategoryModel>?> _getSubCategoryList(String? parentID, DataSourceEnum source) async {
     List<CategoryModel>? subCategoryList;
-    Response response =
-        await apiClient.getData('${AppConstants.subCategoryUri}$parentID');
-    if (response.statusCode == 200) {
-      subCategoryList = [];
-      response.body.forEach(
-          (category) => subCategoryList!.add(CategoryModel.fromJson(category)));
+    String cacheId = '${AppConstants.subCategoryUri}$parentID';
+
+    switch (source) {
+      case DataSourceEnum.client:
+        Response response = await apiClient.getData(cacheId);
+        if (response.statusCode == 200) {
+          subCategoryList = [];
+          response.body.forEach(
+              (category) => subCategoryList!.add(CategoryModel.fromJson(category)));
+          LocalClient.organize(DataSourceEnum.client, cacheId,
+              jsonEncode(response.body), apiClient.getHeader());
+        }
+
+      case DataSourceEnum.local:
+        String? cacheResponseData = await LocalClient.organize(
+            DataSourceEnum.local, cacheId, null, null);
+        if (cacheResponseData != null) {
+          subCategoryList = [];
+          jsonDecode(cacheResponseData).forEach(
+              (category) => subCategoryList!.add(CategoryModel.fromJson(category)));
+        }
     }
+
     return subCategoryList;
   }
 
   Future<ItemModel?> _getCategoryItemList(
-      String? categoryID, int offset, String type) async {
+      String? categoryID, int offset, String type, DataSourceEnum source) async {
     ItemModel? categoryItem;
+    String cacheId = '${AppConstants.categoryItemUri}$categoryID?limit=1000&offset=1&type=$type';
 
-    Response response = await apiClient.getData(
-        '${AppConstants.categoryItemUri}$categoryID?limit=10&offset=$offset&type=$type');
+    switch (source) {
+      case DataSourceEnum.client:
+        Response response = await apiClient.getData(cacheId);
+        if (response.statusCode == 200) {
+          categoryItem = ItemModel.fromJson(response.body);
+          LocalClient.organize(DataSourceEnum.client, cacheId,
+              jsonEncode(response.body), apiClient.getHeader());
+        }
 
-    if (response.statusCode == 200) {
-      categoryItem = ItemModel.fromJson(response.body);
+      case DataSourceEnum.local:
+        String? cacheResponseData = await LocalClient.organize(
+            DataSourceEnum.local, cacheId, null, null);
+        if (cacheResponseData != null) {
+          categoryItem = ItemModel.fromJson(jsonDecode(cacheResponseData));
+        }
     }
 
     return categoryItem;

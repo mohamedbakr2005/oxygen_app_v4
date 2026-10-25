@@ -4,7 +4,13 @@ import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 class ValidateCheck{
 
-  static String? validateEmail(String? value) {
+  static String? validateEmail(String? value, {bool required = true}) {
+    if (value == null || value.trim().isEmpty) {
+      if (required) {
+        return '\u26A0 ${'email_field_is_required'.tr}';
+      }
+      return null;
+    }
     const pattern = r"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'"
         r'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-'
         r'\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*'
@@ -13,13 +19,24 @@ class ValidateCheck{
         r'[0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\'
         r'x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])';
     final kEmailValid = RegExp(pattern);
-    bool isValid = kEmailValid.hasMatch(value.toString());
-    if (value!.isEmpty) {
-      return '\u26A0 ${'email_field_is_required'.tr}';
-    } else if (isValid == false) {
+    bool isValid = kEmailValid.hasMatch(value.trim());
+    if (!isValid) {
       return '\u26A0 ${"enter_valid_email_address".tr}';
     }
     return null;
+  }
+
+  static String maskPhone(String? phone) {
+    if (phone == null || phone.isEmpty) return '';
+    final clean = phone.trim();
+    if (clean.length <= 4) return clean;
+    if (clean.length <= 7) {
+      return '${clean.substring(0, 2)}***${clean.substring(clean.length - 2)}';
+    }
+    final prefixLength = (clean.length > 8) ? clean.length - 6 : 3;
+    const suffixLength = 3;
+    final maskLength = clean.length - prefixLength - suffixLength;
+    return '${clean.substring(0, prefixLength)}${'*' * (maskLength > 0 ? maskLength : 3)}${clean.substring(clean.length - suffixLength)}';
   }
 
   static String? validateEmptyText(String? value, String? message) {

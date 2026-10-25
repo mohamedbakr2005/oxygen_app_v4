@@ -16,12 +16,7 @@ class AllStoreScreen extends StatefulWidget {
   final bool isFeatured;
   final bool isNearbyStore;
   final bool isTopOfferStore;
-  const AllStoreScreen(
-      {super.key,
-      required this.isPopular,
-      required this.isFeatured,
-      required this.isNearbyStore,
-      required this.isTopOfferStore});
+  const AllStoreScreen({super.key, required this.isPopular, required this.isFeatured, required this.isNearbyStore, required this.isTopOfferStore});
 
   @override
   State<AllStoreScreen> createState() => _AllStoreScreenState();
@@ -47,17 +42,15 @@ class _AllStoreScreenState extends State<AllStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool showRestaurantText = Get.find<SplashController>().configModel?.moduleConfig?.module?.showRestaurantText ?? false;
+
     return GetBuilder<StoreController>(builder: (storeController) {
       return Scaffold(
         appBar: CustomAppBar(
           title: widget.isFeatured
               ? 'featured_stores'.tr
               : widget.isPopular
-                  ? Get.find<SplashController>()
-                          .configModel!
-                          .moduleConfig!
-                          .module!
-                          .showRestaurantText!
+                  ? showRestaurantText
                       ? widget.isNearbyStore
                           ? 'best_store_nearby'.tr
                           : 'popular_restaurants'.tr
@@ -105,11 +98,7 @@ class _AllStoreScreenState extends State<AllStoreScreen> {
                     title: widget.isFeatured
                         ? 'featured_stores'.tr
                         : widget.isPopular
-                            ? Get.find<SplashController>()
-                                    .configModel!
-                                    .moduleConfig!
-                                    .module!
-                                    .showRestaurantText!
+                            ? showRestaurantText
                                 ? 'popular_restaurants'.tr
                                 : 'popular_stores'.tr
                             : widget.isTopOfferStore
@@ -154,18 +143,14 @@ class _AllStoreScreenState extends State<AllStoreScreen> {
                         isFeatured: widget.isFeatured,
                         noDataText: widget.isFeatured
                             ? 'no_store_available'.tr
-                            : Get.find<SplashController>()
-                                    .configModel!
-                                    .moduleConfig!
-                                    .module!
-                                    .showRestaurantText!
+                            : showRestaurantText
                                 ? 'no_restaurant_available'.tr
                                 : 'no_store_available'.tr,
                         stores: stores,
                       );
                     }),
                   ),
-                  SizedBox(height: 100),
+                  const SizedBox(height: 100),
                 ],
               ))),
         ),

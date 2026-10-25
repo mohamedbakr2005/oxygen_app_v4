@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
@@ -23,6 +23,16 @@ class CustomImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    int? effectiveCacheWidth = cacheWidth;
+    int? effectiveCacheHeight = cacheHeight;
+
+    if (effectiveCacheWidth == null && width != null && width!.isFinite && width! > 0) {
+      effectiveCacheWidth = (width! * 2.5).round().clamp(48, 1200);
+    }
+    if (effectiveCacheHeight == null && height != null && height!.isFinite && height! > 0) {
+      effectiveCacheHeight = (height! * 2.5).round().clamp(48, 1200);
+    }
+
     return AnimatedScale(
       scale: isHovered ? 1.1 : 1.0,
       duration: const Duration(milliseconds: 300),
@@ -33,8 +43,9 @@ class CustomImage extends StatelessWidget {
         height: height,
         width: width,
         fit: fit,
-        memCacheWidth: cacheWidth,
-        memCacheHeight: cacheHeight,
+        memCacheWidth: effectiveCacheWidth,
+        memCacheHeight: effectiveCacheHeight,
+        filterQuality: FilterQuality.medium,
         placeholder: (context, url) => Image.asset(
           placeholder.isNotEmpty
               ? placeholder

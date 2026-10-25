@@ -16,43 +16,48 @@ class NoteAndPrescriptionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('additional_note'.tr, style: robotoMedium),
-      const SizedBox(height: Dimensions.paddingSizeSmall),
-      CustomTextField(
-        controller: checkoutController.noteController,
-        titleText: '',
-        showLabelText: false,
-        maxLines: 3,
-        inputType: TextInputType.multiline,
-        inputAction: TextInputAction.done,
-        capitalization: TextCapitalization.sentences,
-      ),
-      const SizedBox(height: Dimensions.paddingSizeLarge),
+    final theme = Theme.of(context);
 
-      /*storeId == null && Get.find<SplashController>().configModel!.moduleConfig!.module!.orderAttachment! ? Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Text('prescription'.tr, style: robotoMedium),
-            const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-
-            Text(
-              '(${'max_size_2_mb'.tr})',
-              style: robotoRegular.copyWith(
-                fontSize: Dimensions.fontSizeExtraSmall,
-                color: Theme.of(context).colorScheme.error,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.edit_note_rounded,
+                size: 18,
+                color: theme.primaryColor,
               ),
             ),
-          ]),
-          const SizedBox(height: Dimensions.paddingSizeSmall),
-
-          ImagePickerWidget(
-            image: '', rawFile: checkoutController.rawAttachment,
-            onTap: () => checkoutController.pickImage(),
-          ),
-        ],
-      ) : const SizedBox(),*/
-    ]);
+            const SizedBox(width: Dimensions.paddingSizeSmall),
+            Text(
+              'additional_note'.tr,
+              style: robotoBold.copyWith(
+                fontSize: Dimensions.fontSizeDefault,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Dimensions.paddingSizeSmall),
+        CustomTextField(
+          controller: checkoutController.noteController,
+          titleText: 'write_any_additional_note_or_instructions'.tr,
+          showLabelText: false,
+          maxLines: 3,
+          inputType: TextInputType.multiline,
+          inputAction: TextInputAction.done,
+          capitalization: TextCapitalization.sentences,
+          prefixIcon: Icons.edit_outlined,
+        ),
+        const SizedBox(height: Dimensions.paddingSizeLarge),
+      ],
+    );
   }
 }

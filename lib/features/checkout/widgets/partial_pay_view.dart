@@ -1,28 +1,30 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class PartialPayView extends StatelessWidget {
   final double totalPrice;
   final bool isPrescription;
-  const PartialPayView(
-      {super.key, required this.totalPrice, required this.isPrescription});
+  const PartialPayView({
+    super.key,
+    required this.totalPrice,
+    required this.isPrescription,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return GetBuilder<CheckoutController>(builder: (checkoutController) {
       final splash = Get.find<SplashController>();
       final profile = Get.find<ProfileController>();
 
-      // حماية من الـ null
       if (splash.configModel == null ||
           profile.userInfoModel == null ||
           profile.userInfoModel!.walletBalance == null) {
@@ -30,84 +32,161 @@ class PartialPayView extends StatelessWidget {
       }
       final wallet = profile.userInfoModel?.walletBalance ?? 0;
 
-      return splash.configModel!.partialPaymentStatus! &&
-              !isPrescription &&
-              splash.configModel!.customerWalletStatus == 1 &&
-              wallet > 0
-          ? AnimatedContainer(
-              duration: const Duration(seconds: 2),
-              decoration: BoxDecoration(
-                color: Get.find<ThemeController>().darkTheme
-                    ? Theme.of(context).primaryColor.withOpacity(0.2)
-                    : Theme.of(context).primaryColor.withOpacity(0.05),
-                border: Border.all(
-                    color: Theme.of(context).primaryColor, width: 0.5),
-                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                image: !ResponsiveHelper.isDesktop(context)
-                    ? DecorationImage(
-                        alignment: Alignment.bottomRight,
-                        colorFilter: ColorFilter.mode(
-                            Colors.white.withOpacity(0.1), BlendMode.dstATop),
-                        image: const AssetImage(Images.partialWallet),
-                      )
-                    : null,
-              ),
-              padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
-              child: ResponsiveHelper.isDesktop(context)
-                  ? Row(children: [
+      bool shouldShow = splash.configModel!.partialPaymentStatus! &&
+          !isPrescription &&
+          splash.configModel!.customerWalletStatus == 1 &&
+          wallet > 0;
+
+      if (!shouldShow) return const SizedBox();
+
+      bool isApplied = checkoutController.isPartialPay ||
+          checkoutController.paymentMethodIndex == 1;
+
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.only(top: Dimensions.paddingSizeSmall),
+        decoration: BoxDecoration(
+          color: isApplied
+              ? theme.primaryColor.withValues(alpha: 0.08)
+              : theme.cardColor,
+          border: Border.all(
+            color: isApplied
+                ? theme.primaryColor
+                : theme.disabledColor.withValues(alpha: 0.2),
+            width: isApplied ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: isApplied
+                  ? theme.primaryColor.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+        child: ResponsiveHelper.isDesktop(context)
+            ? Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 24,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: Dimensions.paddingSizeDefault),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isApplied
+                              ? 'applied'.tr
+                              : 'do_you_want_to_use_now'.tr,
+                          style: robotoBold.copyWith(
+                            color: theme.textTheme.bodyLarge?.color,
+                            fontSize: Dimensions.fontSizeDefault,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${'wallet_balance'.tr}: ${PriceConverter.convertPrice(wallet)}',
+                          style: robotoMedium.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            color: theme.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      if (Get.find<ProfileController>()
+                              .userInfoModel!
+                              .walletBalance! <
+                          totalPrice) {
+                        checkoutController.changePartialPayment();
+                      } else {
+                        if (checkoutController.paymentMethodIndex != 1) {
+                          checkoutController.setPaymentMethod(1);
+                        } else {
+                          checkoutController.setPaymentMethod(-1);
+                        }
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isApplied
+                            ? theme.colorScheme.error.withValues(alpha: 0.1)
+                            : theme.primaryColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: Dimensions.paddingSizeLarge,
+                      ),
+                      child: Text(
+                        isApplied ? 'remove'.tr : 'use'.tr,
+                        style: robotoBold.copyWith(
+                          fontSize: Dimensions.fontSizeSmall,
+                          color: isApplied
+                              ? theme.colorScheme.error
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 22,
+                          color: theme.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(width: Dimensions.paddingSizeSmall),
                       Expanded(
                         child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              checkoutController.isPartialPay ||
-                                      checkoutController.paymentMethodIndex == 1
-                                  ? Row(children: [
-                                      Container(
-                                        decoration: const BoxDecoration(
-                                            color: Colors.green,
-                                            shape: BoxShape.circle),
-                                        padding: const EdgeInsets.all(2),
-                                        child: const Icon(Icons.check,
-                                            size: 12, color: Colors.white),
-                                      ),
-                                      const SizedBox(
-                                          width:
-                                              Dimensions.paddingSizeExtraSmall),
-                                      Text(
-                                        'applied'.tr,
-                                        style: robotoMedium.copyWith(
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                            fontSize:
-                                                Dimensions.fontSizeDefault),
-                                      )
-                                    ])
-                                  : Text(
-                                      'do_you_want_to_use_now'.tr,
-                                      style: robotoMedium.copyWith(
-                                          color: Theme.of(context).primaryColor,
-                                          fontSize: Dimensions.fontSizeDefault),
-                                    ),
-                              const SizedBox(
-                                  height: Dimensions.paddingSizeSmall),
-                              Text(
-                                PriceConverter.convertPrice(wallet),
-                                style: robotoBold.copyWith(
-                                    fontSize: Dimensions.fontSizeLarge,
-                                    color: Theme.of(context).primaryColor),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isApplied
+                                  ? 'has_paid_by_your_wallet'.tr
+                                  : 'your_have_balance_in_your_wallet'.tr,
+                              style: robotoMedium.copyWith(
+                                fontSize: Dimensions.fontSizeSmall,
+                                color: theme.textTheme.bodyLarge?.color,
                               ),
-                              checkoutController.paymentMethodIndex == 1
-                                  ? Text(
-                                      PriceConverter.convertPrice(
-                                          wallet - totalPrice),
-                                      style: robotoMedium.copyWith(
-                                          fontSize:
-                                              Dimensions.fontSizeExtraSmall),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    )
-                                  : const SizedBox(),
-                            ]),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              PriceConverter.convertPrice(wallet),
+                              style: robotoBold.copyWith(
+                                fontSize: Dimensions.fontSizeDefault,
+                                color: theme.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       InkWell(
                         onTap: () {
@@ -124,183 +203,35 @@ class PartialPayView extends StatelessWidget {
                             }
                           }
                         },
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: checkoutController.isPartialPay ||
-                                    checkoutController.paymentMethodIndex == 1
-                                ? Theme.of(context).cardColor
-                                : Theme.of(context).primaryColor,
-                            border: Border.all(
-                                color: checkoutController.isPartialPay ||
-                                        checkoutController.paymentMethodIndex ==
-                                            1
-                                    ? Colors.red
-                                    : Theme.of(context).primaryColor,
-                                width: 0.5),
-                            borderRadius:
-                                BorderRadius.circular(Dimensions.radiusDefault),
+                            color: isApplied
+                                ? theme.colorScheme.error
+                                    .withValues(alpha: 0.1)
+                                : theme.primaryColor,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           padding: const EdgeInsets.symmetric(
-                              vertical: Dimensions.paddingSizeSmall,
-                              horizontal: Dimensions.paddingSizeLarge),
+                            vertical: 7,
+                            horizontal: Dimensions.paddingSizeDefault,
+                          ),
                           child: Text(
-                            checkoutController.isPartialPay ||
-                                    checkoutController.paymentMethodIndex == 1
-                                ? 'remove'.tr
-                                : 'use'.tr,
+                            isApplied ? 'remove'.tr : 'use'.tr,
                             style: robotoBold.copyWith(
-                                fontSize: Dimensions.fontSizeDefault,
-                                color: checkoutController.isPartialPay ||
-                                        checkoutController.paymentMethodIndex ==
-                                            1
-                                    ? Colors.red
-                                    : Colors.white),
+                              fontSize: Dimensions.fontSizeSmall,
+                              color: isApplied
+                                  ? theme.colorScheme.error
+                                  : Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ])
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                          Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Image.asset(Images.partialWallet,
-                                    height: 30, width: 30),
-                                const SizedBox(
-                                    width: Dimensions.paddingSizeSmall),
-                                Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        PriceConverter.convertPrice(wallet),
-                                        style: robotoBold.copyWith(
-                                            fontSize:
-                                                Dimensions.fontSizeOverLarge,
-                                            color:
-                                                Theme.of(context).primaryColor),
-                                      ),
-                                      const SizedBox(
-                                          height:
-                                              Dimensions.paddingSizeExtraSmall),
-                                      Text(
-                                        checkoutController.isPartialPay
-                                            ? 'has_paid_by_your_wallet'.tr
-                                            : 'your_have_balance_in_your_wallet'
-                                                .tr,
-                                        style: robotoMedium.copyWith(
-                                            fontSize: Dimensions.fontSizeSmall),
-                                      ),
-                                    ]),
-                              ]),
-                          const SizedBox(height: Dimensions.paddingSizeSmall),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                checkoutController.isPartialPay ||
-                                        checkoutController.paymentMethodIndex ==
-                                            1
-                                    ? Row(children: [
-                                        Container(
-                                          decoration: const BoxDecoration(
-                                              color: Colors.green,
-                                              shape: BoxShape.circle),
-                                          padding: const EdgeInsets.all(2),
-                                          child: const Icon(Icons.check,
-                                              size: 12, color: Colors.white),
-                                        ),
-                                        const SizedBox(
-                                            width: Dimensions
-                                                .paddingSizeExtraSmall),
-                                        Text(
-                                          'applied'.tr,
-                                          style: robotoMedium.copyWith(
-                                              color: Theme.of(context)
-                                                  .primaryColor,
-                                              fontSize:
-                                                  Dimensions.fontSizeLarge),
-                                        )
-                                      ])
-                                    : Text(
-                                        'do_you_want_to_use_now'.tr,
-                                        style: robotoMedium.copyWith(
-                                            color:
-                                                Theme.of(context).primaryColor,
-                                            fontSize: Dimensions.fontSizeLarge),
-                                      ),
-                                InkWell(
-                                  onTap: () {
-                                    if (Get.find<ProfileController>()
-                                            .userInfoModel!
-                                            .walletBalance! <
-                                        totalPrice) {
-                                      checkoutController.changePartialPayment();
-                                    } else {
-                                      if (checkoutController
-                                              .paymentMethodIndex !=
-                                          1) {
-                                        checkoutController.setPaymentMethod(1);
-                                      } else {
-                                        checkoutController.setPaymentMethod(-1);
-                                      }
-                                    }
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: checkoutController.isPartialPay ||
-                                              checkoutController
-                                                      .paymentMethodIndex ==
-                                                  1
-                                          ? Theme.of(context).cardColor
-                                          : Theme.of(context).primaryColor,
-                                      border: Border.all(
-                                          color: checkoutController
-                                                      .isPartialPay ||
-                                                  checkoutController
-                                                          .paymentMethodIndex ==
-                                                      1
-                                              ? Colors.red
-                                              : Theme.of(context).primaryColor,
-                                          width: 0.5),
-                                      borderRadius: BorderRadius.circular(
-                                          Dimensions.radiusDefault),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: Dimensions.paddingSizeSmall,
-                                        horizontal:
-                                            Dimensions.paddingSizeLarge),
-                                    child: Text(
-                                      checkoutController.isPartialPay ||
-                                              checkoutController
-                                                      .paymentMethodIndex ==
-                                                  1
-                                          ? 'remove'.tr
-                                          : 'use'.tr,
-                                      style: robotoBold.copyWith(
-                                          fontSize: Dimensions.fontSizeLarge,
-                                          color: checkoutController
-                                                      .isPartialPay ||
-                                                  checkoutController
-                                                          .paymentMethodIndex ==
-                                                      1
-                                              ? Colors.red
-                                              : Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ]),
-                          checkoutController.paymentMethodIndex == 1
-                              ? Text(
-                                  PriceConverter.convertPrice(
-                                      wallet - totalPrice),
-                                  style: robotoMedium.copyWith(
-                                      fontSize: Dimensions.fontSizeSmall),
-                                )
-                              : const SizedBox(),
-                        ]),
-            )
-          : const SizedBox();
+                    ],
+                  ),
+                ],
+              ),
+      );
     });
   }
 }

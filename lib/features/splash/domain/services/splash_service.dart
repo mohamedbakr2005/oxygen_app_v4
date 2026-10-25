@@ -3,6 +3,7 @@ import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/config_model.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
+import 'package:Oxygen_Mart/features/splash/domain/models/app_download_section_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/repositories/splash_repository_interface.dart';
 import 'package:Oxygen_Mart/features/splash/domain/services/splash_service_interface.dart';
@@ -66,7 +67,7 @@ class SplashService implements SplashServiceInterface {
   }
 
   @override
-  Future<void> setCacheModule(ModuleModel? module) async {
+  Future<ModuleModel?> setCacheModule(ModuleModel? module) async {
     return await splashRepositoryInterface.setCacheModule(module);
   }
 
@@ -128,5 +129,10 @@ class SplashService implements SplashServiceInterface {
   @override
   bool handleInitialTopicSubscription() {
     return splashRepositoryInterface.handleInitialTopicSubscription();
+  }
+
+  @override
+  Future<AppDownloadSectionModel?> getAppDownloadSection() async {
+    return await splashRepositoryInterface.getAppDownloadSection();
   }
 }

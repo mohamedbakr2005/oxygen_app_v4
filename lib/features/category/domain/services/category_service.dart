@@ -18,16 +18,18 @@ class CategoryService implements CategoryServiceInterface {
   }
 
   @override
-  Future<List<CategoryModel>?> getSubCategoryList(String? parentID) async {
+  Future<List<CategoryModel>?> getSubCategoryList(String? parentID,
+      {DataSourceEnum? source}) async {
     return await categoryRepositoryInterface.getList(
-        id: parentID, subCategoryList: true);
+        id: parentID, subCategoryList: true, source: source);
   }
 
   @override
   Future<ItemModel?> getCategoryItemList(
-      String? categoryID, int offset, String type) async {
+      String? categoryID, int offset, String type,
+      {DataSourceEnum? source}) async {
     return await categoryRepositoryInterface.getList(
-        id: categoryID, offset: offset, type: type, categoryItemList: true);
+        id: categoryID, offset: offset, type: type, categoryItemList: true, source: source);
   }
 
   @override

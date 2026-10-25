@@ -1,110 +1,95 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TipsWidget extends StatelessWidget {
   final String title;
   final bool isSelected;
   final Function onTap;
   final bool isSuggested;
-  const TipsWidget(
-      {super.key,
-      required this.title,
-      required this.isSelected,
-      required this.onTap,
-      required this.isSuggested});
+
+  const TipsWidget({
+    super.key,
+    required this.title,
+    required this.isSelected,
+    required this.onTap,
+    required this.isSuggested,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(
-          right: Dimensions.paddingSizeSmall,
-          top: Dimensions.paddingSizeExtraSmall,
-          bottom: 0),
-      child: Column(children: [
-        InkWell(
-          onTap: onTap as void Function()?,
-          child: Container(
-            padding: ResponsiveHelper.isDesktop(context)
-                ? EdgeInsets.zero
-                : const EdgeInsets.symmetric(
-                    vertical: 5, horizontal: Dimensions.paddingSizeSmall),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? Theme.of(context).primaryColor
-                  : Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-              border: Border.all(
-                  color: ResponsiveHelper.isDesktop(context)
-                      ? Theme.of(context).primaryColor
-                      : Theme.of(context).cardColor),
-              boxShadow: ResponsiveHelper.isDesktop(context)
-                  ? []
-                  : const [
-                      BoxShadow(
-                          color: Colors.black12,
-                          spreadRadius: 0.5,
-                          blurRadius: 0.5)
-                    ],
-            ),
-            child: Column(children: [
-              Padding(
-                padding: ResponsiveHelper.isDesktop(context)
-                    ? EdgeInsets.only(
-                        top: !isSuggested
-                            ? Dimensions.fontSizeSmall
-                            : Dimensions.paddingSizeExtraSmall,
-                        left: Dimensions.paddingSizeSmall,
-                        right: Dimensions.paddingSizeSmall,
-                      )
-                    : EdgeInsets.zero,
-                child: Text(
-                  title,
-                  textDirection: TextDirection.ltr,
-                  style: robotoRegular.copyWith(
+        right: Dimensions.paddingSizeSmall,
+        top: 2,
+        bottom: 2,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            onTap: onTap as void Function()?,
+            borderRadius: BorderRadius.circular(16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(
+                vertical: 8,
+                horizontal: Dimensions.paddingSizeDefault,
+              ),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? theme.primaryColor : theme.cardColor,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected
+                      ? theme.primaryColor
+                      : theme.disabledColor.withValues(alpha: 0.2),
+                  width: isSelected ? 1.5 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
                     color: isSelected
-                        ? Theme.of(context).cardColor
-                        : ResponsiveHelper.isDesktop(context)
-                            ? Theme.of(context).primaryColor
-                            : Theme.of(context).disabledColor,
+                        ? theme.primaryColor.withValues(alpha: 0.25)
+                        : Colors.black.withValues(alpha: 0.03),
+                    blurRadius: isSelected ? 8 : 4,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: Text(
+                title,
+                textDirection: TextDirection.ltr,
+                style: robotoBold.copyWith(
+                  color: isSelected
+                      ? Colors.white
+                      : theme.textTheme.bodyLarge?.color,
+                  fontSize: Dimensions.fontSizeSmall,
                 ),
               ),
-              isSuggested && ResponsiveHelper.isDesktop(context)
-                  ? Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor,
-                        borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(Dimensions.radiusSmall)),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: Dimensions.paddingSizeExtraSmall,
-                          vertical: 3),
-                      child: Text(
-                        'most_tipped'.tr,
-                        style: robotoRegular.copyWith(
-                            color: Colors.white,
-                            fontSize: Dimensions.fontSizeOverSmall),
-                      ),
-                    )
-                  : SizedBox(
-                      height: ResponsiveHelper.isDesktop(context) ? 10 : 0),
-            ]),
+            ),
           ),
-        ),
-        const SizedBox(height: Dimensions.paddingSizeExtraSmall - 1),
-        isSuggested && !ResponsiveHelper.isDesktop(context)
-            ? Text(
+          if (isSuggested) ...[
+            const SizedBox(height: 3),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
                 'most_tipped'.tr,
-                style: robotoMedium.copyWith(
-                    color: Theme.of(context).primaryColor,
-                    fontSize: Dimensions.fontSizeExtraSmall),
-              )
-            : const SizedBox(),
-      ]),
+                style: robotoBold.copyWith(
+                  color: theme.primaryColor,
+                  fontSize: Dimensions.fontSizeExtraSmall - 1,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

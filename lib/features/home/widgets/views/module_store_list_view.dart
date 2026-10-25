@@ -27,17 +27,8 @@ class ModuleStoreListView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
             child: InkWell(
               onTap: () {
-                var splashCtrl = Get.find<SplashController>();
-                if (splashCtrl.moduleList != null) {
-                  try {
-                    var groceryModule = splashCtrl.moduleList!.firstWhere((m) => m.moduleType == AppConstants.grocery);
-                    splashCtrl.switchModule(groceryModule);
-                  } catch (e) {
-                    splashCtrl.removeModule();
-                  }
-                } else {
-                  splashCtrl.removeModule();
-                }
+                final splashCtrl = Get.find<SplashController>();
+                splashCtrl.removeModule();
                 Get.find<StoreController>().resetStoreData();
               },
               child: Container(

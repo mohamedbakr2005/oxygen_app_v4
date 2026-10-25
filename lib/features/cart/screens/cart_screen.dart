@@ -1,22 +1,17 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_app_bar.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
-import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
-import 'package:Oxygen_Mart/common/widgets/item_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/no_data_screen.dart';
-import 'package:Oxygen_Mart/common/widgets/web_constrained_box.dart';
 import 'package:Oxygen_Mart/common/widgets/web_page_title_widget.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/add_to_monthly_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/cart_item_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/extra_packaging_widget.dart';
-import 'package:Oxygen_Mart/features/cart/widgets/not_available_bottom_sheet_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_cart_items_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_suggested_item_view_widget.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
@@ -39,21 +34,38 @@ import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
-import 'package:Oxygen_Mart/socket_service.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 import 'package:expandable_bottom_sheet/expandable_bottom_sheet.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:universal_html/js.dart' as js;
 
 class CartScreen extends StatefulWidget {
   final bool fromNav;
-  const CartScreen({super.key, required this.fromNav});
+  final int? storeId;
+  final String? storeName;
+  const CartScreen({super.key, required this.fromNav, this.storeId, this.storeName});
+
+  static void openAsBottomSheet(BuildContext context, {required int storeId}) {
+    final MediaQueryData mq = MediaQuery.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MediaQuery(
+        data: mq.copyWith(padding: mq.viewPadding),
+        child: SizedBox(
+          height: mq.size.height,
+          child: CartScreen(fromNav: false, storeId: storeId),
+        ),
+      ),
+    );
+  }
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -76,21 +88,16 @@ class _CartScreenState extends State<CartScreen> {
   @override
   void initState() {
     super.initState();
+    final CartController cc = Get.find<CartController>();
+    final int? viewStoreId = widget.storeId ?? cc.allCartsGroups?.firstOrNull?.store?.id;
+    cc.setActiveCartScreen(viewStoreId);
     initCall();
-
-    SocketService.connect(
-      userId: userId ?? 0,
-      onCartUpdate: (data) {
-        print("🔄 Cart Update Event Received in UI");
-        Get.find<CartController>().handleRealtimeCartEvent(data);
-      },
-    );
-    // 🚨 تم إزالة الـ Polling Timer لأنه بيهلك السيرفر والبطارية والمفروض نعتمد على الـ Socket
   }
 
   @override
   void dispose() {
-    SocketService.disconnect();
+    Get.find<CartController>().clearActiveCartScreen();
+    scrollController.dispose();
     super.dispose();
   }
 
@@ -100,8 +107,16 @@ class _CartScreenState extends State<CartScreen> {
       Get.find<OrderController>().getRunningOrders(1);
       _loadAllHistoryOrders();
     }
-    if (Get.find<CartController>().cartList.isEmpty) {
-      await Get.find<CartController>().getAllCarts();
+    final CartController cartController = Get.find<CartController>();
+    final int? effectiveStoreId = widget.storeId
+        ?? cartController.allCartsGroups?.firstOrNull?.store?.id;
+    await cartController.getCartDataOnline(storeId: effectiveStoreId);
+
+    final int? lockedStoreId = effectiveStoreId
+        ?? (cartController.cartList.isNotEmpty ? cartController.cartList.first.item?.storeId : null);
+    if (lockedStoreId != null && lockedStoreId != cartController.activeCartScreenStoreId) {
+      cartController.setActiveCartScreen(lockedStoreId);
+      await cartController.getCartDataOnline(storeId: lockedStoreId);
     }
     if (Get.find<SplashController>().module == null && Get.find<CartController>().cartList.isNotEmpty) {
       await Get.find<SplashController>().getModules();
@@ -244,10 +259,25 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Widget _buildFlowTabs(CartController cartController) {
-    final List<String> tabs = [
-      _flowTabLabel('my_cart', 'سلة مشترياتي', 'My Cart'),
-      _flowTabLabel('current_order', 'طلباتك الحالية', 'Current Order'),
-      _flowTabLabel('previous_order', 'الطلبات اللي فاتت', 'Previous Order'),
+    final List<Map<String, dynamic>> tabs = [
+      {
+        'label': _flowTabLabel('my_cart', 'سلة مشترياتي', 'My Cart'),
+        'icon': Icons.shopping_bag_outlined,
+        'badge': cartController.cartList.isNotEmpty ? cartController.cartList.length : null,
+      },
+      {
+        'label': _flowTabLabel('current_order', 'طلباتك الحالية', 'Current Order'),
+        'icon': Icons.local_shipping_outlined,
+        'badge': Get.isRegistered<OrderController>() &&
+                (Get.find<OrderController>().runningOrderModel?.orders?.isNotEmpty ?? false)
+            ? Get.find<OrderController>().runningOrderModel!.orders!.length
+            : null,
+      },
+      {
+        'label': _flowTabLabel('previous_order', 'الطلبات اللي فاتت', 'Previous Order'),
+        'icon': Icons.receipt_long_outlined,
+        'badge': null,
+      },
     ];
 
     return Container(
@@ -255,76 +285,106 @@ class _CartScreenState extends State<CartScreen> {
         Dimensions.paddingSizeDefault,
         Dimensions.paddingSizeSmall,
         Dimensions.paddingSizeDefault,
-        0,
+        Dimensions.paddingSizeExtraSmall,
       ),
-      padding: const EdgeInsets.only(top: Dimensions.paddingSizeSmall),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(Dimensions.radiusLarge),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.08),
         ),
-        border: Border(
-          bottom: BorderSide(
-            color: Theme.of(context).dividerColor.withOpacity(0.35),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-        ),
+        ],
       ),
       child: Row(
         children: List.generate(tabs.length, (index) {
           final bool isSelected = cartController.selectedFlowTab == index;
-          return Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final double tabFontSize =
-                    constraints.maxWidth < 112 ? 12.5 : 15;
-                final double indicatorWidth =
-                    (constraints.maxWidth * 0.62).clamp(42.0, 90.0).toDouble();
+          final tabData = tabs[index];
+          final String label = tabData['label'];
+          final IconData icon = tabData['icon'];
+          final int? badge = tabData['badge'];
 
-                return InkWell(
-                  onTap: () => cartController.setSelectedFlowTab(index),
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                      left: Dimensions.paddingSizeExtraSmall,
-                      right: Dimensions.paddingSizeExtraSmall,
-                      bottom: Dimensions.paddingSizeSmall,
+          return Expanded(
+            child: InkWell(
+              onTap: () => cartController.setSelectedFlowTab(index),
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Theme.of(context).primaryColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 16,
+                      color: isSelected
+                          ? Colors.white
+                          : Theme.of(context).disabledColor,
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          height: 24,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              tabs[index],
-                              maxLines: 1,
-                              textAlign: TextAlign.center,
-                              style: (isSelected ? robotoBold : robotoRegular)
-                                  .copyWith(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.onSurface
-                                    : Theme.of(context).disabledColor,
-                                fontSize: tabFontSize,
-                              ),
-                            ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: (isSelected ? robotoBold : robotoMedium).copyWith(
+                          color: isSelected
+                              ? Colors.white
+                              : Theme.of(context).disabledColor,
+                          fontSize: Dimensions.fontSizeSmall,
+                        ),
+                      ),
+                    ),
+                    if (badge != null && badge > 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.white.withOpacity(0.25)
+                              : Theme.of(context).primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '$badge',
+                          style: robotoBold.copyWith(
+                            fontSize: 10,
+                            color: isSelected
+                                ? Colors.white
+                                : Theme.of(context).primaryColor,
                           ),
                         ),
-                        const SizedBox(height: Dimensions.paddingSizeSmall),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOut,
-                          height: 3,
-                          width: isSelected ? indicatorWidth : 0,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           );
         }),
@@ -338,11 +398,7 @@ class _CartScreenState extends State<CartScreen> {
     bool isDesktop,
   ) {
     if (cartController.cartList.isEmpty) {
-      return const NoDataScreen(
-        isCart: true,
-        text: '',
-        showFooter: true,
-      );
+      return _buildEmptyCartView();
     }
 
     return Column(
@@ -369,7 +425,7 @@ class _CartScreenState extends State<CartScreen> {
                     child: Container(
                       color: Theme.of(context).colorScheme.background,
                       child: Container(
-                        constraints: const BoxConstraints.expand(height: 40),
+                        constraints: const BoxConstraints.expand(height: 38),
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           borderRadius: const BorderRadius.only(
@@ -378,21 +434,21 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(0.04),
                               blurRadius: 10,
-                              offset: const Offset(0, -5),
+                              offset: const Offset(0, -4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Container(
-                            width: 40,
-                            height: 5,
+                            width: 38,
+                            height: 4,
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurfaceVariant
-                                  .withOpacity(0.4),
+                                  .withOpacity(0.35),
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
@@ -423,6 +479,22 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                       ),
                       if (!isDesktop) ...[
+                        // Store Header Context Banner
+                        if (storeController.store != null ||
+                            cartController.cartList.first.item?.storeName != null)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                Dimensions.paddingSizeDefault,
+                                Dimensions.paddingSizeSmall,
+                                Dimensions.paddingSizeDefault,
+                                Dimensions.paddingSizeExtraSmall,
+                              ),
+                              child: _buildStoreContextCard(cartController, storeController),
+                            ),
+                          ),
+
+                        // Cart Items List
                         SliverPadding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: Dimensions.paddingSizeDefault,
@@ -431,23 +503,20 @@ class _CartScreenState extends State<CartScreen> {
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: Dimensions.paddingSizeSmall,
-                                  ),
-                                  child: CartItemWidget(
-                                    cart: cartController.cartList[index],
-                                    cartIndex: index,
-                                    addOns: cartController.addOnsList[index],
-                                    isAvailable:
-                                        cartController.availableList[index],
-                                  ),
+                                return CartItemWidget(
+                                  cart: cartController.cartList[index],
+                                  cartIndex: index,
+                                  addOns: cartController.addOnsList[index],
+                                  isAvailable:
+                                      cartController.availableList[index],
                                 );
                               },
                               childCount: cartController.cartList.length,
                             ),
                           ),
                         ),
+
+                        // Add More Items and Extras Section
                         SliverToBoxAdapter(
                           child: Column(
                             children: [
@@ -455,24 +524,8 @@ class _CartScreenState extends State<CartScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: Dimensions.paddingSizeDefault,
                                 ),
-                                child: TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    backgroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer
-                                        .withOpacity(0.5),
-                                    foregroundColor: Theme.of(context)
-                                        .colorScheme
-                                        .onSecondaryContainer,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12,
-                                      horizontal: 20,
-                                    ),
-                                  ),
-                                  onPressed: () {
+                                child: InkWell(
+                                  onTap: () {
                                     cartController.forcefullySetModule(
                                       cartController
                                           .cartList[0].item!.moduleId!,
@@ -492,19 +545,48 @@ class _CartScreenState extends State<CartScreen> {
                                       ),
                                     );
                                   },
-                                  icon: const Icon(
-                                      Icons.add_circle_outline_sharp),
-                                  label: Text(
-                                    'add_more_items'.tr,
-                                    style: robotoMedium.copyWith(
-                                      fontSize: Dimensions.fontSizeDefault,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 13,
+                                      horizontal: Dimensions.paddingSizeDefault,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).primaryColor,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.add,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: Dimensions.paddingSizeSmall),
+                                        Text(
+                                          'add_more_items'.tr,
+                                          style: robotoBold.copyWith(
+                                            fontSize: Dimensions.fontSizeDefault,
+                                            color: Theme.of(context).primaryColor,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(
-                                height: Dimensions.paddingSizeLarge,
-                              ),
+                              const SizedBox(height: Dimensions.paddingSizeSmall),
                               if (_isGroceryOrPharmacy(cartController) &&
                                   !_hasCampaignOrFlashSaleItem(cartController) &&
                                   (AuthHelper.isLoggedIn() &&
@@ -513,9 +595,6 @@ class _CartScreenState extends State<CartScreen> {
                                               ?.monthlyOrderRemainder ==
                                           1)) ...[
                                 const MonthlyReorderSection(),
-                                const SizedBox(
-                                  height: Dimensions.paddingSizeLarge,
-                                ),
                               ],
                               ExtraPackagingWidget(
                                 cartController: cartController,
@@ -590,158 +669,48 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           child: Column(
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'item_price'.tr,
-                                    style: robotoMedium.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
+                              _buildReceiptRow(
+                                title: 'item_price'.tr,
+                                priceWidget: PriceConverter.convertAnimationPrice(
+                                  cartController.itemPrice,
+                                  textStyle: robotoMedium.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface,
                                   ),
-                                  PriceConverter.convertAnimationPrice(
-                                    cartController.itemPrice,
-                                    textStyle: robotoMedium.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
-                              SizedBox(
-                                height: cartController.variationPrice > 0 &&
-                                        ModuleHelper.getModuleConfig(
-                                          cartController
-                                              .cartList.first.item!.moduleType,
-                                        ).newVariation!
-                                    ? Dimensions.paddingSizeSmall
-                                    : 0,
+                              if (cartController.variationPrice > 0 &&
+                                  ModuleHelper.getModuleConfig(
+                                    cartController
+                                        .cartList.first.item!.moduleType,
+                                  ).newVariation!) ...[
+                                const SizedBox(height: Dimensions.paddingSizeSmall),
+                                _buildReceiptRow(
+                                  title: 'variations'.tr,
+                                  valueText: '(+) ${PriceConverter.convertPrice(cartController.variationPrice)}',
+                                ),
+                              ],
+                              const SizedBox(height: Dimensions.paddingSizeSmall),
+                              _buildReceiptRow(
+                                title: 'discount'.tr,
+                                isDiscount: true,
+                                valueText: storeController.store != null
+                                    ? '(-) ${PriceConverter.convertPrice(cartController.itemDiscountPrice)}'
+                                    : 'calculating'.tr,
                               ),
-                              cartController.variationPrice > 0 &&
-                                      ModuleHelper.getModuleConfig(
-                                        cartController
-                                            .cartList.first.item!.moduleType,
-                                      ).newVariation!
-                                  ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'variations'.tr,
-                                          style: robotoRegular.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                        ),
-                                        Text(
-                                          '(+) ${PriceConverter.convertPrice(cartController.variationPrice)}',
-                                          style: robotoRegular.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : const SizedBox(),
-                              const SizedBox(
-                                height: Dimensions.paddingSizeSmall,
-                              ),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'discount'.tr,
-                                    style: robotoRegular.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                                  ),
-                                  storeController.store != null
-                                      ? Row(
-                                          children: [
-                                            Text(
-                                              '(-)',
-                                              style: robotoRegular.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .error,
-                                              ),
-                                            ),
-                                            PriceConverter
-                                                .convertAnimationPrice(
-                                              cartController.itemDiscountPrice,
-                                              textStyle: robotoRegular.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .error,
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : Text(
-                                          'calculating'.tr,
-                                          style: robotoRegular,
-                                        ),
-                                ],
-                              ),
-                              SizedBox(
-                                height: Get.find<SplashController>()
-                                        .configModel!
-                                        .moduleConfig!
-                                        .module!
-                                        .addOn!
-                                    ? Dimensions.paddingSizeSmall
-                                    : 0,
-                              ),
-                              Get.find<SplashController>()
+                              if (Get.find<SplashController>()
                                       .configModel!
                                       .moduleConfig!
                                       .module!
-                                      .addOn!
-                                  ? Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'addons'.tr,
-                                          style: robotoRegular.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              '(+)',
-                                              style: robotoRegular.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                            PriceConverter
-                                                .convertAnimationPrice(
-                                              cartController.addOns,
-                                              textStyle: robotoRegular.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    )
-                                  : const SizedBox(),
+                                      .addOn! &&
+                                  cartController.addOns > 0) ...[
+                                const SizedBox(height: Dimensions.paddingSizeSmall),
+                                _buildReceiptRow(
+                                  title: 'addons'.tr,
+                                  valueText: '(+) ${PriceConverter.convertPrice(cartController.addOns)}',
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -751,6 +720,186 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStoreContextCard(CartController cartController, StoreController storeController) {
+    final storeName = storeController.store?.name ?? cartController.cartList.first.item?.storeName ?? 'Store';
+    final storeLogo = storeController.store?.logoFullUrl;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (storeLogo != null && storeLogo.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: CustomImage(
+                image: storeLogo,
+                height: 38,
+                width: 38,
+                fit: BoxFit.cover,
+              ),
+            )
+          else
+            Container(
+              height: 38,
+              width: 38,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.storefront_rounded,
+                size: 20,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+          const SizedBox(width: Dimensions.paddingSizeSmall),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  storeName,
+                  style: robotoBold.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${cartController.cartList.length} ${cartController.cartList.length > 1 ? 'items'.tr : 'item'.tr}',
+                  style: robotoRegular.copyWith(
+                    fontSize: Dimensions.fontSizeExtraSmall,
+                    color: Theme.of(context).disabledColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              cartController.forcefullySetModule(
+                cartController.cartList[0].item!.moduleId!,
+              );
+              Get.toNamed(
+                RouteHelper.getStoreRoute(
+                  id: cartController.cartList[0].item!.storeId,
+                  page: 'item',
+                ),
+                arguments: StoreScreen(
+                  store: Store(
+                    id: cartController.cartList[0].item!.storeId,
+                  ),
+                  fromModule: false,
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                children: [
+                  Text(
+                    'view_store'.tr.isNotEmpty ? 'view_store'.tr : 'المتجر',
+                    style: robotoMedium.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyCartView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(Dimensions.paddingSizeExtraLarge),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 120,
+              width: 120,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.shopping_cart_outlined,
+                  size: 58,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: Dimensions.paddingSizeLarge),
+            Text(
+              'your_cart_is_empty'.tr.isNotEmpty
+                  ? 'your_cart_is_empty'.tr
+                  : 'سلة التسوق فارغة',
+              style: robotoBold.copyWith(
+                fontSize: Dimensions.fontSizeExtraLarge,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: Dimensions.paddingSizeSmall),
+            Text(
+              'explore_items_and_start_shopping'.tr.isNotEmpty
+                  ? 'explore_items_and_start_shopping'.tr
+                  : 'أضف منتجاتك المفضلة من المتاجر لبدء الطلب الآن!',
+              textAlign: TextAlign.center,
+              style: robotoRegular.copyWith(
+                fontSize: Dimensions.fontSizeDefault,
+                color: Theme.of(context).disabledColor,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+            SizedBox(
+              width: 220,
+              child: CustomButton(
+                buttonText: 'explore_now'.tr.isNotEmpty
+                    ? 'explore_now'.tr
+                    : 'ابدأ التسوق الآن',
+                radius: 16,
+                isBold: true,
+                onPressed: () {
+                  Get.offNamed(RouteHelper.getMainRoute('home'));
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -764,7 +913,9 @@ class _CartScreenState extends State<CartScreen> {
 
     if (!AuthHelper.isLoggedIn()) {
       return NoDataScreen(
-        text: 'no_data_found'.tr,
+        text: 'please_login_to_view_orders'.tr.isNotEmpty
+            ? 'please_login_to_view_orders'.tr
+            : 'no_data_found'.tr,
         showFooter: false,
       );
     }
@@ -809,14 +960,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _openOrder(OrderModel order, bool isRunning) {
-    if (isRunning) {
-      Get.toNamed(RouteHelper.getOrderTrackingRoute(order.id, null));
-    } else {
-      Get.toNamed(
-        RouteHelper.getOrderDetailsRoute(order.id),
-        arguments: OrderDetailsScreen(orderId: order.id, orderModel: order),
-      );
-    }
+    Get.toNamed(
+      RouteHelper.getOrderDetailsRoute(order.id),
+      arguments: OrderDetailsScreen(orderId: order.id, orderModel: order),
+    );
   }
 
   String _flowTabLabel(String key, String arFallback, String enFallback) {
@@ -834,14 +981,18 @@ class _CartScreenState extends State<CartScreen> {
           const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
       padding: EdgeInsets.all(isDesktop ? Dimensions.paddingSizeDefault : 0),
       decoration: BoxDecoration(
-        color: Theme.of(context)
-            .colorScheme
-            .surfaceVariant
-            .withOpacity(0.3), // M3 Surface Variant
-        borderRadius: BorderRadius.circular(24), // M3 rounded corners
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-            color:
-                Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)),
+          color: Theme.of(context).dividerColor.withOpacity(0.08),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: GetBuilder<StoreController>(builder: (storeController) {
         return Column(children: [
@@ -875,17 +1026,14 @@ class _CartScreenState extends State<CartScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).colorScheme.primaryContainer,
+                            color: Theme.of(context).primaryColor.withOpacity(0.08),
                             shape: BoxShape.circle,
                           ),
                           child: Image.asset(
                             Images.cutlery,
                             height: 18,
                             width: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
+                            color: Theme.of(context).primaryColor,
                           ),
                         ),
                         const SizedBox(width: Dimensions.paddingSizeDefault),
@@ -902,9 +1050,7 @@ class _CartScreenState extends State<CartScreen> {
                                     height: Dimensions.paddingSizeExtraSmall),
                                 Text('do_not_have_cutlery'.tr,
                                     style: robotoRegular.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurfaceVariant,
+                                        color: Theme.of(context).disabledColor,
                                         fontSize: Dimensions.fontSizeSmall)),
                               ]),
                         ),
@@ -912,93 +1058,120 @@ class _CartScreenState extends State<CartScreen> {
                           scale: 0.8,
                           child: CupertinoSwitch(
                             value: cartController.addCutlery,
-                            activeColor: Theme.of(context).colorScheme.primary,
+                            activeColor: Theme.of(context).primaryColor,
                             onChanged: (bool? value) {
                               cartController.updateCutlery();
                             },
-                            trackColor: Theme.of(context)
-                                .colorScheme
-                                .outlineVariant
-                                .withOpacity(0.5),
                           ),
                         )
                       ]),
                 )
               : const SizedBox(),
-          isDesktop
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: Dimensions.paddingSizeDefault,
-                      vertical: Dimensions.paddingSizeSmall),
-                  child: Column(children: [
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('item_price'.tr, style: robotoRegular),
-                          PriceConverter.convertAnimationPrice(
-                              cartController.itemPrice,
-                              textStyle: robotoRegular),
-                        ]),
-                    SizedBox(
-                        height: cartController.variationPrice > 0
-                            ? Dimensions.paddingSizeSmall
-                            : 0),
+
+          // Price Breakdown Section
+          Padding(
+            padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 18,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'order_summary'.tr,
+                      style: robotoBold.copyWith(
+                        fontSize: Dimensions.fontSizeDefault,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                Divider(
+                  color: Theme.of(context).dividerColor.withOpacity(0.15),
+                  height: 1,
+                ),
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                _buildReceiptRow(
+                  title: 'item_price'.tr,
+                  priceWidget: PriceConverter.convertAnimationPrice(
+                    cartController.itemPrice,
+                    textStyle: robotoMedium.copyWith(
+                      fontSize: Dimensions.fontSizeDefault,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                if (cartController.variationPrice > 0 &&
                     Get.find<SplashController>()
-                                .getModuleConfig(item.moduleType)
-                                .newVariation! &&
-                            cartController.variationPrice > 0
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('variations'.tr, style: robotoRegular),
-                              Text(
-                                '(+) ${PriceConverter.convertPrice(cartController.variationPrice)}',
-                                style: robotoRegular,
-                              ),
-                            ],
-                          )
-                        : const SizedBox(),
-                    const SizedBox(height: Dimensions.paddingSizeSmall),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('discount'.tr, style: robotoRegular),
-                          storeController.store != null
-                              ? Row(children: [
-                                  Text('(-)', style: robotoRegular),
-                                  PriceConverter.convertAnimationPrice(
-                                      cartController.itemDiscountPrice,
-                                      textStyle: robotoRegular),
-                                ])
-                              : Text('calculating'.tr, style: robotoRegular),
-                        ]),
-                    SizedBox(
-                        height: Get.find<SplashController>()
-                                .configModel!
-                                .moduleConfig!
-                                .module!
-                                .addOn!
-                            ? 10
-                            : 0),
-                    Get.find<SplashController>()
-                            .configModel!
-                            .moduleConfig!
-                            .module!
-                            .addOn!
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('addons'.tr, style: robotoRegular),
-                              Text(
-                                '(+) ${PriceConverter.convertPrice(cartController.addOns)}',
-                                style: robotoRegular,
-                              ),
-                            ],
-                          )
-                        : const SizedBox(),
-                  ]),
-                )
-              : const SizedBox(),
+                        .getModuleConfig(item.moduleType)
+                        .newVariation!) ...[
+                  const SizedBox(height: Dimensions.paddingSizeSmall),
+                  _buildReceiptRow(
+                    title: 'variations'.tr,
+                    valueText: '(+) ${PriceConverter.convertPrice(cartController.variationPrice)}',
+                  ),
+                ],
+                const SizedBox(height: Dimensions.paddingSizeSmall),
+                _buildReceiptRow(
+                  title: 'discount'.tr,
+                  isDiscount: true,
+                  valueText: storeController.store != null
+                      ? '(-) ${PriceConverter.convertPrice(cartController.itemDiscountPrice)}'
+                      : 'calculating'.tr,
+                ),
+                if (Get.find<SplashController>()
+                        .configModel!
+                        .moduleConfig!
+                        .module!
+                        .addOn! &&
+                    cartController.addOns > 0) ...[
+                  const SizedBox(height: Dimensions.paddingSizeSmall),
+                  _buildReceiptRow(
+                    title: 'addons'.tr,
+                    valueText: '(+) ${PriceConverter.convertPrice(cartController.addOns)}',
+                  ),
+                ],
+                if (cartController.itemDiscountPrice > 0) ...[
+                  const SizedBox(height: Dimensions.paddingSizeDefault),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Dimensions.paddingSizeSmall,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2EAD37).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.celebration_outlined,
+                          size: 16,
+                          color: Color(0xFF2EAD37),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${'you_saved'.tr} ${PriceConverter.convertPrice(cartController.itemDiscountPrice)} ${'on_this_order'.tr}',
+                            style: robotoMedium.copyWith(
+                              fontSize: Dimensions.fontSizeSmall,
+                              color: const Color(0xFF2EAD37),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           isDesktop
               ? Padding(
                   padding: const EdgeInsets.only(
@@ -1019,8 +1192,39 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  Widget _buildReceiptRow({
+    required String title,
+    String? valueText,
+    Widget? priceWidget,
+    bool isDiscount = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: robotoRegular.copyWith(
+            fontSize: Dimensions.fontSizeDefault,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (priceWidget != null)
+          priceWidget
+        else
+          Text(
+            valueText ?? '',
+            style: (isDiscount ? robotoBold : robotoMedium).copyWith(
+              fontSize: Dimensions.fontSizeDefault,
+              color: isDiscount
+                  ? const Color(0xFF2EAD37)
+                  : Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget suggestedItemView(List<CartModel> cartList) {
-    // ... نفس الكود بتاعك مفيش تغيير
     return Container();
   }
 
@@ -1072,21 +1276,21 @@ class _OrderHistoryCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.35),
+              color: Theme.of(context).dividerColor.withOpacity(0.08),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: Colors.black.withOpacity(0.035),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -1096,14 +1300,14 @@ class _OrderHistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     child: Container(
-                      height: 86,
-                      width: 86,
+                      height: 76,
+                      width: 76,
                       color: Theme.of(context)
                           .colorScheme
                           .surfaceVariant
-                          .withOpacity(0.45),
+                          .withOpacity(0.4),
                       child: CustomImage(
                         image: isParcel
                             ? '${order.parcelCategory?.imageFullUrl ?? ''}'
@@ -1112,61 +1316,90 @@ class _OrderHistoryCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: Dimensions.paddingSizeDefault),
+                  const SizedBox(width: Dimensions.paddingSizeSmall),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          isParcel
-                              ? 'parcel'.tr
-                              : (order.store?.name ?? 'Store'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: robotoBold.copyWith(
-                            fontSize: Dimensions.fontSizeExtraLarge,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                isParcel
+                                    ? 'parcel'.tr
+                                    : (order.store?.name ?? 'Store'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: robotoBold.copyWith(
+                                  fontSize: Dimensions.fontSizeDefault,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            _OrderStatusPill(statusVisual: statusVisual),
+                          ],
                         ),
-                        const SizedBox(
-                          height: Dimensions.paddingSizeExtraSmall,
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).disabledColor.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '#${order.id ?? ''}',
+                                style: robotoBold.copyWith(
+                                  fontSize: Dimensions.fontSizeSmall,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          '#${order.id ?? ''}',
-                          style: robotoBold.copyWith(
-                            fontSize: Dimensions.fontSizeLarge,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(
-                          height: Dimensions.paddingSizeExtraSmall,
-                        ),
-                        Text(
-                          DateConverter.dateTimeStringToDateTime(
-                            order.createdAt ?? '',
-                          ),
-                          style: robotoRegular.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontSize: Dimensions.fontSizeDefault,
-                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 13,
+                              color: Theme.of(context).disabledColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                DateConverter.dateTimeStringToDateTime(
+                                  order.createdAt ?? '',
+                                ),
+                                style: robotoRegular.copyWith(
+                                  color: Theme.of(context).disabledColor,
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  _OrderStatusPill(statusVisual: statusVisual),
                 ],
               ),
-              const SizedBox(height: Dimensions.paddingSizeDefault),
-              Divider(color: Theme.of(context).dividerColor.withOpacity(0.25)),
               const SizedBox(height: Dimensions.paddingSizeSmall),
+              Divider(color: Theme.of(context).dividerColor.withOpacity(0.12)),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Text(
                     PriceConverter.convertPrice(order.orderAmount),
                     style: robotoBold.copyWith(
-                      fontSize: Dimensions.fontSizeExtraLarge,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: Dimensions.fontSizeLarge,
+                      color: Theme.of(context).primaryColor,
                     ),
                   ),
                   const SizedBox(width: Dimensions.paddingSizeSmall),
@@ -1174,7 +1407,7 @@ class _OrderHistoryCard extends StatelessWidget {
                     width: 4,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).disabledColor,
+                      color: Theme.of(context).disabledColor.withOpacity(0.5),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -1185,23 +1418,35 @@ class _OrderHistoryCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: robotoMedium.copyWith(
-                        fontSize: Dimensions.fontSizeLarge,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: Dimensions.fontSizeSmall,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
-                  Text(
-                    isRunning ? 'track_order'.tr : 'view_details'.tr,
-                    style: robotoMedium.copyWith(
-                      fontSize: Dimensions.fontSizeLarge,
-                      color: Theme.of(context).primaryColor,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
-                  const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 16,
-                    color: Theme.of(context).disabledColor,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isRunning ? 'track_order'.tr : 'view_details'.tr,
+                          style: robotoBold.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 11,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1249,31 +1494,31 @@ class _OrderStatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: Dimensions.paddingSizeDefault,
-        vertical: Dimensions.paddingSizeExtraSmall,
+        horizontal: 8,
+        vertical: 3,
       ),
       decoration: BoxDecoration(
         color: statusVisual.backgroundColor,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: statusVisual.borderColor),
+        border: Border.all(color: statusVisual.borderColor.withOpacity(0.6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 5,
+            height: 5,
             decoration: BoxDecoration(
               color: statusVisual.textColor,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
+          const SizedBox(width: 4),
           Text(
             statusVisual.label,
             style: robotoMedium.copyWith(
               color: statusVisual.textColor,
-              fontSize: Dimensions.fontSizeDefault,
+              fontSize: Dimensions.fontSizeExtraSmall,
             ),
           ),
         ],
@@ -1309,145 +1554,180 @@ class CheckoutButton extends StatelessWidget {
     return Container(
       width: Dimensions.webMaxWidth,
       padding: const EdgeInsets.symmetric(
-          horizontal: Dimensions.paddingSizeDefault,
-          vertical: Dimensions.paddingSizeLarge),
+        horizontal: Dimensions.paddingSizeDefault,
+        vertical: Dimensions.paddingSizeDefault,
+      ),
       decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(ResponsiveHelper.isDesktop(context)
-                  ? Dimensions.radiusDefault
-                  : 24),
-              topRight: Radius.circular(ResponsiveHelper.isDesktop(context)
-                  ? Dimensions.radiusDefault
-                  : 24)),
-          boxShadow: ResponsiveHelper.isDesktop(context)
-              ? null
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  )
-                ]),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(ResponsiveHelper.isDesktop(context)
+              ? Dimensions.radiusDefault
+              : 24),
+          topRight: Radius.circular(ResponsiveHelper.isDesktop(context)
+              ? Dimensions.radiusDefault
+              : 24),
+        ),
+        boxShadow: ResponsiveHelper.isDesktop(context)
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+      ),
       child: GetBuilder<StoreController>(builder: (storeController) {
-        if (Get.find<StoreController>().store != null &&
-            !Get.find<StoreController>().store!.freeDelivery! &&
-            Get.find<SplashController>().configModel!.freeDeliveryOver !=
-                null) {
-          percentage = cartController.subTotal /
-              Get.find<SplashController>().configModel!.freeDeliveryOver!;
+        final double? freeDeliveryTarget =
+            Get.find<SplashController>().configModel!.freeDeliveryOver;
+        final bool showFreeDeliveryProgress = storeController.store != null &&
+            !storeController.store!.freeDelivery! &&
+            freeDeliveryTarget != null;
+
+        if (showFreeDeliveryProgress) {
+          percentage = (cartController.subTotal / freeDeliveryTarget).clamp(0.0, 1.0);
         }
+
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              (storeController.store != null &&
-                      !storeController.store!.freeDelivery! &&
-                      Get.find<SplashController>()
-                              .configModel!
-                              .freeDeliveryOver !=
-                          null &&
-                      percentage < 1)
-                  ? Column(children: [
-                      Row(children: [
-                        Image.asset(Images.percentTag,
-                            height: 20,
-                            width: 20,
-                            color: Theme.of(context).colorScheme.primary),
-                        const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                        Text(
-                          PriceConverter.convertPrice(
-                              Get.find<SplashController>()
-                                      .configModel!
-                                      .freeDeliveryOver! -
-                                  cartController.subTotal),
-                          style: robotoMedium.copyWith(
-                              color: Theme.of(context).colorScheme.primary),
+              if (showFreeDeliveryProgress && percentage < 1.0)
+                Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          size: 18,
+                          color: Theme.of(context).primaryColor,
                         ),
-                        const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                        Text('more_for_free_delivery'.tr,
-                            style: robotoMedium.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant)),
-                      ]),
-                      const SizedBox(height: Dimensions.paddingSizeSmall),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: LinearProgressIndicator(
-                          minHeight: 6,
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primaryContainer,
-                          value: percentage,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 6),
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'أضف '.tr.isNotEmpty ? 'أضف ' : 'Add ',
+                                style: robotoRegular.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontSize: Dimensions.fontSizeSmall,
+                                ),
+                              ),
+                              TextSpan(
+                                text: PriceConverter.convertPrice(
+                                  freeDeliveryTarget - cartController.subTotal,
+                                ),
+                                style: robotoBold.copyWith(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: Dimensions.fontSizeSmall,
+                                ),
+                              ),
+                              TextSpan(
+                                text: ' ${'more_for_free_delivery'.tr}',
+                                style: robotoRegular.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontSize: Dimensions.fontSizeSmall,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        minHeight: 5,
+                        backgroundColor:
+                            Theme.of(context).primaryColor.withOpacity(0.12),
+                        value: percentage,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
                         ),
                       ),
-                      const SizedBox(height: Dimensions.paddingSizeLarge),
-                    ])
-                  : const SizedBox(),
+                    ),
+                    const SizedBox(height: Dimensions.paddingSizeSmall),
+                  ],
+                ),
               ResponsiveHelper.isDesktop(context)
                   ? Divider(
                       height: 1,
-                      color: Theme.of(context).colorScheme.outlineVariant)
+                      color: Theme.of(context).dividerColor.withOpacity(0.1))
                   : const SizedBox(),
-              Padding(
-                padding: const EdgeInsets.only(
-                    bottom: Dimensions.paddingSizeDefault),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('subtotal'.tr,
-                        style: robotoBold.copyWith(
-                            fontSize: Dimensions.fontSizeLarge,
-                            color: Theme.of(context).colorScheme.onSurface)),
-                    PriceConverter.convertAnimationPrice(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'subtotal'.tr,
+                        style: robotoRegular.copyWith(
+                          fontSize: Dimensions.fontSizeSmall,
+                          color: Theme.of(context).disabledColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      PriceConverter.convertAnimationPrice(
                         cartController.subTotal,
                         textStyle: robotoBold.copyWith(
-                            fontSize: Dimensions.fontSizeLarge,
-                            color: Theme.of(context).colorScheme.primary)),
-                  ],
-                ),
-              ),
-              CustomButton(
-                  buttonText: 'confirm_delivery_details'.tr,
-                  fontSize: ResponsiveHelper.isDesktop(context)
-                      ? Dimensions.fontSizeSmall
-                      : Dimensions.fontSizeLarge,
-                  isBold: true,
-                  radius: 16, // Modern M3 completely rounded button feel
-                  onPressed: () {
-                    bool isScheduleOrder = cartController.cartList.isNotEmpty &&
-                        cartController.cartList.first.item != null &&
-                        (cartController.cartList.first.item!.scheduleOrder ?? false);
+                          fontSize: Dimensions.fontSizeExtraLarge,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: Dimensions.paddingSizeDefault),
+                  Expanded(
+                    child: CustomButton(
+                      buttonText: 'confirm_delivery_details'.tr,
+                      fontSize: ResponsiveHelper.isDesktop(context)
+                          ? Dimensions.fontSizeSmall
+                          : Dimensions.fontSizeDefault,
+                      isBold: true,
+                      radius: 16,
+                      icon: Icons.arrow_forward_rounded,
+                      onPressed: () {
+                        bool isScheduleOrder = cartController.cartList.isNotEmpty &&
+                            cartController.cartList.first.item != null &&
+                            (cartController.cartList.first.item!.scheduleOrder ?? false);
 
-                    if (!isScheduleOrder && availableList.contains(false)) {
-                      showCustomSnackBar('one_or_more_product_unavailable'.tr);
-                    } else {
-                      if (Get.find<SplashController>().module == null &&
-                          cartController.cartList.isNotEmpty &&
-                          cartController.cartList.first.item != null &&
-                          Get.find<SplashController>().moduleList != null) {
-                        int i = 0;
-                        for (i = 0;
-                            i < Get.find<SplashController>().moduleList!.length;
-                            i++) {
-                          if (cartController.cartList[0].item!.moduleId ==
-                              Get.find<SplashController>().moduleList![i].id) {
-                            break;
+                        if (!isScheduleOrder && availableList.contains(false)) {
+                          showCustomSnackBar('one_or_more_product_unavailable'.tr);
+                        } else {
+                          if (Get.find<SplashController>().module == null &&
+                              cartController.cartList.isNotEmpty &&
+                              cartController.cartList.first.item != null &&
+                              Get.find<SplashController>().moduleList != null) {
+                            int i = 0;
+                            for (i = 0;
+                                i < Get.find<SplashController>().moduleList!.length;
+                                i++) {
+                              if (cartController.cartList[0].item!.moduleId ==
+                                  Get.find<SplashController>().moduleList![i].id) {
+                                break;
+                              }
+                            }
+                            if (i < Get.find<SplashController>().moduleList!.length) {
+                              Get.find<SplashController>().setModule(
+                                  Get.find<SplashController>().moduleList![i]);
+                              HomeScreen.loadData(true);
+                            }
                           }
-                        }
-                        if (i < Get.find<SplashController>().moduleList!.length) {
-                          Get.find<SplashController>().setModule(
-                              Get.find<SplashController>().moduleList![i]);
-                          HomeScreen.loadData(true);
-                        }
-                      }
-                      Get.find<CouponController>().removeCouponData(false);
+                          Get.find<CouponController>().removeCouponData(false);
 
-                      Get.toNamed(RouteHelper.getCheckoutRoute('cart'));
-                    }
-                  }),
+                          Get.toNamed(RouteHelper.getCheckoutRoute('cart'));
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );

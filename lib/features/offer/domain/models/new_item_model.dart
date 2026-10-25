@@ -102,11 +102,31 @@ class NewItem {
 
   Item toItem() {
     return Item(
-      id: id, name: name, imageFullUrl: imageFullUrl, price: price, veg: veg,
-      unitType: unitType, organic: organic, stock: stock, quantityLimit: maximumCartQuantity, discount: discount,
-      discountType: discountType, ratingCount: ratingCount, avgRating: avgRating, availableTimeStarts: availableTimeStarts, availableTimeEnds: availableTimeEnds,
-      isStoreHalalActive: halalTagStatus == 1, isHalalItem: isHalal == 1, storeName: storeName, storeId: storeId, moduleType: moduleType,
-      verifiedSeller: verifiedSeller, slug: slug, storeImageFullUrl: storeLogoFullUrl ?? storeImage, freeDelivery: freeDelivery,
+      id: id,
+      name: name,
+      imageFullUrl: imageFullUrl,
+      price: price ?? 0,
+      veg: veg,
+      unitType: unitType,
+      organic: organic,
+      stock: stock,
+      quantityLimit: maximumCartQuantity,
+      discount: discount ?? 0,
+      discountType: discountType ?? 'percent',
+      ratingCount: ratingCount ?? 0,
+      avgRating: avgRating ?? 0,
+      availableTimeStarts: availableTimeStarts,
+      availableTimeEnds: availableTimeEnds,
+      isStoreHalalActive: halalTagStatus == 1,
+      isHalalItem: isHalal == 1,
+      storeName: storeName,
+      storeId: storeId,
+      moduleType: moduleType,
+      verifiedSeller: verifiedSeller,
+      slug: slug,
+      storeImageFullUrl: storeLogoFullUrl ?? storeImage,
+      freeDelivery: freeDelivery ?? false,
+      storeDiscount: 0,
     );
   }
 }

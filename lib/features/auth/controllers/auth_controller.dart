@@ -1,3 +1,4 @@
+import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:Oxygen_Mart/helper/auth_event_logger_firebase.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -62,6 +63,11 @@ class AuthController extends GetxController implements GetxService {
     ResponseModel responseModel = await authServiceInterface.registration(signUpBody);
     _isLoading = false;
     update();
+    if (responseModel.isSuccess) {
+      try {
+        Get.find<MetaAnalyticsService>().completeRegistration(registrationMethod: 'email_or_phone');
+      } catch (_) {}
+    }
     return responseModel;
   }
 
@@ -81,6 +87,11 @@ class AuthController extends GetxController implements GetxService {
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
+    if (responseModel.isSuccess) {
+      try {
+        Get.find<MetaAnalyticsService>().login(loginMethod: loginType);
+      } catch (_) {}
+    }
     return responseModel;
   }
 
@@ -100,6 +111,11 @@ class AuthController extends GetxController implements GetxService {
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
+    if (responseModel.isSuccess) {
+      try {
+        Get.find<MetaAnalyticsService>().login(loginMethod: loginType);
+      } catch (_) {}
+    }
     return responseModel;
   }
 
@@ -150,6 +166,11 @@ class AuthController extends GetxController implements GetxService {
     _getUserAndCartData(responseModel);
     _isLoading = false;
     update();
+    if (responseModel.isSuccess) {
+      try {
+        Get.find<MetaAnalyticsService>().login(loginMethod: socialLogInBody.loginType ?? socialLogInBody.medium ?? 'social');
+      } catch (_) {}
+    }
     return responseModel;
   }
 

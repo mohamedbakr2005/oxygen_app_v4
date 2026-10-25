@@ -51,7 +51,7 @@ class MyItemsDetailScreen extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: Dimensions.paddingSizeDefault,
                   mainAxisSpacing: Dimensions.paddingSizeDefault,
-                  mainAxisExtent: 217,
+                  mainAxisExtent: 225,
                 ),
                 itemBuilder: (context, index) => Container(
                   padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
@@ -60,7 +60,7 @@ class MyItemsDetailScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
                     border: Border.all(color: Theme.of(context).disabledColor.withAlpha(40)),
                   ),
-                  child: MonthlyItemTile(item: items[index], imageHeight: 120),
+                  child: MonthlyItemTile(item: items[index], imageHeight: 110),
                 ),
               ),
             ],

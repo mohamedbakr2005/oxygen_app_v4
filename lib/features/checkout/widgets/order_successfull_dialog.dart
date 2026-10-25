@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Oxygen_Mart/features/checkout/widgets/payment_failed_dialog.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
@@ -13,6 +12,7 @@ import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:Oxygen_Mart/features/checkout/widgets/payment_failed_dialog.dart';
 
 class OrderSuccessfulDialog extends StatefulWidget {
   final String? orderID;
@@ -28,130 +28,104 @@ class _OrderSuccessfulDialogState extends State<OrderSuccessfulDialog> {
   @override
   void initState() {
     super.initState();
-    Get.find<OrderController>()
-        .trackOrder(widget.orderID.toString(), null, false);
+    Get.find<OrderController>().trackOrder(widget.orderID.toString(), null, false);
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
+      onPopInvokedWithResult: (didPop, result) async{
         await Get.offAllNamed(RouteHelper.getInitialRoute());
       },
-      child: GetBuilder<OrderController>(builder: (orderController) {
+      child: GetBuilder<OrderController>(builder: (orderController){
         double total = 0;
         bool success = true;
         bool parcel = false;
         double? maximumCodOrderAmount;
-        if (orderController.trackModel != null) {
-          total = ((orderController.trackModel!.orderAmount! / 100) *
-              Get.find<SplashController>()
-                  .configModel!
-                  .loyaltyPointItemPurchasePoint!);
-          success = orderController.trackModel!.paymentStatus == 'paid' ||
-              orderController.trackModel!.paymentMethod == 'cash_on_delivery' ||
-              orderController.trackModel!.paymentMethod == 'partial_payment';
+        if(orderController.trackModel != null) {
+          total = ((orderController.trackModel!.orderAmount! / 100) * Get.find<SplashController>().configModel!.loyaltyPointItemPurchasePoint!);
+          success = orderController.trackModel!.paymentStatus == 'paid' || orderController.trackModel!.paymentMethod == 'cash_on_delivery'
+              || orderController.trackModel!.paymentMethod == 'partial_payment';
           parcel = orderController.trackModel!.paymentMethod == 'parcel';
-          for (ZoneData zData
-              in AddressHelper.getUserAddressFromSharedPref()!.zoneData!) {
-            for (Modules m in zData.modules!) {
-              if (m.id == Get.find<SplashController>().module!.id) {
+          for(ZoneData zData in AddressHelper.getUserAddressFromSharedPref()!.zoneData!) {
+            for(Modules m in zData.modules!) {
+              if(m.id == Get.find<SplashController>().module!.id) {
                 maximumCodOrderAmount = m.pivot!.maximumCodOrderAmount;
                 break;
               }
             }
-            if (zData.id ==
-                AddressHelper.getUserAddressFromSharedPref()!.zoneId) {
+            if(zData.id ==  AddressHelper.getUserAddressFromSharedPref()!.zoneId){
               _isCashOnDeliveryActive = zData.cashOnDelivery;
             }
           }
 
-          if (!success &&
-              !Get.isDialogOpen! &&
-              orderController.trackModel!.orderStatus != 'canceled') {
+          if (!success && !Get.isDialogOpen! && orderController.trackModel!.orderStatus != 'canceled') {
             Future.delayed(const Duration(seconds: 1), () {
-              Get.dialog(
-                  PaymentFailedDialog(
-                    orderID: widget.orderID,
-                    isCashOnDelivery: _isCashOnDeliveryActive,
-                    orderAmount: total,
-                    maxCodOrderAmount: maximumCodOrderAmount,
-                    orderType: parcel ? 'parcel' : 'delivery',
-                    guestId: '',
-                  ),
-                  barrierDismissible: false);
+              Get.dialog(PaymentFailedDialog(
+                orderID: widget.orderID, isCashOnDelivery: _isCashOnDeliveryActive, orderAmount: total,
+                maxCodOrderAmount: maximumCodOrderAmount, orderType: parcel ? 'parcel' : 'delivery',
+                guestId: '',
+              ), barrierDismissible: false);
             });
           }
         }
 
-        return orderController.trackModel != null
-            ? Center(
-                child: Container(
-                    width: 500,
-                    height: 390,
-                    decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius:
-                            BorderRadius.circular(24)),
-                    child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          ResponsiveHelper.isDesktop(context)
-                              ? Align(
-                                  alignment: Alignment.topRight,
-                                  child: IconButton(
-                                    onPressed: () => Get.back(),
-                                    icon: const Icon(Icons.clear),
-                                  ),
-                                )
-                              : const SizedBox(),
+        return orderController.trackModel != null ? Center(
+          child: Container(
+            width: 500,  height: 390,
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(Dimensions.radiusDefault)
+            ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              ResponsiveHelper.isDesktop(context) ? Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  onPressed: () => Get.back(),
+                  icon: const Icon(Icons.clear),
+                ),
+              ) : const SizedBox(),
 
-                          const SizedBox(
-                              height: Dimensions.paddingSizeExtraLarge),
-                          Image.asset(success ? Images.checked : Images.warning,
-                              width: 55, height: 55),
-                          const SizedBox(height: Dimensions.paddingSizeLarge),
+              const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+              Image.asset(success ? Images.checked : Images.warning, width: 55, height: 55 ),
+              const SizedBox(height: Dimensions.paddingSizeLarge),
 
-                          Text(
-                            success
-                                ? parcel
-                                    ? 'you_placed_the_parcel_request_successfully'
-                                        .tr
-                                    : 'you_placed_the_order_successfully'.tr
-                                : 'your_order_is_failed_to_place'.tr,
-                            style: robotoMedium.copyWith(
-                                fontSize: Dimensions.fontSizeLarge),
-                          ),
-                          const SizedBox(height: Dimensions.paddingSizeDefault),
+              Text(
+                success ? parcel ? 'you_placed_the_parcel_request_successfully'.tr
+                    : 'you_placed_the_order_successfully'.tr : 'your_order_is_failed_to_place'.tr,
+                style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge),
+              ),
+              const SizedBox(height: Dimensions.paddingSizeDefault),
 
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: Dimensions.paddingSizeLarge,
-                                vertical: Dimensions.paddingSizeSmall),
-                            child: Text(
-                              success
-                                  ? parcel
-                                      ? 'your_parcel_request_is_placed_successfully'
-                                          .tr
-                                      : 'your_order_is_placed_successfully'.tr
-                                  : 'your_order_is_failed_to_place_because'.tr,
-                              style: robotoMedium.copyWith(
-                                  fontSize: Dimensions.fontSizeSmall,
-                                  color: Theme.of(context).disabledColor),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge, vertical: Dimensions.paddingSizeSmall),
+                child: Text(
+                  success ? parcel ? 'your_parcel_request_is_placed_successfully'.tr
+                      : 'your_order_is_placed_successfully'.tr : 'your_order_is_failed_to_place_because'.tr,
+                  style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).disabledColor),
+                  textAlign: TextAlign.center,
+                ),
+              ),
 
-                          _ProSavingsView(success: success),
-                        ])),
-              )
-            : const Center(child: CircularProgressIndicator());
+              _ProSavingsView(success: success),
+              // const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+              //
+              // Padding(
+              //   padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
+              //   child: CustomButton( width: 400, height: 55, buttonText: 'back_to_home'.tr, isBold: false, onPressed: () => Get.offAllNamed(RouteHelper.getInitialRoute())),
+              // ),
+
+          ])),
+        ) : const Center(child: CircularProgressIndicator());
       }),
     );
   }
 }
 
+// Shows the amount the user saved as a pro member on this order.
+// Visible only when the pro feature is enabled, the user is a pro member,
+// the order succeeded and the order carries a positive pro saving.
 class _ProSavingsView extends StatelessWidget {
   final bool success;
   const _ProSavingsView({required this.success});
@@ -159,8 +133,7 @@ class _ProSavingsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OrderModel? order = Get.find<OrderController>().trackModel;
-    final double proSavings =
-        (order?.proDiscount ?? 0) + (order?.deliveryFeeReductionAmount ?? 0);
+    final double proSavings = (order?.proDiscount ?? 0) + (order?.deliveryFeeReductionAmount ?? 0);
     final bool isProUser = Get.find<ProfileController>().proStatus;
 
     if (!success || !isProUser || proSavings <= 0) {
@@ -168,26 +141,18 @@ class _ProSavingsView extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-          horizontal: Dimensions.paddingSizeLarge,
-          vertical: Dimensions.paddingSizeSmall),
-      child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(Images.proPlanCrown,
-                height: 18, width: 18, color: const Color(0xFFFFC107)),
-            const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-            Flexible(
-              child: Text(
-                '${'you_saved'.tr} ${PriceConverter.convertPrice(proSavings)} ${'with_pro'.tr}',
-                textAlign: TextAlign.center,
-                style: robotoMedium.copyWith(
-                    fontSize: Dimensions.fontSizeDefault,
-                    color: Colors.deepPurpleAccent),
-              ),
-            ),
-          ]),
+      padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge, vertical: Dimensions.paddingSizeSmall),
+      child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+        Image.asset(Images.proPlanCrown, height: 18, width: 18, color: const Color(0xFFFFC107)),
+        const SizedBox(width: Dimensions.paddingSizeExtraSmall),
+        Flexible(
+          child: Text(
+            '${'you_saved'.tr} ${PriceConverter.convertPrice(proSavings)} ${'with_pro'.tr}',
+            textAlign: TextAlign.center,
+            style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeDefault, color: Colors.deepPurpleAccent),
+          ),
+        ),
+      ]),
     );
   }
 }

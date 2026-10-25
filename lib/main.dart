@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
@@ -48,7 +48,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 // void checkPageSize() {
 //   Process.run("getconf", ["PAGE_SIZE"]).then((result) {
 //     print(
-//         "ðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“ŒðŸ“Œ PAGE SIZE = ${result.stdout}");
+//         "📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌📌 PAGE SIZE = ${result.stdout}");
 //   });
 // }
 
@@ -58,27 +58,27 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 1000;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 200 << 20;
 
-  // 1. Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø³Ø±ÙŠØ¹Ø© Ø¬Ø¯Ø§Ù‹ (Synchronous) Ù…Ø´ Ø¨ØªØ¹Ø·Ù„ Ø§Ù„Ø£Ø¨Ù„ÙƒÙŠØ´Ù†
+  // 1. إعدادات سريعة جداً (Synchronous) مش بتعطل الأبلكيشن
   if (ResponsiveHelper.isMobilePhone()) {
     HttpOverrides.global = MyHttpOverrides();
   }
   setPathUrlStrategy();
 
-  // 2. ØªØ´ØºÙŠÙ„ Ø§Ù„Ù€ SDKs Ø§Ù„ØºÙŠØ± Ø­Ø±Ø¬Ø© ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© (Ø¨Ø¯ÙˆÙ† await Ø¹Ø´Ø§Ù† Ù…Ø§Ù†ÙˆÙ‚ÙØ´ Ø§Ù„Ù€ runApp)
+  // 2. تشغيل الـ SDKs الغير حرجة في الخلفية (بدون await عشان مانوقفش الـ runApp)
   // _initializeNonCriticalSDKs() moved after di.init()
 
-  // ðŸš¨ ØªÙ… Ø¥Ø²Ø§Ù„Ø© SharedPreferences.getInstance() Ù…Ù† Ù‡Ù†Ø§ Ù„Ø£Ù†Ù‡Ø§ Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¯Ø§Ø®Ù„ di.init()
+  // 🚨 تم إزالة SharedPreferences.getInstance() من هنا لأنها موجودة داخل di.init()
 
-  // 3. ØªÙ‡ÙŠØ¦Ø© Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ§Øª (Firebase ÙˆØ§Ù„Ù€ Dependency Injection)
+  // 3. تهيئة الأساسيات (Firebase والـ Dependency Injection)
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Ø¨Ù†Ø­Ù…Ù„ Ø§Ù„Ù„ØºØ§Øª ÙˆØ§Ù„ÙƒÙ†ØªØ±ÙˆÙ„Ø±Ø²
+  // بنحمل اللغات والكنترولرز
   Map<String, Map<String, String>> languages = await di.init();
 
-  // 2. ØªØ´ØºÙŠÙ„ Ø§Ù„Ù€ SDKs Ø§Ù„ØºÙŠØ± Ø­Ø±Ø¬Ø© ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ©
+  // 2. تشغيل الـ SDKs الغير حرجة في الخلفية
   await _initializeNonCriticalSDKs();
 
-  // 4. Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª (Ù„Ø§Ø²Ù… Ù†Ø³ØªÙ†Ù‰ Ø§Ù„ÙØ§ÙŠØ±Ø¨ÙŠØ² ÙŠØ®Ù„Øµ Ø§Ù„Ø£ÙˆÙ„)
+  // 4. معالجة الإشعارات (لازم نستنى الفايربيز يخلص الأول)
   NotificationBodyModel? body;
   try {
     if (GetPlatform.isMobile) {
@@ -103,12 +103,12 @@ Future<void> main() async {
     print("Notification Init Error: $e");
   }
 
-  // 5. ØªØªØ¨Ø¹ Ø§Ù„ÙƒØ±Ø§Ø´Ø§Øª
+  // 5. تتبع الكراشات
   FlutterError.onError = (FlutterErrorDetails details) async {
     FirebaseAnalytics.instance.logEvent(name: 'app_crashed', parameters: {
       "exception": details.exception.toString(),
     });
-    print("ðŸ”¥ Crash logged");
+    print("🔥 Crash logged: ${details.exception}\n${details.stack}");
     FlutterError.presentError(details);
   };
 
@@ -116,15 +116,53 @@ Future<void> main() async {
     FirebaseAnalytics.instance.logEvent(name: 'app_crashed', parameters: {
       "exception": error.toString(),
     });
-    print("ðŸ”¥ Uncaught crash logged");
+    print("🔥 Uncaught crash logged: $error\n$stack");
     return true;
   };
 
-  // 6. Ø§Ù†Ø·Ù„Ø§Ù‚! ðŸš€
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint("⚠️ Caught build error in ErrorWidget.builder: ${details.exception}");
+    return Material(
+      color: Colors.white,
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.amber, size: 54),
+                const SizedBox(height: 16),
+                Text(
+                  'something_went_wrong'.tr,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Get.offAllNamed(RouteHelper.getInitialRoute());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF56B573),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('back_to_home'.tr, style: const TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+
+  // 6. انطلاق! 🚀
   runApp(MyApp(languages: languages, body: body));
 }
 
-// Ø¯Ø§Ù„Ø© Ù…Ù†ÙØµÙ„Ø© Ù„ØªØ´ØºÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ© Ø¨Ø¯ÙˆÙ† Ù…Ø§ Ù†ÙˆÙ‚Ù Ø§Ù„Ù€ UI
+// دالة منفصلة لتشغيل الخدمات في الخلفية بدون ما نوقف الـ UI
 Future<void> _initializeNonCriticalSDKs() async {
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     final metaAnalyticsService = Get.find<MetaAnalyticsService>();
@@ -165,7 +203,7 @@ class _MyAppState extends State<MyApp> {
         },
       );
 
-      print("ðŸ”¥ notification_opened logged");
+      print("🔥 notification_opened logged");
 
       NotificationHelper.convertNotification(message.data);
       RouteHelper.getNotificationRoute();
@@ -238,7 +276,7 @@ class _MyAppState extends State<MyApp> {
                             Get.find<ProController>().maybeShowRenewOnRoute(routing.current);
                           }
                         },
-                        defaultTransition: Transition.cupertino,
+                        defaultTransition: GetPlatform.isWeb ? Transition.fadeIn : Transition.cupertino,
                         transitionDuration: const Duration(milliseconds: 10),
                         builder: (BuildContext context, widget) {
                           return MediaQuery(
@@ -275,7 +313,7 @@ class _MyAppState extends State<MyApp> {
                               ),
                             ),
                           );
-                        },
+                        },      
                       );
               },
             );

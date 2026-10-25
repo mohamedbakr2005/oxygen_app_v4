@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 
 class ZoneModel {

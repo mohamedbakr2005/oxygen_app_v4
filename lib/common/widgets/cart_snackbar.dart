@@ -1,39 +1,19 @@
-import 'package:Oxygen_Mart/common/widgets/coustom_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
-import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/styles.dart';
 
-void showCartSnackBar(String? message,
-    {bool isError = true, bool getXSnackBar = false}) {
-  if (message != null && message.isNotEmpty) {
-    if (getXSnackBar) {
-      Get.showSnackbar(GetSnackBar(
-        backgroundColor: isError ? Colors.red : Colors.green,
-        message: message,
-        maxWidth: 500,
-        duration: const Duration(milliseconds: 300),
-        snackStyle: SnackStyle.FLOATING,
-        margin: const EdgeInsets.only(
-            left: Dimensions.paddingSizeSmall,
-            right: Dimensions.paddingSizeSmall,
-            bottom: 100),
-        borderRadius: Dimensions.radiusSmall,
-        isDismissible: true,
-        dismissDirection: DismissDirection.horizontal,
-      ));
-    } else {
-      ScaffoldMessenger.of(Get.context!).showSnackBar(SnackBar(
-        dismissDirection: DismissDirection.endToStart,
-        elevation: 0.0,
-        backgroundColor: Colors.transparent,
-        padding: EdgeInsets.zero,
-        content: CustomToast(text: message, isError: isError),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
-  }
+void showCartSnackBar(
+  String? message, {
+  bool isError = true,
+  bool getXSnackBar = false,
+  String? actionLabel,
+  VoidCallback? onAction,
+}) {
+  showCustomSnackBar(
+    message,
+    isError: isError,
+    actionLabel: actionLabel ?? (isError ? null : 'view_cart'.tr),
+    onAction: onAction ?? (isError ? null : () => Get.toNamed(RouteHelper.getCartRoute())),
+  );
 }

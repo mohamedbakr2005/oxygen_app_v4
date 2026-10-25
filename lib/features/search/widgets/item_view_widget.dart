@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/common/widgets/item_view.dart';
-import 'package:Oxygen_Mart/common/widgets/web_item_view.dart';
 import 'package:Oxygen_Mart/features/search/controllers/search_controller.dart'
     as search;
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 
 class ItemViewWidget extends StatelessWidget {

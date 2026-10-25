@@ -1187,19 +1187,6 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen> {
                 showCustomSnackBar('tips_can_not_be_negative'.tr);
               } else if (parcelController.paymentIndex == -1) {
                 showCustomSnackBar('please_select_payment_method_first'.tr);
-              } else if (isGuestLoggedIn &&
-                  Get.find<CheckoutController>().isCreateAccount &&
-                  _guestPasswordController.text.isEmpty) {
-                showCustomSnackBar('enter_password'.tr);
-              } else if (isGuestLoggedIn &&
-                  Get.find<CheckoutController>().isCreateAccount &&
-                  _guestConfirmPasswordController.text.isEmpty) {
-                showCustomSnackBar('enter_confirm_password'.tr);
-              } else if (isGuestLoggedIn &&
-                  Get.find<CheckoutController>().isCreateAccount &&
-                  (_guestPasswordController.text !=
-                      _guestConfirmPasswordController.text)) {
-                showCustomSnackBar('confirm_password_does_not_matched'.tr);
               } else {
                 PlaceOrderBodyModel placeOrderBody = PlaceOrderBodyModel(
                   isGuest: isGuestLoggedIn ? 1 : 0,
@@ -1255,28 +1242,17 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen> {
                       ? int.parse(AuthHelper.getGuestId())
                       : 0,
                   isBuyNow: 0,
-                  guestEmail: widget.pickedUpAddress.email ?? '',
+                  guestEmail: (widget.pickedUpAddress.email != null && widget.pickedUpAddress.email!.isNotEmpty) ? widget.pickedUpAddress.email : null,
                   extraPackagingAmount: null,
                   createNewUser:
                       Get.find<CheckoutController>().isCreateAccount ? 1 : 0,
-                  password: _guestPasswordController.text,
+                  password: null,
                 );
 
-                if (parcelController.paymentIndex == 3) {
-                  Get.toNamed(RouteHelper.getOfflinePaymentScreen(
-                      placeOrderBody: placeOrderBody,
-                      zoneId: widget.pickedUpAddress.zoneId,
-                      total: charge,
-                      maxCodOrderAmount: 0,
-                      fromCart: false,
-                      isCodActive: false,
-                      forParcel: true));
-                } else {
-                  parcelController.startLoader(true);
-                  parcelController.placeOrder(placeOrderBody,
-                      widget.pickedUpAddress.zoneId, 0, 0, false, false,
-                      forParcel: true);
-                }
+                parcelController.startLoader(true);
+                parcelController.placeOrder(placeOrderBody,
+                    widget.pickedUpAddress.zoneId, charge, 0, false, false,
+                    forParcel: true, isOfflinePay: parcelController.paymentIndex == 3);
               }
             }
           : null,

@@ -28,7 +28,7 @@ class FoodStoreCircularCardWidget extends StatelessWidget {
             }
           }
           Get.toNamed(
-            RouteHelper.getStoreRoute(id: store!.id, page: 'item'),
+            RouteHelper.getStoreRoute(id: store!.id, page: 'item', moduleId: store!.moduleId?.toString(), slug: store!.slug),
             arguments: StoreScreen(store: store, fromModule: false),
           );
         }

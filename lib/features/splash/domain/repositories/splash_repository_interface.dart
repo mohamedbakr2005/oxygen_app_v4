@@ -1,5 +1,6 @@
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/splash/domain/models/app_download_section_model.dart';
 import 'package:Oxygen_Mart/interfaces/repository_interface.dart';
 
 abstract class SplashRepositoryInterface extends RepositoryInterface {
@@ -12,7 +13,7 @@ abstract class SplashRepositoryInterface extends RepositoryInterface {
   Future<dynamic> getModules(
       {Map<String, String>? headers, required DataSourceEnum source});
   Future<void> setModule(ModuleModel? module);
-  Future<void> setCacheModule(ModuleModel? module);
+  Future<ModuleModel?> setCacheModule(ModuleModel? module);
   ModuleModel? getCacheModule();
   ModuleModel? getModule();
   Future<dynamic> subscribeEmail(String email);
@@ -25,4 +26,5 @@ abstract class SplashRepositoryInterface extends RepositoryInterface {
   bool getReferBottomSheetStatus();
   Future<void> saveReferBottomSheetStatus(bool data);
   bool handleInitialTopicSubscription();
+  Future<AppDownloadSectionModel?> getAppDownloadSection();
 }

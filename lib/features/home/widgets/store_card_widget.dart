@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_ink_well.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/features/store/screens/store_screen.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
@@ -30,8 +32,16 @@ class StoreCardWidget extends StatelessWidget {
       ),
       child: CustomInkWell(
         onTap: () {
+          if (Get.find<SplashController>().moduleList != null) {
+            for (ModuleModel module in Get.find<SplashController>().moduleList!) {
+              if (module.id == store.moduleId) {
+                Get.find<SplashController>().setModule(module);
+                break;
+              }
+            }
+          }
           Get.toNamed(
-            RouteHelper.getStoreRoute(id: store.id, page: 'store'),
+            RouteHelper.getStoreRoute(id: store.id, page: 'store', moduleId: store.moduleId?.toString(), slug: store.slug),
             arguments: StoreScreen(store: store, fromModule: false),
           );
         },

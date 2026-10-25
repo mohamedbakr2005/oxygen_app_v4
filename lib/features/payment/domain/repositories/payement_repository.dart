@@ -36,10 +36,21 @@ class PaymentRepository implements PaymentRepositoryInterface {
     List<OfflineMethodModel>? offlineMethodList;
     Response response =
         await apiClient.getData(AppConstants.offlineMethodListUri);
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 && response.body != null) {
       offlineMethodList = [];
-      response.body.forEach((method) =>
-          offlineMethodList!.add(OfflineMethodModel.fromJson(method)));
+      if (response.body is List) {
+        for (var method in response.body) {
+          offlineMethodList.add(OfflineMethodModel.fromJson(method));
+        }
+      } else if (response.body is Map && response.body['data'] is List) {
+        for (var method in response.body['data']) {
+          offlineMethodList.add(OfflineMethodModel.fromJson(method));
+        }
+      } else if (response.body is Map && response.body['methods'] is List) {
+        for (var method in response.body['methods']) {
+          offlineMethodList.add(OfflineMethodModel.fromJson(method));
+        }
+      }
     }
     return offlineMethodList;
   }

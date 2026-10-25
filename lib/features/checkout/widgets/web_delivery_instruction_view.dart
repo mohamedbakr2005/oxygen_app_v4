@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class WebDeliveryInstructionView extends StatefulWidget {
   const WebDeliveryInstructionView({super.key});
@@ -25,7 +25,6 @@ class _WebDeliveryInstructionViewState
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          // boxShadow: [BoxShadow(color: Theme.of(context).primaryColor.withOpacity(0.05), blurRadius: 10)],
           borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
           border: Border.all(
               color: Theme.of(context).primaryColor.withOpacity(0.20)),
@@ -106,84 +105,43 @@ class _WebDeliveryInstructionViewState
                                           fontSize: Dimensions.fontSizeSmall,
                                           color: isSelected
                                               ? Theme.of(context).primaryColor
-                                              : Theme.of(context)
-                                                  .disabledColor),
+                                              : Theme.of(context).disabledColor),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           );
-                        },
-                      ),
-                !checkoutController.isExpand
-                    ? const SizedBox()
-                    : const SizedBox(height: Dimensions.paddingSizeSmall),
-
-                // ExpansionTile(
-                //   key: widget.key,
-                //   controller: controller,
-                //   title: Text('add_more_delivery_instruction'.tr, style: robotoMedium),
-                //   trailing:   Icon(orderController.isExpanded ? Icons.remove : Icons.add, size: 18),
-                //   tilePadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-                //   onExpansionChanged: (value) => orderController.expandedUpdate(value),
-                //
-                //   children: [
-                //     ListView.builder(
-                //       shrinkWrap: true,
-                //       physics: const NeverScrollableScrollPhysics(),
-                //       itemCount: AppConstants.deliveryInstructionList.length,
-                //       itemBuilder: (context, index){
-                //         bool isSelected = orderController.selectedInstruction == index;
-                //         return InkWell(
-                //           onTap: () {
-                //             orderController.setInstruction(index);
-                //             if(controller.isExpanded) {
-                //               controller.collapse();
-                //             }
-                //           },
-                //           child: Container(
-                //             decoration: BoxDecoration(
-                //               color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.5) : Colors.grey[200],
-                //               borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-                //               // boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 1)],
-                //             ),
-                //             padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
-                //             margin: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
-                //             child: Row(children: [
-                //               Icon(Icons.ac_unit, color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).disabledColor, size: 18),
-                //               const SizedBox(width: Dimensions.paddingSizeSmall),
-                //
-                //               Expanded(
-                //                 child: Text(
-                //                   AppConstants.deliveryInstructionList[index].tr,
-                //                   style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeSmall, color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).disabledColor),
-                //                 ),
-                //               ),
-                //             ]),
-                //           ),
-                //         );
-                //       }),
-                //   ],
-                // ),
-                //
-                // orderController.selectedInstruction != -1 ? Padding(
-                //     padding:  EdgeInsets.symmetric(vertical: orderController.isExpanded ? Dimensions.paddingSizeSmall : 0),
-                //     child: Row(children: [
-                //       Text(
-                //         AppConstants.deliveryInstructionList[orderController.selectedInstruction].tr,
-                //         style: robotoRegular.copyWith(color: Theme.of(context).primaryColor),
-                //       ),
-                //
-                //       InkWell(
-                //         onTap: ()=> orderController.setInstruction(-1),
-                //         child: const Icon(Icons.clear, size: 16),
-                //       ),
-                //     ])
-                // ) : const SizedBox(),
+                        }),
+                orderControllerInstruction(context, checkoutController),
               ]);
         }),
       ),
     );
+  }
+
+  Widget orderControllerInstruction(
+      BuildContext context, CheckoutController checkoutController) {
+    return checkoutController.selectedInstruction != -1
+        ? Padding(
+            padding: const EdgeInsets.symmetric(
+                vertical: Dimensions.paddingSizeSmall),
+            child: Row(children: [
+              Text(
+                AppConstants
+                    .deliveryInstructionList[
+                        checkoutController.selectedInstruction]
+                    .tr,
+                style: robotoMedium.copyWith(
+                    color: Theme.of(context).primaryColor),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () => checkoutController.setInstruction(-1),
+                child: const Icon(Icons.clear, size: 16),
+              ),
+            ]),
+          )
+        : const SizedBox();
   }
 }

@@ -2,6 +2,8 @@ import 'package:get/get_connect/connect.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/last_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
@@ -209,4 +211,58 @@ class OrderRepository implements OrderRepositoryInterface {
     reorderResponse = ReorderResponseModel.fromJson(response.body);
     return reorderResponse;
   }
+
+  @override
+  Future<bool> deleteOrder(int orderId) async {
+    final Response response = await apiClient.deleteData('${AppConstants.orderDeleteUri}?order_id=$orderId');
+    return response.statusCode == 200;
+  }
+
+  @override
+  Future<Response> switchToWalletPayment(String? orderID) async {
+    Map<String, String> data = {'order_id': orderID!};
+    return await apiClient.postData(AppConstants.walletSwitchUri, data);
+  }
+
+  @override
+  Future<List<LastOrderModel>?> getLastOrders({required bool isHome, int? storeId}) async {
+    Map<String, String>? header;
+    if (isHome) {
+      header = Map.from(apiClient.getHeader());
+      header.remove(AppConstants.moduleId);
+    }
+
+    final String uri = storeId != null ? '${AppConstants.lastOrdersUri}?store_id=$storeId' : AppConstants.lastOrdersUri;
+    final Response response = await apiClient.getData(uri, headers: header);
+    if (response.statusCode == 200 && response.body is List) {
+      return (response.body as List).whereType<Map<String, dynamic>>().map(LastOrderModel.fromJson).toList();
+    }
+    return null;
+  }
+
+  @override
+  Future<bool> submitParcelReturn({required int orderId, required String orderStatus, required int returnOtp}) async {
+    Map<String, dynamic> data = {
+      'order_id': orderId,
+      'order_status': orderStatus,
+      'return_otp': returnOtp,
+    };
+    Response response = await apiClient.postData(AppConstants.customerParcelReturn, data);
+    return response.statusCode == 200;
+  }
+
+  @override
+  Future<PaymentModel?> getPaymentFailedDetails(String? orderID) async {
+    PaymentModel? paymentModel;
+    Response response = await apiClient.getData(
+      '${AppConstants.paymentFailedDetailsUri}${orderID != null ? '?order_id=$orderID' : ''}${AuthHelper.isGuestLoggedIn() ? '&guest_id=${AuthHelper.getGuestId()}' : ''}',
+    );
+    if (response.statusCode == 200) {
+      try {
+        paymentModel = PaymentModel.fromJson(response.body);
+      } catch (_) {}
+    }
+    return paymentModel;
+  }
 }
+

@@ -124,7 +124,7 @@ class _WalletScreenState extends State<WalletScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         endDrawer: const MenuDrawer(),
         endDrawerEnableOpenDragGesture: false,
         appBar: CustomAppBar(

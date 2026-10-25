@@ -8,7 +8,7 @@ import 'package:Oxygen_Mart/util/styles.dart';
 class MonthlyItemTile extends StatelessWidget {
   final MonthlyOrderItemPreview item;
   final double imageHeight;
-  const MonthlyItemTile({super.key, required this.item, this.imageHeight = 100});
+  const MonthlyItemTile({super.key, required this.item, this.imageHeight = 92});
 
   @override
   Widget build(BuildContext context) {

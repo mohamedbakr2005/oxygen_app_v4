@@ -1,4 +1,3 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +15,7 @@ import 'package:Oxygen_Mart/features/auth/domain/models/social_log_in_body.dart'
 import 'package:Oxygen_Mart/features/auth/screens/new_user_setup_screen.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/sign_in/existing_user_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
@@ -389,6 +389,8 @@ class SocialLoginWidget extends StatelessWidget {
 
   Future<void> _processSocialSuccessSetup(ResponseModel response, SocialLogInBody? googleBodyModel, SocialLogInBody? appleBodyModel, SocialLogInBody? facebookBodyModel) async {
     String? email = googleBodyModel != null ? googleBodyModel.email : appleBodyModel != null ? appleBodyModel.email : facebookBodyModel?.email;
+    String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
+
     if(response.isSuccess && response.authResponseModel != null && response.authResponseModel!.isExistUser != null) {
       if(appleBodyModel != null) {
         email = response.authResponseModel!.email;
@@ -408,29 +410,36 @@ class SocialLoginWidget extends StatelessWidget {
           socialLogInBodyModel: googleBodyModel ?? appleBodyModel ?? facebookBodyModel, email: email, backFromThis: backFromThis,
         ));
       }
-    } else if(response.isSuccess && response.authResponseModel != null && !response.authResponseModel!.isPersonalInfo!) {
+    } else if(response.isSuccess) {
+      await Get.find<ProfileController>().getUserInfo(reload: true);
+      final userInfo = Get.find<ProfileController>().userInfoModel;
+      final bool hasNoPhone = userInfo?.phone == null || userInfo!.phone!.isEmpty;
+      final bool needsSetup = response.authResponseModel?.requiresProfileCompletion == true ||
+          response.authResponseModel?.isPersonalInfo == false ||
+          response.authResponseModel?.isPhoneVerified == false ||
+          hasNoPhone;
 
-      String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
-
-      if(appleBodyModel != null) {
-        email = response.authResponseModel!.email;
-      }
-      if(ResponsiveHelper.isDesktop(Get.context)){
-        Get.back();
-        Get.dialog(NewUserSetupScreen(name: displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email, backFromThis: backFromThis));
-      } else {
-        Get.toNamed(RouteHelper.getNewUserSetupScreen(name: displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email, backFromThis: backFromThis));
-      }
-    } else {
-      if(backFromThis) {
-        await Get.find<LocationController>().syncZoneData();
+      if(needsSetup) {
+        if(appleBodyModel != null && response.authResponseModel?.email != null) {
+          email = response.authResponseModel!.email;
+        }
         if(ResponsiveHelper.isDesktop(Get.context)){
-          Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: false));
-        } else {
           Get.back();
+          Get.dialog(NewUserSetupScreen(name: userInfo?.fName ?? displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
+        } else {
+          Get.toNamed(RouteHelper.getNewUserSetupScreen(name: userInfo?.fName ?? displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
         }
       } else {
-        Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
+        if(backFromThis) {
+          await Get.find<LocationController>().syncZoneData();
+          if(ResponsiveHelper.isDesktop(Get.context)){
+            Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: false));
+          } else {
+            Get.back();
+          }
+        } else {
+          Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
+        }
       }
     }
   }

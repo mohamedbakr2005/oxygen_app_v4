@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:Oxygen_Mart/helper/facebook_pixel_helper.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -21,7 +18,6 @@ import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
-import 'package:universal_html/js.dart' as js;
 
 class ItemTitleViewWidget extends StatelessWidget {
   final Item? item;

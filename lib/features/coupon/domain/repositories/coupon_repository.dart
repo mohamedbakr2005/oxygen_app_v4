@@ -13,17 +13,25 @@ class CouponRepository implements CouponRepositoryInterface {
   Future getList(
       {int? offset,
       bool couponList = false,
-      bool taxiCouponList = false}) async {
+      bool taxiCouponList = false,
+      int? customerId,
+      int? storeId,
+      int? zoneId}) async {
     if (couponList) {
-      return await _getCouponList();
+      return await _getCouponList(customerId: customerId, storeId: storeId, zoneId: zoneId);
     } else if (taxiCouponList) {
       return await _getTaxiCouponList();
     }
   }
 
-  Future<List<CouponModel>?> _getCouponList() async {
+  Future<List<CouponModel>?> _getCouponList({int? customerId, int? storeId, int? zoneId}) async {
     List<CouponModel>? couponList;
-    Response response = await apiClient.getData(AppConstants.couponUri);
+    final List<String> queryParams = [];
+    if (customerId != null) queryParams.add('customer_id=$customerId');
+    if (storeId != null) queryParams.add('store_id=$storeId');
+    if (zoneId != null) queryParams.add('zone_id=[$zoneId]');
+    final String query = queryParams.isEmpty ? '' : '?${queryParams.join('&')}';
+    Response response = await apiClient.getData('${AppConstants.couponUri}$query');
     if (response.statusCode == 200) {
       couponList = [];
       response.body.forEach((category) {
@@ -47,10 +55,13 @@ class CouponRepository implements CouponRepositoryInterface {
   }
 
   @override
-  Future<CouponModel?> applyCoupon(String couponCode, int? storeID) async {
+  Future<CouponModel?> applyCoupon(String couponCode, int? storeID, {double? orderAmount}) async {
     CouponModel? couponModel;
-    Response response = await apiClient
-        .getData('${AppConstants.couponApplyUri}$couponCode&store_id=$storeID');
+    String url = '${AppConstants.couponApplyUri}$couponCode&store_id=$storeID';
+    if (orderAmount != null) {
+      url += '&order_amount=$orderAmount';
+    }
+    Response response = await apiClient.getData(url);
     if (response.statusCode == 200) {
       couponModel = CouponModel.fromJson(response.body);
     }

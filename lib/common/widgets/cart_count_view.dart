@@ -1,15 +1,13 @@
-import 'dart:convert';
-
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
+import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
+import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
-import 'package:facebook_app_events/facebook_app_events.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CartCountView extends StatefulWidget {
   final Item item;
@@ -27,10 +25,9 @@ class CartCountView extends StatefulWidget {
   State<CartCountView> createState() => _CartCountViewState();
 }
 
-SharedPreferences sharedPreferences = Get.find<SharedPreferences>();
-final facebookAppEvents = FacebookAppEvents();
-
 class _CartCountViewState extends State<CartCountView> {
+  bool _isAdding = false;
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<CartController>(builder: (cartController) {
@@ -41,7 +38,6 @@ class _CartCountViewState extends State<CartCountView> {
       return cartQty != 0
           ? Container(
               height: 36, // Matches the squircle height from our ItemCard
-              // MODERN TWEAK: Removed 'width: 120' so it sizes itself dynamically
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.circular(10), // Modern Squircle shape
@@ -54,7 +50,7 @@ class _CartCountViewState extends State<CartCountView> {
                 ],
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min, // THE FIX: Only take required space
+                mainAxisSize: MainAxisSize.min, // Only take required space
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -63,15 +59,17 @@ class _CartCountViewState extends State<CartCountView> {
                     onTap: cartController.isLoading
                         ? null
                         : () {
-                            if (cartController.cartList[cartIndex].quantity! > 1) {
-                              cartController.setDirectlyAddToCartIndex(widget.index);
-                              cartController.setQuantity(
-                                  false,
-                                  cartIndex,
-                                  cartController.cartList[cartIndex].stock,
-                                  cartController.cartList[cartIndex].item!.quantityLimit);
-                            } else {
-                              cartController.removeFromCart(cartIndex);
+                            if (cartIndex != -1 && cartIndex < cartController.cartList.length) {
+                              if (cartController.cartList[cartIndex].quantity! > 1) {
+                                cartController.setDirectlyAddToCartIndex(widget.index);
+                                cartController.changeQuantity(
+                                    false,
+                                    cartIndex,
+                                    cartController.cartList[cartIndex].stock,
+                                    cartController.cartList[cartIndex].item?.quantityLimit);
+                              } else {
+                                cartController.removeFromCart(cartIndex);
+                              }
                             }
                           },
                     child: Padding(
@@ -113,27 +111,25 @@ class _CartCountViewState extends State<CartCountView> {
                     onTap: cartController.isLoading
                         ? null
                         : () {
-                            cartController.setDirectlyAddToCartIndex(widget.index);
-                            cartController.setQuantity(
-                                true,
-                                cartIndex,
-                                cartController.cartList[cartIndex].stock,
-                                cartController.cartList[cartIndex].quantityLimit);
+                            if (cartIndex != -1 && cartIndex < cartController.cartList.length) {
+                              cartController.setDirectlyAddToCartIndex(widget.index);
+                              cartController.changeQuantity(
+                                  true,
+                                  cartIndex,
+                                  cartController.cartList[cartIndex].stock,
+                                  cartController.cartList[cartIndex].item?.quantityLimit);
 
-                            if (GetPlatform.isAndroid || GetPlatform.isIOS) {
-                              _facebookEvent(widget.item, cartQty);
+                              FirebaseAnalytics.instance.logEvent(
+                                name: 'add_to_cart',
+                                parameters: {
+                                  'item_id': widget.item.id.toString(),
+                                  'item_name': widget.item.name.toString(),
+                                  'currency': 'EGP',
+                                  'value': widget.item.price.toString(),
+                                  'quantity': (widget.item.quantityLimit ?? 1).toString(),
+                                },
+                              );
                             }
-
-                            FirebaseAnalytics.instance.logEvent(
-                              name: 'add_to_cart',
-                              parameters: {
-                                'item_id': widget.item.id.toString(),
-                                'item_name': widget.item.name.toString(),
-                                'currency': 'EGP',
-                                'value': widget.item.price.toString(),
-                                'quantity': widget.item.quantityLimit!.toString(),
-                              },
-                            );
                           },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -149,29 +145,33 @@ class _CartCountViewState extends State<CartCountView> {
             )
           // Add to Cart Initial Button (When quantity is 0)
           : InkWell(
-              onTap: () {
-                Get.find<ItemController>().itemDirectlyAddToCart(widget.item, context);
-
-                if (GetPlatform.isAndroid || GetPlatform.isIOS) {
-                  _facebookEvent(widget.item, cartQty);
-                }
-
-                FirebaseAnalytics.instance.logEvent(
-                  name: 'add_to_cart',
-                  parameters: {
-                    'currency': 'EGP',
-                    'value': widget.item.price!,
-                    'items': [
-                      {
-                        'item_id': widget.item.id.toString(),
-                        'item_name': widget.item.name,
-                        'price': widget.item.price!,
-                        'quantity': 1,
+              onTap: _isAdding
+                  ? null
+                  : () async {
+                      if (AddressHelper.getUserAddressFromSharedPref() == null) {
+                        Get.find<LocationController>().navigateToLocationScreen('home', canRoute: true);
+                        return;
                       }
-                    ]
-                  },
-                );
-              },
+                      setState(() => _isAdding = true);
+                      await Get.find<ItemController>().itemDirectlyAddToCart(widget.item, context);
+                      if (mounted) setState(() => _isAdding = false);
+
+                      FirebaseAnalytics.instance.logEvent(
+                        name: 'add_to_cart',
+                        parameters: {
+                          'currency': 'EGP',
+                          'value': widget.item.price ?? 0.0,
+                          'items': [
+                            {
+                              'item_id': widget.item.id.toString(),
+                              'item_name': widget.item.name,
+                              'price': widget.item.price ?? 0.0,
+                              'quantity': 1,
+                            }
+                          ]
+                        },
+                      );
+                    },
               child: widget.child ??
                   Container(
                     height: 36,
@@ -188,17 +188,23 @@ class _CartCountViewState extends State<CartCountView> {
                       ],
                     ),
                     child: Center(
-                      child: Icon(
-                        Icons.add_rounded,
-                        size: 20,
-                        color: Theme.of(context).cardColor,
-                      ),
+                      child: _isAdding
+                          ? SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(
+                                color: Theme.of(context).cardColor,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              Icons.add_rounded,
+                              size: 20,
+                              color: Theme.of(context).cardColor,
+                            ),
                     ),
                   ),
             );
     });
-  }
-
-  void _facebookEvent(Item item, num cartQty) {
   }
 }

@@ -8,11 +8,10 @@ class ProfileBgWidget extends StatelessWidget {
   final Widget circularImage;
   final Widget mainWidget;
   final bool backButton;
-  const ProfileBgWidget(
-      {super.key,
-      required this.mainWidget,
-      required this.circularImage,
-      required this.backButton});
+  final VoidCallback? onBackPressed;
+  const ProfileBgWidget({super.key,
+    required this.mainWidget, required this.circularImage, required this.backButton, this.onBackPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +65,7 @@ class ProfileBgWidget extends StatelessWidget {
                 child: IconButton(
                   icon: Icon(Icons.arrow_back_ios,
                       color: Theme.of(context).cardColor, size: 20),
-                  onPressed: () => Get.back(),
+                  onPressed: onBackPressed ?? () => Get.back(),
                 ),
               )
             : const SizedBox(),

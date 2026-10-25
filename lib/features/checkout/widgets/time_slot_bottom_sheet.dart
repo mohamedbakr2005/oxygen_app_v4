@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/models/config_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
@@ -10,16 +8,17 @@ import 'package:Oxygen_Mart/helper/date_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class TimeSlotBottomSheet extends StatefulWidget {
   final bool tomorrowClosed;
   final bool todayClosed;
   final Module? module;
-  const TimeSlotBottomSheet(
-      {super.key,
-      required this.tomorrowClosed,
-      required this.todayClosed,
-      required this.module});
+
+  const TimeSlotBottomSheet({super.key,
+    required this.tomorrowClosed, required this.todayClosed, required this.module,
+  });
 
   @override
   State<TimeSlotBottomSheet> createState() => _TimeSlotBottomSheetState();
@@ -77,8 +76,7 @@ class _TimeSlotBottomSheetState extends State<TimeSlotBottomSheet> {
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
                       Row(children: [
                         Expanded(
-                          child: tabView(
-                              context: context,
+                          child: _TabView(
                               title: 'today'.tr,
                               isSelected:
                                   checkoutController.selectedDateSlot == 0,
@@ -91,8 +89,7 @@ class _TimeSlotBottomSheetState extends State<TimeSlotBottomSheet> {
                               }),
                         ),
                         Expanded(
-                          child: tabView(
-                              context: context,
+                          child: _TabView(
                               title: 'tomorrow'.tr,
                               isSelected:
                                   checkoutController.selectedDateSlot == 1,
@@ -225,12 +222,17 @@ class _TimeSlotBottomSheetState extends State<TimeSlotBottomSheet> {
       });
     });
   }
+}
 
-  Widget tabView(
-      {required BuildContext context,
-      required String title,
-      required bool isSelected,
-      required Function() onTap}) {
+class _TabView extends StatelessWidget {
+  final String title;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _TabView({required this.title, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Column(

@@ -1,9 +1,7 @@
 import 'dart:convert';
 
-import 'package:Oxygen_Mart/helper/facebook_pixel_helper.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
@@ -12,6 +10,8 @@ import 'package:Oxygen_Mart/common/widgets/confirmation_dialog.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/all_carts_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/last_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
@@ -23,7 +23,6 @@ import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/images.dart';
-import 'package:universal_html/js.dart' as js;
 
 class OrderController extends GetxController implements GetxService {
   final OrderServiceInterface orderServiceInterface;
@@ -41,6 +40,24 @@ class OrderController extends GetxController implements GetxService {
 
   int? _reorderingOrderId;
   int? get reorderingOrderId => _reorderingOrderId;
+
+  int? _deletingOrderId;
+  int? get deletingOrderId => _deletingOrderId;
+
+  List<LastOrderModel>? _lastOrdersHome;
+  List<LastOrderModel>? get lastOrdersHome => _lastOrdersHome;
+
+  List<LastOrderModel>? _lastOrders;
+  List<LastOrderModel>? get lastOrders => _lastOrders;
+
+  List<LastOrderModel>? _storeLastOrders;
+  List<LastOrderModel>? get storeLastOrders => _storeLastOrders;
+
+  PaymentModel? _paymentModel;
+  PaymentModel? get paymentModel => _paymentModel;
+
+  final List<String> _selectedParcelCancelReason = [];
+  List<String> get selectedParcelCancelReason => _selectedParcelCancelReason;
 
   List<OrderDetailsModel>? _orderDetails;
   List<OrderDetailsModel>? get orderDetails => _orderDetails;
@@ -455,8 +472,7 @@ class OrderController extends GetxController implements GetxService {
       if (_runningOrderModel != null) {
         _runningOrderModel!.orders!.remove(orderModel);
       }
-      List<OrderDetailsModel>? details =
-          await getOrderDetails(orderID.toString());
+      await getOrderDetails(orderID.toString());
 
       FirebaseAnalytics.instance.logEvent(
         name: 'order_cancelled',
@@ -590,6 +606,9 @@ class OrderController extends GetxController implements GetxService {
 
       final bool hasAdded = response.addedCount != null && response.addedCount! > 0;
       if(hasAdded) {
+        try {
+          Get.find<MetaAnalyticsService>().reorder(orderId: orderId.toString());
+        } catch (_) {}
         await Get.find<CartController>().getAllCarts();
         Get.toNamed(RouteHelper.getGlobalCartRoute(initialModuleId: ModuleHelper.getCacheModule()?.id));
       }
@@ -643,7 +662,88 @@ class OrderController extends GetxController implements GetxService {
     update();
     return isSuccess;
   }
+
+  Future<bool> deleteOrder(int? id) async {
+    if (id == null) return false;
+    _deletingOrderId = id;
+    update();
+    final bool success = await orderServiceInterface.deleteOrder(id);
+    _deletingOrderId = null;
+    update();
+    return success;
+  }
+
+  Future<bool> switchToWalletPayment(String? orderID) async {
+    _isLoading = true;
+    update();
+    bool isSuccess = await orderServiceInterface.switchToWalletPayment(orderID);
+    _isLoading = false;
+    update();
+    return isSuccess;
+  }
+
+  Future<void> getLastOrders({bool reload = true, required bool isHome}) async {
+    if (isHome) {
+      if (reload) _lastOrdersHome = null;
+      final List<LastOrderModel>? result = await orderServiceInterface.getLastOrders(isHome: isHome);
+      if (result != null) {
+        _lastOrdersHome = result;
+        update();
+      }
+    } else {
+      if (reload) _lastOrders = null;
+      final List<LastOrderModel>? result = await orderServiceInterface.getLastOrders(isHome: isHome);
+      if (result != null) {
+        _lastOrders = result;
+        update();
+      }
+    }
+  }
+
+  Future<void> getStoreLastOrders(int? storeId, {bool reload = true}) async {
+    if (storeId == null) return;
+    if (reload) _storeLastOrders = null;
+    final List<LastOrderModel>? result = await orderServiceInterface.getLastOrders(isHome: false, storeId: storeId);
+    if (result != null) {
+      _storeLastOrders = result;
+      update();
+    }
+  }
+
+  Future<PaymentModel?> getPaymentFailedDetails(String? orderID) async {
+    _paymentModel = await orderServiceInterface.getPaymentFailedDetails(orderID);
+    update();
+    return _paymentModel;
+  }
+
+  void toggleParcelCancelReason(String reason, bool isSelected) {
+    if (isSelected) {
+      if (!_selectedParcelCancelReason.contains(reason)) {
+        _selectedParcelCancelReason.add(reason);
+      }
+    } else {
+      _selectedParcelCancelReason.remove(reason);
+    }
+    update();
+  }
+
+  bool isReasonSelected(String reason) {
+    return _selectedParcelCancelReason.contains(reason);
+  }
+
+  void clearSelectedParcelCancelReason() {
+    _selectedParcelCancelReason.clear();
+  }
+
+  Future<bool> submitParcelReturn({required int orderId, required int returnOtp, String? contactNumber}) async {
+    bool isSuccess = await orderServiceInterface.submitParcelReturn(orderId: orderId, orderStatus: 'returned', returnOtp: returnOtp);
+    if (isSuccess) {
+      trackOrder(orderId.toString(), null, true, contactNumber: contactNumber);
+    }
+    return isSuccess;
+  }
 }
+
 
 
 // 5078086701425295

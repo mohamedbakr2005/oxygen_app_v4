@@ -1,5 +1,7 @@
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_category_item_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/interfaces/repository_interface.dart';
 
 abstract class StoreRepositoryInterface extends RepositoryInterface {
@@ -37,4 +39,7 @@ abstract class StoreRepositoryInterface extends RepositoryInterface {
       ModuleModel? module,
       int? cacheModuleId,
       int? moduleId);
+  Future<StoreModel?> getQuickDeliveryStores({int offset = 1, int limit = 10, int? moduleId, String name = ''});
+  Future<StoreModel?> getNearbyStores({int offset = 1, int limit = 10, int? moduleId, String name = ''});
+  Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId);
 }

@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/top_category_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/trending_search_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/repositories/search_repository_interface.dart';
 import 'package:Oxygen_Mart/features/search/domain/services/search_service_interface.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
@@ -138,4 +140,15 @@ class SearchService implements SearchServiceInterface {
   Future<List<PopularCategoryModel?>?> getPopularCategories() async {
     return await searchRepositoryInterface.getPopularCategories();
   }
+
+  @override
+  Future<List<TopCategory>?> getTopCategories({int offset = 1}) async {
+    return await searchRepositoryInterface.getTopCategories(offset: offset);
+  }
+
+  @override
+  Future<List<TrendingSearch>?> getTrendingSearches({bool isGlobal = false}) async {
+    return await searchRepositoryInterface.getTrendingSearches(isGlobal: isGlobal);
+  }
 }
+

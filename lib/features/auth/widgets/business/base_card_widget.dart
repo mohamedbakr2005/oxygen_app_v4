@@ -21,100 +21,119 @@ class BaseCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isDesktop = ResponsiveHelper.isDesktop(context);
+    bool isSelected = storeRegistrationController.businessIndex == index;
+    final Color primaryColor = Theme.of(context).primaryColor;
+    final Color cardBg = Theme.of(context).cardColor;
 
     return InkWell(
       onTap: onTap as void Function()?,
-      child: Stack(clipBehavior: Clip.none, children: [
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-            color: storeRegistrationController.businessIndex == index
-                ? Theme.of(context).primaryColor.withOpacity(0.05)
-                : Theme.of(context).cardColor,
-            border: storeRegistrationController.businessIndex == index &&
-                    isDesktop
-                ? Border.all(color: Theme.of(context).primaryColor)
-                : !isDesktop
-                    ? Border.all(
-                        color: storeRegistrationController.businessIndex ==
-                                index
-                            ? Theme.of(context).primaryColor
-                            : Theme.of(context).disabledColor.withOpacity(0.5),
-                        width: 0.5)
-                    : null,
-            boxShadow: storeRegistrationController.businessIndex == index
-                ? null
-                : [
-                    BoxShadow(
-                        color: Colors.grey[200]!,
-                        offset: const Offset(5, 5),
-                        blurRadius: 10)
-                  ],
-          ),
-          padding: const EdgeInsets.symmetric(
+      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+              gradient: isSelected
+                  ? LinearGradient(
+                      colors: [
+                        primaryColor.withValues(alpha: 0.1),
+                        primaryColor.withValues(alpha: 0.03),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isSelected ? null : cardBg,
+              border: Border.all(
+                color: isSelected
+                    ? primaryColor
+                    : primaryColor.withValues(alpha: 0.12),
+                width: isSelected ? 1.8 : 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isSelected
+                      ? primaryColor.withValues(alpha: 0.15)
+                      : Colors.black.withValues(alpha: 0.04),
+                  blurRadius: isSelected ? 12 : 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(
               horizontal: Dimensions.paddingSizeDefault,
-              vertical: Dimensions.paddingSizeLarge),
-          child: Column(
+              vertical: Dimensions.paddingSizeLarge,
+            ),
+            child: Column(
               crossAxisAlignment: isDesktop
                   ? CrossAxisAlignment.start
                   : CrossAxisAlignment.center,
               children: [
-                Align(
-                  alignment:
-                      isDesktop ? Alignment.centerLeft : Alignment.center,
-                  child: Text(title,
-                      style: robotoMedium.copyWith(
-                        color:
-                            storeRegistrationController.businessIndex == index
-                                ? Theme.of(context).primaryColor
-                                : Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.color
-                                    ?.withOpacity(0.7),
+                Row(
+                  mainAxisAlignment: isDesktop
+                      ? MainAxisAlignment.start
+                      : MainAxisAlignment.center,
+                  children: [
+                    if (isSelected) ...[
+                      Icon(Icons.check_circle_rounded,
+                          color: primaryColor, size: 18),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      title,
+                      style: robotoBold.copyWith(
+                        color: isSelected
+                            ? primaryColor
+                            : Theme.of(context).textTheme.bodyLarge?.color,
                         fontSize: Dimensions.fontSizeDefault,
-                        fontWeight:
-                            storeRegistrationController.businessIndex == index
-                                ? FontWeight.w600
-                                : isDesktop
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                      )),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: isDesktop ? Dimensions.paddingSizeSmall : 0),
-                isDesktop
-                    ? Text(
-                        description ?? '',
-                        style: robotoRegular.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
-                            color: Theme.of(context)
-                                .textTheme
-                                .bodyLarge
-                                ?.color
-                                ?.withOpacity(0.7)),
-                        textAlign: TextAlign.justify,
-                        textScaler: const TextScaler.linear(1.1),
-                      )
-                    : const SizedBox(),
-              ]),
-        ),
-        storeRegistrationController.businessIndex == index
-            ? Positioned(
-                top: -10,
-                right: -10,
-                child: Container(
-                  padding:
-                      const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Theme.of(context).primaryColor,
+                if (isDesktop && description != null && description!.isNotEmpty) ...[
+                  const SizedBox(height: Dimensions.paddingSizeSmall),
+                  Text(
+                    description!,
+                    style: robotoRegular.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      color: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.color
+                          ?.withValues(alpha: 0.7),
+                      height: 1.3,
+                    ),
+                    textAlign: TextAlign.justify,
                   ),
-                  child: Icon(Icons.check,
-                      size: 14, color: Theme.of(context).cardColor),
+                ],
+              ],
+            ),
+          ),
+          if (isSelected)
+            Positioned(
+              top: -8,
+              right: -8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: primaryColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryColor.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              )
-            : const SizedBox()
-      ]),
+                child: const Icon(Icons.check_rounded,
+                    size: 14, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

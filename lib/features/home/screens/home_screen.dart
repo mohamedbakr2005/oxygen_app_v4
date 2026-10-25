@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'package:Oxygen_Mart/common/models/module_model.dart';
-import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
-import 'package:Oxygen_Mart/socket_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
+import 'package:Oxygen_Mart/common/widgets/back_to_top.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
@@ -17,10 +16,7 @@ import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
 import 'package:Oxygen_Mart/features/flash_sale/controllers/flash_sale_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/advertisement_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
-import 'package:Oxygen_Mart/features/home/screens/modules/food_home_screen.dart';
 import 'package:Oxygen_Mart/features/home/screens/modules/grocery_home_screen.dart';
-import 'package:Oxygen_Mart/features/home/screens/modules/pharmacy_home_screen.dart';
-import 'package:Oxygen_Mart/features/home/screens/modules/shop_home_screen.dart';
 import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/module_store_list_view.dart';
 import 'package:Oxygen_Mart/features/home/screens/web_new_home_screen.dart';
@@ -37,6 +33,7 @@ import 'package:Oxygen_Mart/features/parcel/controllers/parcel_controller.dart';
 import 'package:Oxygen_Mart/features/parcel/screens/parcel_category_screen.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
+import 'package:Oxygen_Mart/features/smart_banner/controllers/smart_banner_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -46,105 +43,68 @@ import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-  static int _loadDataRequestId = 0;
-
   static Future<void> loadData(bool reload, {bool fromModule = false}) async {
-    final int requestId = ++_loadDataRequestId;
-
-    bool isStaleRequest() {
-      return requestId != _loadDataRequestId;
-    }
-
-    // 1. الأشياء الحرجة (تشتغل فوراً)
     Get.find<LocationController>().syncZoneData();
     Get.find<FlashSaleController>().setEmptyFlashSale(fromModule: fromModule);
 
-    if (AuthHelper.isLoggedIn()) {
-      Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
-      if (Get.find<ProfileController>().proStatus) {
-        Get.find<ProController>().getProActiveOffer(moduleType: Get.find<SplashController>().module?.moduleType);
-      }
-    }
-
     final splashCtrl = Get.find<SplashController>();
-    final int? initialModuleId = splashCtrl.module?.id;
     splashCtrl.getModules();
-
-    bool canRunForCurrentModule() {
-      if (isStaleRequest()) {
-        return false;
-      }
-      return Get.find<SplashController>().module?.id == initialModuleId;
-    }
 
     bool isParcel = splashCtrl.module != null && (splashCtrl.configModel!.moduleConfig?.module?.isParcel ?? false);
 
     if (splashCtrl.module != null && !isParcel) {
-      bool isFoodOrRestaurant = splashCtrl.module!.moduleType.toString() == AppConstants.food; // AppConstants.food means it is food or restaurant in this system
-      
-      // 2. أولوية أولى: الحاجات اللي فوق في الشاشة (تشتغل فوراً)
-      Get.find<BannerController>().getBannerList(reload);
-      Get.find<CategoryController>().getCategoryList(reload);
-      Get.find<ReelsController>().getReelsList(offset: 1);
-      Get.find<HomeController>().getTopOffer(notify: false);
-      
-      if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-        Get.find<FlashSaleController>().getFlashSale(reload, false);
-      }
+      final String moduleType = splashCtrl.module!.moduleType.toString();
 
-      // 3. أولوية تانية: الحاجات اللي في نص الشاشة (نأخرها 150 ملي ثانية عشان ندي فرصة للرسم)
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (!canRunForCurrentModule()) {
-          return;
+      if (moduleType == AppConstants.grocery) {
+        if (AuthHelper.isLoggedIn()) {
+          Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
+          if (Get.find<ProfileController>().proStatus) {
+            Get.find<ProController>().getProActiveOffer(moduleType: splashCtrl.module?.moduleType);
+          }
         }
 
-        Get.find<StoreController>().getRecommendedStoreList();
+        Get.find<BannerController>().getBannerList(reload);
         Get.find<BannerController>().getPromotionalBannerList(reload);
+        Get.find<CategoryController>().getCategoryList(reload);
+        Get.find<ReelsController>().getReelsList(offset: 1);
+        Get.find<HomeController>().getTopOffer(notify: false);
+        Get.find<StoreController>().getRecommendedStoreList();
         Get.find<StoreController>().getPopularStoreList(reload, 'all', false);
         Get.find<CampaignController>().getBasicCampaignList(reload);
+        Get.find<CampaignController>().getItemCampaignList(reload);
         Get.find<ItemController>().getDiscountedItemList(reload, false, 'all');
-        
-        if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-          Get.find<CampaignController>().getItemCampaignList(reload);
-        } else {
-           // For non-grocery, we ensure store list is loaded
-           Get.find<StoreController>().getStoreList(1, reload);
-        }
-      });
-
-      // 4. أولوية تالتة: الحاجات اللي تحت خالص (نأخرها 300 ملي ثانية)
-      Future.delayed(const Duration(milliseconds: 300), () {
-        if (!canRunForCurrentModule()) {
-          return;
-        }
-
         Get.find<StoreController>().getLatestStoreList(reload, 'all', false);
         Get.find<StoreController>().getTopOfferStoreList(reload, false);
         Get.find<AdvertisementController>().getAdvertisementList();
-        
-        if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-          Get.find<ItemController>().getPopularItemList(reload, 'all', false);
-          Get.find<ItemController>().getReviewedItemList(reload, 'all', false);
-          Get.find<ItemController>().getRecommendedItemList(reload, 'all', false);
+        Get.find<StoreController>().getStoreList(1, reload);
+        Get.find<FlashSaleController>().getFlashSale(reload, false);
+        Get.find<ItemController>().getPopularItemList(reload, 'all', false);
+        Get.find<ItemController>().getReviewedItemList(reload, 'all', false);
+        Get.find<ItemController>().getRecommendedItemList(reload, 'all', false);
+        Get.find<BrandsController>().getBrandList();
+      } else {
+        if (kDebugMode) {
+          print('[MODULE] ENTER: ${splashCtrl.module?.moduleName}');
+          print('[MODULE] CURRENT_ID: ${splashCtrl.module?.id}');
+          print('[MODULE] CURRENT_TYPE: $moduleType');
+          print('[MODULE] ZONE_ID: ${AddressHelper.getUserAddressFromSharedPref()?.zoneIds}');
         }
-
-        if (splashCtrl.module!.moduleType.toString() == AppConstants.ecommerce || splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-          Get.find<ItemController>().getFeaturedCategoriesItemList(false, false);
-          Get.find<FlashSaleController>().getFlashSale(reload, false);
-          Get.find<BrandsController>().getBrandList();
+        if (AuthHelper.isLoggedIn()) {
+          Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
         }
-      });
+        Get.find<StoreController>().getStoreList(1, reload);
+      }
     }
 
     if (splashCtrl.module == null && splashCtrl.configModel!.module == null) {
       Get.find<BannerController>().getFeaturedBanner();
+      Get.find<SmartBannerController>().getSmartBanners(notify: false);
       Get.find<StoreController>().getFeaturedStoreList();
       if (AuthHelper.isLoggedIn()) {
         Get.find<AddressController>().getAddressList();
@@ -155,29 +115,11 @@ class HomeScreen extends StatefulWidget {
       Get.find<ParcelController>().getParcelCategoryList();
     }
 
-    if (splashCtrl.module != null && splashCtrl.module!.moduleType.toString() == AppConstants.pharmacy) {
-      if (splashCtrl.module!.moduleType.toString() == AppConstants.grocery) {
-        Get.find<ItemController>().getBasicMedicine(reload, false);
-        await Get.find<ItemController>().getCommonConditions(false);
-        if (Get.find<ItemController>().commonConditions!.isNotEmpty) {
-          Get.find<ItemController>().getConditionsWiseItem(Get.find<ItemController>().commonConditions![0].id!, false);
-        }
-      }
-      Get.find<StoreController>().getFeaturedStoreList();
+    if (AuthHelper.isLoggedIn()) {
+      Get.find<ProfileController>().getUserInfo();
+      Get.find<NotificationController>().getNotificationList(reload);
+      Get.find<CouponController>().getCouponList();
     }
-
-    // 5. بيانات اليوزر (نأخرها شوية عشان دي مش بتأثر على الـ UI الرئيسي فوراً)
-    Future.delayed(const Duration(milliseconds: 500), () async {
-      if (isStaleRequest()) {
-        return;
-      }
-
-      if (AuthHelper.isLoggedIn()) {
-        await Get.find<ProfileController>().getUserInfo();
-        Get.find<NotificationController>().getNotificationList(reload);
-        Get.find<CouponController>().getCouponList();
-      }
-    });
   }
 
   @override
@@ -189,7 +131,12 @@ final sharedPreferences = Get.find<SharedPreferences>();
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   bool searchBgShow = false;
-  final GlobalKey _headerKey = GlobalKey();
+  bool _showBackToTop = false;
+  static const double _backToTopThreshold = 400;
+
+  void _scrollToTop() {
+    _scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+  }
 
   @override
   void initState() {
@@ -199,17 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
       Get.find<SplashController>().getReferBottomSheetStatus();
       if ((Get.find<ProfileController>().userInfoModel?.isValidForDiscount ?? false) &&
           Get.find<SplashController>().showReferBottomSheet) {
-        _showReferBottomSheet();
+        if (Get.isRegistered<DeepLinkService>() && Get.find<DeepLinkService>().pendingProductId == null) {
+          _showReferBottomSheet();
+        }
+      }
+      if (mounted && Get.isRegistered<DeepLinkService>()) {
+        Get.find<DeepLinkService>().onHomeDataLoaded();
       }
     });
 
-    SocketService.connect(
-      userId: Get.find<ProfileController>().userInfoModel?.id ?? 0,
-      onCartUpdate: (data) {
-        print("🔄 Cart Update Event Received in UI");
-        Get.find<CartController>().getCartDataOnline();
-      },
-    );
+    Get.find<SmartBannerController>().getSmartBanners(notify: false);
 
     if (!ResponsiveHelper.isWeb()) {
       Get.find<LocationController>().getZone(
@@ -220,6 +166,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     _scrollController.addListener(() {
+      final bool showBackToTop = _scrollController.position.pixels > _backToTopThreshold;
+      if (showBackToTop != _showBackToTop) {
+        setState(() => _showBackToTop = showBackToTop);
+      }
       if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
         if (Get.find<HomeController>().showFavButton) {
           Get.find<HomeController>().changeFavVisibility();
@@ -307,18 +257,11 @@ class _HomeScreenState extends State<HomeScreen> {
           splashController.module == null;
       bool isParcel = splashController.module != null &&
           (splashController.configModel!.moduleConfig?.module?.isParcel ?? false);
-      bool isPharmacy = splashController.module != null &&
-          splashController.module!.moduleType.toString() == AppConstants.pharmacy;
-      bool isFood = splashController.module != null &&
-          splashController.module!.moduleType.toString() == AppConstants.food;
-      bool isShop = splashController.module != null &&
-          splashController.module!.moduleType.toString() == AppConstants.ecommerce;
       bool isGrocery = splashController.module != null &&
           splashController.module!.moduleType.toString() == AppConstants.grocery;
 
       if(splashController.module != null) {
         print('--- ACTIVE MODULE: ${splashController.module!.moduleName} (Type: ${splashController.module!.moduleType}) ---');
-        print('--- CONDITIONS: isGrocery: $isGrocery, isFood: $isFood, isPharmacy: $isPharmacy ---');
       }
 
       // التعديل الجوهري هنا: شيلنا الـ GetBuilder بتاع الـ HomeController من حوالين الشاشة كلها
@@ -335,38 +278,32 @@ class _HomeScreenState extends State<HomeScreen> {
                     splashController.setRefreshing(true);
                     if (Get.find<SplashController>().module != null) {
                       await Get.find<LocationController>().syncZoneData();
-                      await Get.find<BannerController>().getBannerList(true);
                       if (isGrocery) {
+                        await Get.find<BannerController>().getBannerList(true);
                         await Get.find<FlashSaleController>().getFlashSale(true, true);
-                      }
-                      await Get.find<BannerController>().getPromotionalBannerList(true);
-                      await Get.find<ItemController>().getDiscountedItemList(true, false, 'all');
-                      await Get.find<CategoryController>().getCategoryList(true);
-                      await Get.find<StoreController>().getPopularStoreList(true, 'all', false);
-                      await Get.find<CampaignController>().getItemCampaignList(true);
-                      Get.find<CampaignController>().getBasicCampaignList(true);
-                      await Get.find<ItemController>().getPopularItemList(true, 'all', false);
-                      await Get.find<StoreController>().getLatestStoreList(true, 'all', false);
-                      await Get.find<StoreController>().getTopOfferStoreList(true, false);
-                      await Get.find<ItemController>().getReviewedItemList(true, 'all', false);
-                      await Get.find<StoreController>().getStoreList(1, true);
-                      Get.find<AdvertisementController>().getAdvertisementList();
-                      if (AuthHelper.isLoggedIn()) {
-                        await Get.find<ProfileController>().getUserInfo();
-                        await Get.find<NotificationController>().getNotificationList(true);
-                        Get.find<CouponController>().getCouponList();
-                      }
-                      if (isPharmacy) {
-                        Get.find<ItemController>().getBasicMedicine(true, true);
-                        Get.find<ItemController>().getCommonConditions(true);
-                      }
-                      if (isShop) {
-                        await Get.find<FlashSaleController>().getFlashSale(true, true);
-                        Get.find<ItemController>().getFeaturedCategoriesItemList(true, true);
-                        Get.find<BrandsController>().getBrandList();
+                        await Get.find<BannerController>().getPromotionalBannerList(true);
+                        await Get.find<ItemController>().getDiscountedItemList(true, false, 'all');
+                        await Get.find<CategoryController>().getCategoryList(true);
+                        await Get.find<StoreController>().getPopularStoreList(true, 'all', false);
+                        await Get.find<CampaignController>().getItemCampaignList(true);
+                        Get.find<CampaignController>().getBasicCampaignList(true);
+                        await Get.find<ItemController>().getPopularItemList(true, 'all', false);
+                        await Get.find<StoreController>().getLatestStoreList(true, 'all', false);
+                        await Get.find<StoreController>().getTopOfferStoreList(true, false);
+                        await Get.find<ItemController>().getReviewedItemList(true, 'all', false);
+                        await Get.find<StoreController>().getStoreList(1, true);
+                        Get.find<AdvertisementController>().getAdvertisementList();
+                        if (AuthHelper.isLoggedIn()) {
+                          await Get.find<ProfileController>().getUserInfo();
+                          await Get.find<NotificationController>().getNotificationList(true);
+                          Get.find<CouponController>().getCouponList();
+                        }
+                      } else {
+                        await Get.find<StoreController>().getStoreList(1, true);
                       }
                     } else {
                       await Get.find<BannerController>().getFeaturedBanner();
+                      await Get.find<SmartBannerController>().getSmartBanners(notify: false);
                       await Get.find<SplashController>().getModules();
                       if (AuthHelper.isLoggedIn()) {
                         await Get.find<AddressController>().getAddressList();
@@ -377,7 +314,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: ResponsiveHelper.isDesktop(context)
                       ? WebNewHomeScreen(scrollController: _scrollController)
-                      : CustomScrollView(
+                      : Stack(
+                          children: [
+                            CustomScrollView(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           slivers: [
@@ -583,11 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 const SizedBox(width: Dimensions.paddingSizeSmall),
                                                 Expanded(
                                                     child: Text(
-                                                  Get.find<SplashController>()
-                                                          .configModel!
-                                                          .moduleConfig!
-                                                          .module!
-                                                          .showRestaurantText!
+                                                  (Get.find<SplashController>().configModel?.moduleConfig?.module?.showRestaurantText ?? false)
                                                       ? 'search_food_or_restaurant'.tr
                                                       : 'search_item_or_store'.tr,
                                                   style: robotoRegular.copyWith(
@@ -617,6 +552,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
+                        BackToTopButton(
+                          visible: _showBackToTop,
+                          onTap: _scrollToTop,
+                          top: 75,
+                        ),
+                      ],
+                    ),
                 ),
               ),
         // التعديل الثاني الجوهري: خلينا الـ GetBuilder يغلف الزرار ده بسسسس

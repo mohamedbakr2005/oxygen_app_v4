@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
-import 'package:Oxygen_Mart/util/dimensions.dart';
+import 'package:flutter/material.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 
 class BottomNavItemWidget extends StatelessWidget {
-  final String selectedIcon;
-  final String unSelectedIcon;
+  final String? selectedIcon;
+  final String? unSelectedIcon;
+  final IconData? iconData;
   final String title;
   final VoidCallback? onTap;
   final bool isSelected;
@@ -14,8 +14,9 @@ class BottomNavItemWidget extends StatelessWidget {
     this.onTap,
     this.isSelected = false,
     required this.title,
-    required this.selectedIcon,
-    required this.unSelectedIcon,
+    this.selectedIcon,
+    this.unSelectedIcon,
+    this.iconData,
   });
 
   @override
@@ -28,8 +29,9 @@ class BottomNavItemWidget extends StatelessWidget {
       fit: FlexFit.tight,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final double selectedWidth = (constraints.maxWidth - 6).clamp(88.0, 155.0).toDouble();
-          final double labelFontSize = constraints.maxWidth < 95 ? 11.5 : 13.5;
+          final double selectedWidth =
+              (constraints.maxWidth - 4).clamp(72.0, 155.0).toDouble();
+          final double labelFontSize = constraints.maxWidth < 95 ? 11.0 : 13.0;
 
           return InkWell(
             onTap: onTap,
@@ -38,10 +40,10 @@ class BottomNavItemWidget extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
-                width: isSelected ? selectedWidth : 44,
+                width: isSelected ? selectedWidth : 40,
                 height: 48,
                 padding: EdgeInsets.symmetric(
-                  horizontal: isSelected ? 16 : 0,
+                  horizontal: isSelected ? 12 : 0,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
@@ -50,7 +52,7 @@ class BottomNavItemWidget extends StatelessWidget {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: primaryColor.withOpacity(0.28),
+                            color: primaryColor.withValues(alpha: 0.28),
                             blurRadius: 12,
                             spreadRadius: 0,
                             offset: const Offset(0, 4),
@@ -63,13 +65,19 @@ class BottomNavItemWidget extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset(
-                            selectedIcon,
-                            height: 22,
-                            width: 22,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 8),
+                          iconData != null
+                              ? Icon(
+                                  iconData,
+                                  size: 20,
+                                  color: Colors.white,
+                                )
+                              : Image.asset(
+                                  selectedIcon!,
+                                  height: 20,
+                                  width: 20,
+                                  color: Colors.white,
+                                ),
+                          const SizedBox(width: 6),
                           Flexible(
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
@@ -88,12 +96,18 @@ class BottomNavItemWidget extends StatelessWidget {
                         ],
                       )
                     : Center(
-                        child: Image.asset(
-                          unSelectedIcon,
-                          height: 22,
-                          width: 22,
-                          color: inactiveColor,
-                        ),
+                        child: iconData != null
+                            ? Icon(
+                                iconData,
+                                size: 22,
+                                color: inactiveColor,
+                              )
+                            : Image.asset(
+                                unSelectedIcon!,
+                                height: 22,
+                                width: 22,
+                                color: inactiveColor,
+                              ),
                       ),
               ),
             ),

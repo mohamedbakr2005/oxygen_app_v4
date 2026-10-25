@@ -44,7 +44,7 @@ class CategoryView extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
-                                    "${'explore'.tr} ${'oxgenMart'.tr}",
+                                    "${'explore'.tr} اوكسجين مارت",
                                     style: robotoMedium.copyWith(
                                       fontSize: 18,
                                     ),

@@ -104,8 +104,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                   (AuthHelper.isLoggedIn() &&
                           conversation != null &&
                           conversation.conversations != null &&
-                          chatController
-                              .conversationModel!.conversations!.isNotEmpty)
+                          conversation.conversations!.isNotEmpty)
                       ? Center(
                           child: SizedBox(
                               width: Dimensions.webMaxWidth,
@@ -149,8 +148,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                       height: (AuthHelper.isLoggedIn() &&
                               conversation != null &&
                               conversation.conversations != null &&
-                              chatController
-                                  .conversationModel!.conversations!.isNotEmpty)
+                              conversation.conversations!.isNotEmpty)
                           ? Dimensions.paddingSizeSmall
                           : 0),
                   Expanded(
@@ -175,7 +173,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                                 onPaginate: (int? offset) =>
                                                     chatController
                                                         .getConversationList(
-                                                            offset!),
+                                                            offset ?? 1),
                                                 totalSize:
                                                     conversation.totalSize,
                                                 offset: conversation.offset,
@@ -191,54 +189,39 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                                   padding: EdgeInsets.zero,
                                                   itemBuilder:
                                                       (context, index) {
-                                                    User? user;
-                                                    String? type;
-                                                    if (conversation!
-                                                                .conversations![
-                                                                    index]!
-                                                                .senderType ==
-                                                            UserType
-                                                                .user.name ||
-                                                        conversation
-                                                                .conversations![
-                                                                    index]!
-                                                                .senderType ==
-                                                            UserType.customer
-                                                                .name) {
-                                                      user = conversation
-                                                          .conversations![
-                                                              index]!
-                                                          .receiver;
-                                                      type = conversation
-                                                          .conversations![
-                                                              index]!
-                                                          .receiverType;
-                                                    } else {
-                                                      user = conversation
-                                                          .conversations![
-                                                              index]!
-                                                          .sender;
-                                                      type = conversation
-                                                          .conversations![
-                                                              index]!
-                                                          .senderType;
+                                                    final Conversation? conv = conversation?.conversations?[index];
+                                                    if (conv == null) {
+                                                      return const SizedBox.shrink();
                                                     }
 
+                                                    User? user;
+                                                    String? type;
+                                                    if (conv.senderType == UserType.user.name ||
+                                                        conv.senderType == UserType.customer.name) {
+                                                      user = conv.receiver;
+                                                      type = conv.receiverType;
+                                                    } else {
+                                                      user = conv.sender;
+                                                      type = conv.senderType;
+                                                    }
+
+                                                    final String userName = user != null
+                                                        ? '${user.fName ?? ''} ${user.lName ?? ''}'.trim()
+                                                        : '';
+                                                    final String displayTitle = userName.isNotEmpty
+                                                        ? userName
+                                                        : '${(type ?? 'user').tr} ${'deleted'.tr}';
+
                                                     return Container(
-                                                      margin: const EdgeInsets
-                                                          .only(
-                                                          bottom: Dimensions
-                                                              .paddingSizeSmall),
+                                                      margin: const EdgeInsets.only(
+                                                          bottom: Dimensions.paddingSizeSmall),
                                                       decoration: BoxDecoration(
-                                                        color: Theme.of(context)
-                                                            .cardColor,
-                                                        borderRadius: BorderRadius
-                                                            .circular(Dimensions
-                                                                .radiusSmall),
+                                                        color: Theme.of(context).cardColor,
+                                                        borderRadius: BorderRadius.circular(
+                                                            Dimensions.radiusSmall),
                                                         boxShadow: const [
                                                           BoxShadow(
-                                                              color: Colors
-                                                                  .black12,
+                                                              color: Colors.black12,
                                                               spreadRadius: 1,
                                                               blurRadius: 5)
                                                         ],
@@ -247,188 +230,122 @@ class _ConversationScreenState extends State<ConversationScreen> {
                                                         onTap: () {
                                                           if (user != null) {
                                                             Get.toNamed(
-                                                                RouteHelper
-                                                                    .getChatRoute(
-                                                              notificationBody:
-                                                                  NotificationBodyModel(
-                                                                type: conversation!
-                                                                    .conversations![
-                                                                        index]!
-                                                                    .senderType,
-                                                                notificationType:
-                                                                    NotificationType
-                                                                        .message,
-                                                                adminId: type ==
-                                                                        UserType
-                                                                            .admin
-                                                                            .name
-                                                                    ? 0
-                                                                    : null,
-                                                                restaurantId: type ==
-                                                                        UserType
-                                                                            .vendor
-                                                                            .name
-                                                                    ? user.id
-                                                                    : null,
-                                                                deliverymanId: type ==
-                                                                        UserType
-                                                                            .delivery_man
-                                                                            .name
-                                                                    ? user.id
-                                                                    : null,
+                                                              RouteHelper.getChatRoute(
+                                                                notificationBody: NotificationBodyModel(
+                                                                  type: conv.senderType,
+                                                                  notificationType: NotificationType.message,
+                                                                  adminId: type == UserType.admin.name ? 0 : null,
+                                                                  restaurantId: type == UserType.vendor.name ? user.id : null,
+                                                                  deliverymanId: type == UserType.delivery_man.name ? user.id : null,
+                                                                ),
+                                                                conversationID: conv.id,
+                                                                index: index,
                                                               ),
-                                                              conversationID:
-                                                                  conversation
-                                                                      .conversations![
-                                                                          index]!
-                                                                      .id,
-                                                              index: index,
-                                                            ));
+                                                            );
                                                           } else {
                                                             showCustomSnackBar(
-                                                                '${type!.tr} ${'not_found'.tr}');
+                                                                '${(type ?? 'user').tr} ${'not_found'.tr}');
                                                           }
                                                         },
-                                                        highlightColor:
-                                                            Theme.of(context)
-                                                                .colorScheme
-                                                                .surface
-                                                                .withOpacity(
-                                                                    0.1),
-                                                        radius: Dimensions
-                                                            .radiusSmall,
+                                                        highlightColor: Theme.of(context)
+                                                            .colorScheme
+                                                            .surface
+                                                            .withOpacity(0.1),
+                                                        radius: Dimensions.radiusSmall,
                                                         child: Stack(children: [
                                                           Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(
-                                                                    Dimensions
-                                                                        .paddingSizeSmall),
+                                                            padding: const EdgeInsets.all(
+                                                                Dimensions.paddingSizeSmall),
                                                             child: Row(
-                                                                children: [
-                                                                  ClipOval(
-                                                                      child:
-                                                                          CustomImage(
+                                                              children: [
+                                                                ClipOval(
+                                                                  child: CustomImage(
                                                                     height: 50,
                                                                     width: 50,
-                                                                    image:
-                                                                        '${user != null ? user.imageFullUrl : ''}',
-                                                                  )),
-                                                                  const SizedBox(
-                                                                      width: Dimensions
-                                                                          .paddingSizeSmall),
-                                                                  Expanded(
-                                                                      child: Column(
-                                                                          mainAxisAlignment: MainAxisAlignment
-                                                                              .start,
-                                                                          crossAxisAlignment:
-                                                                              CrossAxisAlignment.start,
-                                                                          children: [
-                                                                        user !=
-                                                                                null
-                                                                            ? Text(
-                                                                                '${user.fName} ${user.lName}',
-                                                                                style: robotoMedium,
-                                                                              )
-                                                                            : Text('${type!.tr} ${'deleted'.tr}',
-                                                                                style: robotoMedium),
-                                                                        const SizedBox(
-                                                                            height:
-                                                                                Dimensions.paddingSizeExtraSmall),
-                                                                        user != null
-                                                                            ? Text(
-                                                                                type!.tr,
-                                                                                style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).disabledColor),
-                                                                              )
-                                                                            : const SizedBox(),
-                                                                      ])),
-                                                                ]),
-                                                          ),
-                                                          Positioned(
-                                                            right: Get.find<
-                                                                        LocalizationController>()
-                                                                    .isLtr
-                                                                ? 5
-                                                                : null,
-                                                            bottom: 5,
-                                                            left: Get.find<
-                                                                        LocalizationController>()
-                                                                    .isLtr
-                                                                ? null
-                                                                : 5,
-                                                            child: Text(
-                                                              DateConverter.localDateToIsoStringAMPM(
-                                                                  DateConverter.dateTimeStringToDate(conversation
-                                                                      .conversations![
-                                                                          index]!
-                                                                      .lastMessageTime!)),
-                                                              style: robotoRegular.copyWith(
-                                                                  color: Theme.of(
-                                                                          context)
-                                                                      .hintColor,
-                                                                  fontSize:
-                                                                      Dimensions
-                                                                          .fontSizeExtraSmall),
+                                                                    image: '${user?.imageFullUrl ?? ''}',
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: Dimensions.paddingSizeSmall),
+                                                                Expanded(
+                                                                  child: Column(
+                                                                    mainAxisAlignment: MainAxisAlignment.start,
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    children: [
+                                                                      Text(
+                                                                        displayTitle,
+                                                                        style: robotoMedium,
+                                                                        maxLines: 1,
+                                                                        overflow: TextOverflow.ellipsis,
+                                                                      ),
+                                                                      const SizedBox(
+                                                                          height: Dimensions.paddingSizeExtraSmall),
+                                                                      if (user != null && type != null && type.isNotEmpty)
+                                                                        Text(
+                                                                          type.tr,
+                                                                          style: robotoRegular.copyWith(
+                                                                            fontSize: Dimensions.fontSizeSmall,
+                                                                            color: Theme.of(context).disabledColor,
+                                                                          ),
+                                                                        ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ],
                                                             ),
                                                           ),
-                                                          GetBuilder<
-                                                                  ProfileController>(
-                                                              builder:
-                                                                  (profileController) {
-                                                            return (profileController.userInfoModel != null &&
-                                                                    profileController
-                                                                            .userInfoModel!
-                                                                            .userInfo !=
-                                                                        null &&
-                                                                    conversation!
-                                                                            .conversations![
-                                                                                index]!
-                                                                            .lastMessage!
-                                                                            .senderId !=
-                                                                        profileController
-                                                                            .userInfoModel!
-                                                                            .userInfo!
-                                                                            .id &&
-                                                                    conversation
-                                                                            .conversations![index]!
-                                                                            .unreadMessageCount! >
-                                                                        0)
-                                                                ? Positioned(
-                                                                    right: Get.find<LocalizationController>()
-                                                                            .isLtr
-                                                                        ? 5
-                                                                        : null,
-                                                                    top: 5,
-                                                                    left: Get.find<LocalizationController>()
-                                                                            .isLtr
-                                                                        ? null
-                                                                        : 5,
-                                                                    child:
-                                                                        Container(
-                                                                      padding: const EdgeInsets
-                                                                          .all(
-                                                                          Dimensions
-                                                                              .paddingSizeExtraSmall),
-                                                                      decoration: BoxDecoration(
-                                                                          color: Theme.of(context)
-                                                                              .primaryColor,
-                                                                          shape:
-                                                                              BoxShape.circle),
-                                                                      child:
-                                                                          Text(
-                                                                        conversation
-                                                                            .conversations![index]!
-                                                                            .unreadMessageCount
-                                                                            .toString(),
-                                                                        style: robotoMedium.copyWith(
-                                                                            color:
-                                                                                Theme.of(context).cardColor,
-                                                                            fontSize: Dimensions.fontSizeExtraSmall),
-                                                                      ),
+                                                          if (conv.lastMessageTime != null && conv.lastMessageTime!.isNotEmpty)
+                                                            Positioned(
+                                                              right: Get.find<LocalizationController>().isLtr ? 5 : null,
+                                                              bottom: 5,
+                                                              left: Get.find<LocalizationController>().isLtr ? null : 5,
+                                                              child: Text(
+                                                                DateConverter.localDateToIsoStringAMPM(
+                                                                  DateConverter.dateTimeStringToDate(conv.lastMessageTime!),
+                                                                ),
+                                                                style: robotoRegular.copyWith(
+                                                                  color: Theme.of(context).hintColor,
+                                                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          GetBuilder<ProfileController>(
+                                                            builder: (profileController) {
+                                                              final int? currentUserId = profileController.userInfoModel?.userInfo?.id ??
+                                                                  profileController.userInfoModel?.id;
+                                                              final int? senderId = conv.lastMessage?.senderId;
+                                                              final int unreadCount = conv.unreadMessageCount ?? 0;
+                                                              final bool showUnread = currentUserId != null &&
+                                                                  senderId != null &&
+                                                                  senderId != currentUserId &&
+                                                                  unreadCount > 0;
+
+                                                              if (!showUnread) {
+                                                                return const SizedBox();
+                                                              }
+
+                                                              return Positioned(
+                                                                right: Get.find<LocalizationController>().isLtr ? 5 : null,
+                                                                top: 5,
+                                                                left: Get.find<LocalizationController>().isLtr ? null : 5,
+                                                                child: Container(
+                                                                  padding: const EdgeInsets.all(
+                                                                      Dimensions.paddingSizeExtraSmall),
+                                                                  decoration: BoxDecoration(
+                                                                    color: Theme.of(context).primaryColor,
+                                                                    shape: BoxShape.circle,
+                                                                  ),
+                                                                  child: Text(
+                                                                    unreadCount.toString(),
+                                                                    style: robotoMedium.copyWith(
+                                                                      color: Theme.of(context).cardColor,
+                                                                      fontSize: Dimensions.fontSizeExtraSmall,
                                                                     ),
-                                                                  )
-                                                                : const SizedBox();
-                                                          }),
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            },
+                                                          ),
                                                         ]),
                                                       ),
                                                     );

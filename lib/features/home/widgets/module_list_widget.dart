@@ -6,6 +6,7 @@ import 'package:Oxygen_Mart/util/styles.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_ink_well.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class ModuleListWidget extends StatelessWidget {
   const ModuleListWidget({super.key});
@@ -24,7 +25,7 @@ class ModuleListWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
               child: Text(
-                'اكتشف اوكسجين مارت',
+                '${'explore'.tr} اوكسجين مارت',
                 style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge),
               ),
             ),

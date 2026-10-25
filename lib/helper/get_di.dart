@@ -1,41 +1,22 @@
 import 'dart:convert';
-import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/controllers/ai_chat_bot_controller.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot_repository.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot_repository_interface.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service.dart';
-import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service_interface.dart';
-import 'package:Oxygen_Mart/features/smart_banner/controllers/smart_banner_controller.dart';
-import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository.dart';
-import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository_interface.dart';
-import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service.dart';
-import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service_interface.dart';
 
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
-import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository.dart';
-import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository_interface.dart';
-import 'package:Oxygen_Mart/features/reels/domain/services/reels_service.dart';
-import 'package:Oxygen_Mart/features/reels/domain/services/reels_service_interface.dart';
-import 'package:Oxygen_Mart/features/rental_module/home/controllers/taxi_home_controller.dart';
-import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository.dart';
-import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository_interface.dart';
-import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service.dart';
-import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service_interface.dart';
-import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/controllers/taxi_cart_controller.dart';
-import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository.dart';
-import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository_interface.dart';
-import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service.dart';
-import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service_interface.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
+import 'package:Oxygen_Mart/helper/deep_link_service.dart';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
 import 'package:Oxygen_Mart/features/address/domain/repositories/address_repository.dart';
 import 'package:Oxygen_Mart/features/address/domain/repositories/address_repository_interface.dart';
 import 'package:Oxygen_Mart/features/address/domain/services/address_service.dart';
 import 'package:Oxygen_Mart/features/address/domain/services/address_service_interface.dart';
+import 'package:Oxygen_Mart/features/ai_chat_bot/controllers/ai_chat_bot_controller.dart';
+import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot_repository.dart';
+import 'package:Oxygen_Mart/features/ai_chat_bot/domain/repositories/ai_chat_bot_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service.dart';
+import 'package:Oxygen_Mart/features/ai_chat_bot/domain/services/ai_chat_bot_service_interface.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/deliveryman_registration_controller.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/store_registration_controller.dart';
@@ -147,16 +128,16 @@ import 'package:Oxygen_Mart/features/notification/domain/repository/notification
 import 'package:Oxygen_Mart/features/notification/domain/repository/notification_repository_interface.dart';
 import 'package:Oxygen_Mart/features/notification/domain/service/notification_service.dart';
 import 'package:Oxygen_Mart/features/notification/domain/service/notification_service_interface.dart';
-import 'package:Oxygen_Mart/features/onboard/controllers/onboard_controller.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository_interface.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service_interface.dart';
 import 'package:Oxygen_Mart/features/offer/controllers/offer_controller.dart';
 import 'package:Oxygen_Mart/features/offer/domain/repositories/offer_repository.dart';
 import 'package:Oxygen_Mart/features/offer/domain/repositories/offer_repository_interface.dart';
 import 'package:Oxygen_Mart/features/offer/domain/services/offer_service.dart';
 import 'package:Oxygen_Mart/features/offer/domain/services/offer_service_interface.dart';
+import 'package:Oxygen_Mart/features/onboard/controllers/onboard_controller.dart';
+import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository.dart';
+import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository_interface.dart';
+import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service.dart';
+import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service_interface.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository_interface.dart';
@@ -182,16 +163,145 @@ import 'package:Oxygen_Mart/features/profile/domain/repositories/profile_reposit
 import 'package:Oxygen_Mart/features/profile/domain/repositories/profile_repository_interface.dart';
 import 'package:Oxygen_Mart/features/profile/domain/services/profile_service.dart';
 import 'package:Oxygen_Mart/features/profile/domain/services/profile_service_interface.dart';
+import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
+import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository.dart';
+import 'package:Oxygen_Mart/features/reels/domain/repositories/reels_repository_interface.dart';
+import 'package:Oxygen_Mart/features/reels/domain/services/reels_service.dart';
+import 'package:Oxygen_Mart/features/reels/domain/services/reels_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/controllers/taxi_home_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/repositories/taxi_home_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/home/domain/services/taxi_home_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/controllers/taxi_cart_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/repository/taxi_cart_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/domain/services/taxi_cart_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_favourite/controllers/taxi_favourite_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_favourite/domain/repositories/taxi_favourite_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_favourite/domain/repositories/taxi_favourite_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_favourite/domain/services/taxi_favourite_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_favourite/domain/services/taxi_favourite_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_location_screen/controller/taxi_location_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_location_screen/domain/repository/taxi_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_location_screen/domain/repository/taxi_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_location_screen/domain/services/taxi_location_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_location_screen/domain/services/taxi_location_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_order/controllers/taxi_order_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_order/domain/repository/taxi_order_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_order/domain/repository/taxi_order_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_order/domain/services/taxi_order_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_order/domain/services/taxi_order_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/controllers/taxi_vendor_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/controllers/verified_provider_controller.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/repositories/taxi_vendor_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/repositories/taxi_vendor_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/repositories/verified_provider_repository.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/repositories/verified_provider_repository_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/services/taxi_vendor_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/services/taxi_vendor_service_interface.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/services/verified_provider_service.dart';
+import 'package:Oxygen_Mart/features/rental_module/vendor/domain/services/verified_provider_service_interface.dart';
 import 'package:Oxygen_Mart/features/review/controllers/review_controller.dart';
 import 'package:Oxygen_Mart/features/review/domain/repositories/review_repository.dart';
 import 'package:Oxygen_Mart/features/review/domain/repositories/review_repository_interface.dart';
 import 'package:Oxygen_Mart/features/review/domain/services/review_service.dart';
 import 'package:Oxygen_Mart/features/review/domain/services/review_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/common/controllers/map_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_home/controllers/rideHome_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_home/domain/repositories/rideHome_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_home/domain/repositories/rideHome_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_home/domain/services/rideHome_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_home/domain/services/rideHome_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/controllers/search_location_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/domain/repositories/search_location_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/domain/repositories/search_location_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/domain/services/search_location_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/domain/services/search_location_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_order/controllers/ride_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_order/domain/repositories/ride_order_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_order/domain/repositories/ride_order_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_order/domain/services/ride_order_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_order/domain/services/ride_order_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_payment/controllers/ride_payment_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_payment/domain/repositories/ride_payment_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_payment/domain/repositories/ride_payment_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_payment/domain/services/ride_payment_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_payment/domain/services/ride_payment_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/safety_alert/controllers/safety_alert_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/safety_alert/domain/repositories/safety_alert_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/safety_alert/domain/repositories/safety_alert_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/safety_alert/domain/services/safety_alert_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/safety_alert/domain/services/safety_alert_service_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/trip/controllers/trip_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/trip/domain/repositories/trip_repository.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/trip/domain/repositories/trip_repository_interface.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/trip/domain/services/trip_service.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/trip/domain/services/trip_service_interface.dart';
 import 'package:Oxygen_Mart/features/search/controllers/search_controller.dart';
 import 'package:Oxygen_Mart/features/search/domain/repositories/search_repository.dart';
 import 'package:Oxygen_Mart/features/search/domain/repositories/search_repository_interface.dart';
 import 'package:Oxygen_Mart/features/search/domain/services/search_service.dart';
 import 'package:Oxygen_Mart/features/search/domain/services/search_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/booking_details/controllers/booking_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/booking_details/domain/repositories/booking_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/booking_details/domain/repositories/booking_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/booking_details/domain/services/booking_service.dart';
+import 'package:Oxygen_Mart/features/service_module/booking_details/domain/services/booking_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/controllers/custom_service_request_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/repositories/custom_service_request_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/repositories/custom_service_request_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/services/custom_service_request_service.dart';
+import 'package:Oxygen_Mart/features/service_module/custom_service_request/domain/services/custom_service_request_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/provider_details/controllers/provider_data_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/provider_details/domain/repositories/provider_details_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/provider_details/domain/repositories/provider_details_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/provider_details/domain/services/provider_details_service.dart';
+import 'package:Oxygen_Mart/features/service_module/provider_details/domain/services/provider_details_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/request_service/controllers/requested_service_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/request_service/domain/repositories/requested_service_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/request_service/domain/repositories/requested_service_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/request_service/domain/services/requested_service_service.dart';
+import 'package:Oxygen_Mart/features/service_module/request_service/domain/services/requested_service_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_campaign/controllers/service_campaign_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_cart/controllers/service_cart_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_cart/domain/repositories/service_cart_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_cart/domain/repositories/service_cart_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_cart/domain/services/service_cart_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_cart/domain/services/service_cart_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_category/controllers/service_category_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_category/domain/repositories/service_category_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_category/domain/repositories/service_category_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_category/domain/services/service_category_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_category/domain/services/service_category_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_checkout/controllers/service_checkout_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_checkout/domain/repositories/service_checkout_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_checkout/domain/repositories/service_checkout_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_checkout/domain/services/service_checkout_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_checkout/domain/services/service_checkout_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_details/controllers/service_details_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_details/domain/repositories/service_details_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_details/domain/repositories/service_details_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_details/domain/services/service_details_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_details/domain/services/service_details_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/controllers/service_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/controllers/service_explore_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/controllers/service_verified_provider_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/domain/repositories/service_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/domain/repositories/service_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/domain/services/service_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_home/domain/services/service_service_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_review/controllers/service_review_controller.dart';
+import 'package:Oxygen_Mart/features/service_module/service_review/domain/repositories/service_review_repository.dart';
+import 'package:Oxygen_Mart/features/service_module/service_review/domain/repositories/service_review_repository_interface.dart';
+import 'package:Oxygen_Mart/features/service_module/service_review/domain/services/service_review_service.dart';
+import 'package:Oxygen_Mart/features/service_module/service_review/domain/services/service_review_service_interface.dart';
+import 'package:Oxygen_Mart/features/smart_banner/controllers/smart_banner_controller.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/repositories/smart_banner_repository_interface.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service.dart';
+import 'package:Oxygen_Mart/features/smart_banner/domain/services/smart_banner_service_interface.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/splash/domain/repositories/splash_repository.dart';
 import 'package:Oxygen_Mart/features/splash/domain/repositories/splash_repository_interface.dart';
@@ -212,34 +322,17 @@ import 'package:Oxygen_Mart/features/wallet/domain/repositories/wallet_repositor
 import 'package:Oxygen_Mart/features/wallet/domain/repositories/wallet_repository_interface.dart';
 import 'package:Oxygen_Mart/features/wallet/domain/services/wallet_service.dart';
 import 'package:Oxygen_Mart/features/wallet/domain/services/wallet_service_interface.dart';
-import 'package:Oxygen_Mart/helper/deep_link_service.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 Future<Map<String, Map<String, String>>> init() async {
   /// Core
-  late SharedPreferences sharedPreferences;
-  
-  try {
-    sharedPreferences = await SharedPreferences.getInstance();
-  } catch (e) {
-    print('Error initializing SharedPreferences: $e');
-    // Retry after a short delay
-    await Future.delayed(Duration(milliseconds: 100));
-    try {
-      sharedPreferences = await SharedPreferences.getInstance();
-    } catch (retryError) {
-      print('Retry failed for SharedPreferences: $retryError');
-      rethrow;
-    }
-  }
-  
+  final sharedPreferences = await SharedPreferences.getInstance();
   Get.lazyPut(() => sharedPreferences);
-  Get.lazyPut(() => ApiClient(
-      appBaseUrl: AppConstants.baseUrl, sharedPreferences: Get.find()));
-    Get.put(DeepLinkService(), permanent: true);
-    Get.put(MetaAnalyticsService(), permanent: true);
+  Get.lazyPut(() => ApiClient(appBaseUrl: AppConstants.baseUrl, sharedPreferences: Get.find()));
+  Get.put(MetaAnalyticsService(), permanent: true);
+  Get.put(DeepLinkService(), permanent: true);
 
-  /// Repository interface
+  /// Repositories
   CheckoutRepositoryInterface checkoutRepositoryInterface =
       CheckoutRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => checkoutRepositoryInterface);
@@ -249,13 +342,11 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => authRepositoryInterface);
 
   LocationRepositoryInterface locationRepositoryInterface =
-      LocationRepository(apiClient: Get.find());
+      LocationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => locationRepositoryInterface);
 
-  DeliverymanRegistrationRepositoryInterface
-      deliverymanRegistrationRepositoryInterface =
-      DeliverymanRegistrationRepository(
-          apiClient: Get.find(), sharedPreferences: Get.find());
+  DeliverymanRegistrationRepositoryInterface deliverymanRegistrationRepositoryInterface =
+      DeliverymanRegistrationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => deliverymanRegistrationRepositoryInterface);
 
   StoreRegistrationRepositoryInterface storeRegistrationRepositoryInterface =
@@ -286,10 +377,6 @@ Future<Map<String, Map<String, String>>> init() async {
       ChatRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => chatRepositoryInterface);
 
-  AiChatBotRepositoryInterface aiChatBotRepositoryInterface =
-      AiChatBotRepository(apiClient: Get.find());
-  Get.lazyPut(() => aiChatBotRepositoryInterface);
-
   CouponRepositoryInterface couponRepositoryInterface =
       CouponRepository(apiClient: Get.find());
   Get.lazyPut(() => couponRepositoryInterface);
@@ -298,13 +385,13 @@ Future<Map<String, Map<String, String>>> init() async {
       FavouriteRepository(apiClient: Get.find());
   Get.lazyPut(() => favouriteRepositoryInterface);
 
+  HomeRepositoryInterface homeRepositoryInterface =
+      HomeRepository(sharedPreferences: Get.find(), apiClient: Get.find());
+  Get.lazyPut(() => homeRepositoryInterface);
+
   FlashSaleRepositoryInterface flashSaleRepositoryInterface =
       FlashSaleRepository(apiClient: Get.find());
   Get.lazyPut(() => flashSaleRepositoryInterface);
-
-  HomeRepositoryInterface homeRepositoryInterface =
-      HomeRepository(apiClient: Get.find(), sharedPreferences: Get.find());
-  Get.lazyPut(() => homeRepositoryInterface);
 
   BannerRepositoryInterface bannerRepositoryInterface =
       BannerRepository(apiClient: Get.find());
@@ -319,11 +406,11 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => languageRepositoryInterface);
 
   NotificationRepositoryInterface notificationRepositoryInterface =
-      NotificationRepository(
-          sharedPreferences: Get.find(), apiClient: Get.find());
+      NotificationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => notificationRepositoryInterface);
 
-  OnboardRepositoryInterface onboardRepositoryInterface = OnboardRepository();
+  OnboardRepositoryInterface onboardRepositoryInterface =
+      OnboardRepository();
   Get.lazyPut(() => onboardRepositoryInterface);
 
   ProfileRepositoryInterface profileRepositoryInterface =
@@ -343,7 +430,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => reviewRepositoryInterface);
 
   StoreRepositoryInterface storeRepositoryInterface =
-      StoreRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+      StoreRepository(sharedPreferences: Get.find(), apiClient: Get.find());
   Get.lazyPut(() => storeRepositoryInterface);
 
   WalletRepositoryInterface walletRepositoryInterface =
@@ -367,8 +454,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => cartRepositoryInterface);
 
   VerificationRepositoryInterface verificationRepositoryInterface =
-      VerificationRepository(
-          apiClient: Get.find(), sharedPreferences: Get.find());
+      VerificationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => verificationRepositoryInterface);
 
   BrandsRepositoryInterface brandsRepositoryInterface =
@@ -379,13 +465,13 @@ Future<Map<String, Map<String, String>>> init() async {
       BusinessRepo(apiClient: Get.find());
   Get.lazyPut(() => businessRepoInterface);
 
-  AdvertisementRepositoryInterface advertisementRepositoryInterface =
-      AdvertisementRepository(apiClient: Get.find());
-  Get.lazyPut(() => advertisementRepositoryInterface);
-
   ProRepositoryInterface proRepositoryInterface =
       ProRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => proRepositoryInterface);
+
+  AdvertisementRepositoryInterface advertisementRepositoryInterface =
+      AdvertisementRepository(apiClient: Get.find());
+  Get.lazyPut(() => advertisementRepositoryInterface);
 
   OfferRepositoryInterface offerRepositoryInterface =
       OfferRepository(apiClient: Get.find());
@@ -395,7 +481,110 @@ Future<Map<String, Map<String, String>>> init() async {
       SmartBannerRepository(apiClient: Get.find());
   Get.lazyPut(() => smartBannerRepositoryInterface);
 
-  /// Service Interface
+  ReelsRepositoryInterface reelsRepositoryInterface =
+      ReelsRepository(apiClient: Get.find());
+  Get.lazyPut(() => reelsRepositoryInterface);
+
+  AiChatBotRepositoryInterface aiChatBotRepositoryInterface =
+      AiChatBotRepository(apiClient: Get.find());
+  Get.lazyPut(() => aiChatBotRepositoryInterface);
+
+  // Rental module repositories
+  TaxiRepositoryInterface taxiRepositoryInterface =
+      TaxiRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => taxiRepositoryInterface);
+
+  TaxiHomeRepositoryInterface taxiHomeRepositoryInterface =
+      TaxiHomeRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => taxiHomeRepositoryInterface);
+
+  TaxiCartRepositoryInterface taxiCartRepositoryInterface =
+      TaxiCartRepository(apiClient: Get.find());
+  Get.lazyPut(() => taxiCartRepositoryInterface);
+
+  TaxiVendorRepositoryInterface taxiVendorRepositoryInterface =
+      TaxiVendorRepository(apiClient: Get.find());
+  Get.lazyPut(() => taxiVendorRepositoryInterface);
+
+  VerifiedProviderRepositoryInterface verifiedProviderRepositoryInterface =
+      VerifiedProviderRepository(apiClient: Get.find());
+  Get.lazyPut(() => verifiedProviderRepositoryInterface);
+
+  TaxiOrderRepositoryInterface taxiOrderRepositoryInterface =
+      TaxiOrderRepository(apiClient: Get.find());
+  Get.lazyPut(() => taxiOrderRepositoryInterface);
+
+  TaxiFavouriteRepositoryInterface taxiFavouriteRepositoryInterface =
+      TaxiFavouriteRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => taxiFavouriteRepositoryInterface);
+
+  // Ride share repositories
+  SearchLocationRepositoryInterface searchLocationRepositoryInterface =
+      SearchLocationRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => searchLocationRepositoryInterface);
+
+  RideHomeRepositoryInterface rideHomeRepositoryInterface =
+      RideHomeRepository(apiClient: Get.find());
+  Get.lazyPut(() => rideHomeRepositoryInterface);
+
+  RideOrderRepositoryInterface rideOrderRepositoryInterface =
+      RideOrderRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => rideOrderRepositoryInterface);
+
+  TripRepositoryInterface tripRepositoryInterface =
+      TripRepository(apiClient: Get.find());
+  Get.lazyPut(() => tripRepositoryInterface);
+
+  SafetyAlertRepositoryInterface safetyAlertRepositoryInterface =
+      SafetyAlertRepository(apiClient: Get.find());
+  Get.lazyPut(() => safetyAlertRepositoryInterface);
+
+  RidePaymentRepositoryInterface ridePaymentRepositoryInterface =
+      RidePaymentRepository(apiClient: Get.find(), sharedPreferences: Get.find());
+  Get.lazyPut(() => ridePaymentRepositoryInterface);
+
+  // Service module repositories
+  ServiceRepositoryInterface serviceRepositoryInterface =
+      ServiceRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceRepositoryInterface);
+
+  ServiceDetailsRepositoryInterface serviceDetailsRepositoryInterface =
+      ServiceDetailsRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceDetailsRepositoryInterface);
+
+  ProviderDetailsRepositoryInterface providerDetailsRepositoryInterface =
+      ProviderDetailsRepository(apiClient: Get.find());
+  Get.lazyPut(() => providerDetailsRepositoryInterface, fenix: true);
+
+  ServiceCategoryRepositoryInterface serviceCategoryRepositoryInterface =
+      ServiceCategoryRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceCategoryRepositoryInterface, fenix: true);
+
+  ServiceCartRepositoryInterface serviceCartRepositoryInterface =
+      ServiceCartRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceCartRepositoryInterface, fenix: true);
+
+  ServiceCheckoutRepositoryInterface serviceCheckoutRepositoryInterface =
+      ServiceCheckoutRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceCheckoutRepositoryInterface, fenix: true);
+
+  CustomServiceRequestRepositoryInterface customServiceRequestRepositoryInterface =
+      CustomServiceRequestRepository(apiClient: Get.find());
+  Get.lazyPut(() => customServiceRequestRepositoryInterface, fenix: true);
+
+  RequestedServiceRepositoryInterface requestedServiceRepositoryInterface =
+      RequestedServiceRepository(apiClient: Get.find());
+  Get.lazyPut(() => requestedServiceRepositoryInterface, fenix: true);
+
+  BookingRepositoryInterface bookingRepositoryInterface =
+      BookingRepository(apiClient: Get.find());
+  Get.lazyPut(() => bookingRepositoryInterface, fenix: true);
+
+  ServiceReviewRepositoryInterface serviceReviewRepositoryInterface =
+      ServiceReviewRepository(apiClient: Get.find());
+  Get.lazyPut(() => serviceReviewRepositoryInterface, fenix: true);
+
+  /// Services
   CheckoutServiceInterface checkoutServiceInterface =
       CheckoutService(checkoutRepositoryInterface: Get.find());
   Get.lazyPut(() => checkoutServiceInterface);
@@ -406,22 +595,22 @@ Future<Map<String, Map<String, String>>> init() async {
 
   LocationServiceInterface locationServiceInterface =
       LocationService(locationRepoInterface: Get.find());
+  Get.lazyPut(() => locationServiceInterface);
 
-  DeliverymanRegistrationServiceInterface
-      deliverymanRegistrationServiceInterface = DeliverymanRegistrationService(
-          deliverymanRegistrationRepoInterface: Get.find(),
-          authRepositoryInterface: Get.find());
+  DeliverymanRegistrationServiceInterface deliverymanRegistrationServiceInterface =
+      DeliverymanRegistrationService(deliverymanRegistrationRepoInterface: Get.find(), authRepositoryInterface: Get.find());
   Get.lazyPut(() => deliverymanRegistrationServiceInterface);
 
   StoreRegistrationServiceInterface storeRegistrationServiceInterface =
-      StoreRegistrationService(
-          deliverymanRegistrationRepositoryInterface: Get.find(),
-          storeRegistrationRepoInterface: Get.find());
+      StoreRegistrationService(deliverymanRegistrationRepositoryInterface: Get.find(), storeRegistrationRepoInterface: Get.find());
   Get.lazyPut(() => storeRegistrationServiceInterface);
 
-  ParcelServiceInterface parcelServiceInterface = ParcelService(
-      parcelRepositoryInterface: Get.find(),
-      checkoutRepositoryInterface: Get.find());
+  ReelsServiceInterface reelsServiceInterface =
+      ReelsService(reelsRepositoryInterface: Get.find());
+  Get.lazyPut(() => reelsServiceInterface, fenix: true);
+
+  ParcelServiceInterface parcelServiceInterface =
+      ParcelService(parcelRepositoryInterface: Get.find(), checkoutRepositoryInterface: Get.find());
   Get.lazyPut(() => parcelServiceInterface);
 
   AddressServiceInterface addressServiceInterface =
@@ -431,6 +620,10 @@ Future<Map<String, Map<String, String>>> init() async {
   OrderServiceInterface orderServiceInterface =
       OrderService(orderRepositoryInterface: Get.find());
   Get.lazyPut(() => orderServiceInterface);
+
+  OfferServiceInterface offerServiceInterface =
+      OfferService(offerRepositoryInterface: Get.find());
+  Get.lazyPut(() => offerServiceInterface);
 
   PaymentServiceInterface paymentServiceInterface =
       PaymentService(paymentRepositoryInterface: Get.find());
@@ -443,10 +636,6 @@ Future<Map<String, Map<String, String>>> init() async {
   ChatServiceInterface chatServiceInterface =
       ChatService(chatRepositoryInterface: Get.find());
   Get.lazyPut(() => chatServiceInterface);
-
-  AiChatBotServiceInterface aiChatBotServiceInterface =
-      AiChatBotService(aiChatBotRepositoryInterface: Get.find());
-  Get.lazyPut(() => aiChatBotServiceInterface);
 
   CouponServiceInterface couponServiceInterface =
       CouponService(couponRepositoryInterface: Get.find());
@@ -467,6 +656,10 @@ Future<Map<String, Map<String, String>>> init() async {
   BannerServiceInterface bannerServiceInterface =
       BannerService(bannerRepositoryInterface: Get.find());
   Get.lazyPut(() => bannerServiceInterface);
+
+  SmartBannerServiceInterface smartBannerServiceInterface =
+      SmartBannerService(smartBannerRepositoryInterface: Get.find());
+  Get.lazyPut(() => smartBannerServiceInterface);
 
   HtmlServiceInterface htmlServiceInterface =
       HtmlService(htmlRepositoryInterface: Get.find());
@@ -514,7 +707,7 @@ Future<Map<String, Map<String, String>>> init() async {
 
   CategoryServiceInterface categoryServiceInterface =
       CategoryService(categoryRepositoryInterface: Get.find());
-  Get.lazyPut(() => categoryServiceInterface);
+  Get.lazyPut(() => categoryServiceInterface, fenix: true);
 
   LoyaltyServiceInterface loyaltyServiceInterface =
       LoyaltyService(loyaltyRepositoryInterface: Get.find());
@@ -525,8 +718,7 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => cartServiceInterface);
 
   VerificationServiceInterface verificationServiceInterface =
-      VerificationService(
-          verificationRepoInterface: Get.find(), authRepoInterface: Get.find());
+      VerificationService(verificationRepoInterface: Get.find(), authRepoInterface: Get.find());
   Get.lazyPut(() => verificationServiceInterface);
 
   BrandsServiceInterface brandsServiceInterface =
@@ -537,68 +729,137 @@ Future<Map<String, Map<String, String>>> init() async {
       BusinessService(businessRepoInterface: Get.find());
   Get.lazyPut(() => businessServiceInterface);
 
-  AdvertisementServiceInterface advertisementServiceInterface =
-      AdvertisementService(advertisementRepositoryInterface: Get.find());
-  Get.lazyPut(() => advertisementServiceInterface);
-
   ProServiceInterface proServiceInterface =
       ProService(proRepositoryInterface: Get.find());
   Get.lazyPut(() => proServiceInterface);
 
-  OfferServiceInterface offerServiceInterface =
-      OfferService(offerRepositoryInterface: Get.find());
-  Get.lazyPut(() => offerServiceInterface);
+  AdvertisementServiceInterface advertisementServiceInterface =
+      AdvertisementService(advertisementRepositoryInterface: Get.find());
+  Get.lazyPut(() => advertisementServiceInterface);
 
-  SmartBannerServiceInterface smartBannerServiceInterface =
-      SmartBannerService(smartBannerRepositoryInterface: Get.find());
-  Get.lazyPut(() => smartBannerServiceInterface);
+  AiChatBotServiceInterface aiChatBotServiceInterface =
+      AiChatBotService(aiChatBotRepositoryInterface: Get.find());
+  Get.lazyPut(() => aiChatBotServiceInterface);
 
-  ReelsRepositoryInterface reelsRepositoryInterface = ReelsRepository(apiClient: Get.find());
-  Get.lazyPut(() => reelsRepositoryInterface);
-  ReelsServiceInterface reelsServiceInterface = ReelsService(reelsRepositoryInterface: Get.find());
-  Get.lazyPut(() => reelsServiceInterface, fenix: true);
+  // Rental services
+  TaxiLocationServiceInterface taxiLocationServiceInterface =
+      TaxiLocationService(taxiRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiLocationServiceInterface);
 
-  TaxiHomeRepositoryInterface taxiHomeRepositoryInterface = TaxiHomeRepository(apiClient: Get.find(), sharedPreferences: Get.find());
-  Get.lazyPut(() => taxiHomeRepositoryInterface);
-  TaxiHomeServiceInterface taxiHomeServiceInterface = TaxiHomeService(taxiHomeRepositoryInterface: Get.find());
+  TaxiHomeServiceInterface taxiHomeServiceInterface =
+      TaxiHomeService(taxiHomeRepositoryInterface: Get.find());
   Get.lazyPut(() => taxiHomeServiceInterface);
 
-  TaxiCartRepositoryInterface taxiCartRepositoryInterface = TaxiCartRepository(apiClient: Get.find());
-  Get.lazyPut(() => taxiCartRepositoryInterface);
-  TaxiCartServiceInterface taxiCartServiceInterface = TaxiCartService(taxiCartRepositoryInterface: Get.find());
+  TaxiCartServiceInterface taxiCartServiceInterface =
+      TaxiCartService(taxiCartRepositoryInterface: Get.find());
   Get.lazyPut(() => taxiCartServiceInterface);
 
-  /// Controller
+  TaxiVendorServiceInterface taxiVendorServiceInterface =
+      TaxiVendorService(taxiVendorRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiVendorServiceInterface);
+
+  VerifiedProviderServiceInterface verifiedProviderServiceInterface =
+      VerifiedProviderService(verifiedProviderRepositoryInterface: Get.find());
+  Get.lazyPut(() => verifiedProviderServiceInterface);
+
+  TaxiOrderServiceInterface taxiOrderServiceInterface =
+      TaxiOrderService(taxiOrderRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiOrderServiceInterface);
+
+  TaxiFavouriteServiceInterface taxiFavouriteServiceInterface =
+      TaxiFavouriteService(taxiFavouriteRepositoryInterface: Get.find());
+  Get.lazyPut(() => taxiFavouriteServiceInterface);
+
+  // Ride share services
+  SearchLocationServiceInterface searchLocationServiceInterface =
+      SearchLocationService(searchLocationRepositoryInterface: Get.find());
+  Get.lazyPut(() => searchLocationServiceInterface);
+
+  RideHomeServiceInterface rideHomeServiceInterface =
+      RideHomeService(rideHomeRepositoryInterface: Get.find());
+  Get.lazyPut(() => rideHomeServiceInterface);
+
+  RideOrderServiceInterface rideOrderServiceInterface =
+      RideOrderService(rideOrderRepositoryInterface: Get.find());
+  Get.lazyPut(() => rideOrderServiceInterface);
+
+  TripServiceInterface tripServiceInterface =
+      TripService(tripRepositoryInterface: Get.find());
+  Get.lazyPut(() => tripServiceInterface);
+
+  SafetyAlertServiceInterface safetyAlertServiceInterface =
+      SafetyAlertService(safetyAlertRepositoryInterface: Get.find());
+  Get.lazyPut(() => safetyAlertServiceInterface);
+
+  RidePaymentServiceInterface ridePaymentServiceInterface =
+      RidePaymentService(ridePaymentRepositoryInterface: Get.find());
+  Get.lazyPut(() => ridePaymentServiceInterface);
+
+  // Service module services
+  ServiceServiceInterface serviceServiceInterface =
+      ServiceService(serviceRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceServiceInterface, fenix: true);
+
+  ServiceDetailsServiceInterface serviceDetailsServiceInterface =
+      ServiceDetailsService(serviceDetailsRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceDetailsServiceInterface);
+
+  ProviderDetailsServiceInterface providerDetailsServiceInterface =
+      ProviderDetailsService(providerDetailsRepositoryInterface: Get.find());
+  Get.lazyPut(() => providerDetailsServiceInterface, fenix: true);
+
+  ServiceCategoryServiceInterface serviceCategoryServiceInterface =
+      ServiceCategoryService(serviceCategoryRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceCategoryServiceInterface, fenix: true);
+
+  ServiceCartServiceInterface serviceCartServiceInterface =
+      ServiceCartService(serviceCartRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceCartServiceInterface, fenix: true);
+
+  ServiceCheckoutServiceInterface serviceCheckoutServiceInterface =
+      ServiceCheckoutService(serviceCheckoutRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceCheckoutServiceInterface, fenix: true);
+
+  CustomServiceRequestServiceInterface customServiceRequestServiceInterface =
+      CustomServiceRequestService(customServiceRequestRepositoryInterface: Get.find());
+  Get.lazyPut(() => customServiceRequestServiceInterface, fenix: true);
+
+  RequestedServiceServiceInterface requestedServiceServiceInterface =
+      RequestedServiceService(requestedServiceRepositoryInterface: Get.find());
+  Get.lazyPut(() => requestedServiceServiceInterface, fenix: true);
+
+  BookingServiceInterface bookingServiceInterface =
+      BookingService(bookingRepositoryInterface: Get.find());
+  Get.lazyPut(() => bookingServiceInterface, fenix: true);
+
+  ServiceReviewServiceInterface serviceReviewServiceInterface =
+      ServiceReviewService(serviceReviewRepositoryInterface: Get.find());
+  Get.lazyPut(() => serviceReviewServiceInterface, fenix: true);
+
+  /// Controllers
   Get.lazyPut(() => ThemeController(sharedPreferences: Get.find()));
-    Get.lazyPut(() => ReelsController(reelsServiceInterface: Get.find()), fenix: true);
-  Get.lazyPut(() => TaxiHomeController(taxiHomeServiceInterface: Get.find()));
-  Get.lazyPut(() => TaxiCartController(taxiCartServiceInterface: Get.find()));
   Get.lazyPut(() => SplashController(splashServiceInterface: Get.find()));
   Get.lazyPut(() => AddressController(addressServiceInterface: Get.find()));
-  Get.lazyPut(() =>
-      LocationController(locationServiceInterface: locationServiceInterface));
-  Get.lazyPut(
-      () => LocalizationController(languageServiceInterface: Get.find()));
+  Get.lazyPut(() => LocationController(locationServiceInterface: locationServiceInterface));
+  Get.lazyPut(() => LocalizationController(languageServiceInterface: Get.find()));
   Get.lazyPut(() => OnBoardingController(onboardServiceInterface: Get.find()));
   Get.lazyPut(() => AuthController(authServiceInterface: Get.find()));
-  Get.lazyPut(() => DeliverymanRegistrationController(
-      deliverymanRegistrationServiceInterface: Get.find()));
-  Get.lazyPut(() => StoreRegistrationController(
-      storeRegistrationServiceInterface: Get.find(),
-      locationServiceInterface: locationServiceInterface));
+  Get.lazyPut(() => DeliverymanRegistrationController(deliverymanRegistrationServiceInterface: Get.find()));
+  Get.lazyPut(() => StoreRegistrationController(storeRegistrationServiceInterface: Get.find(), locationServiceInterface: locationServiceInterface));
   Get.lazyPut(() => ProfileController(profileServiceInterface: Get.find()));
   Get.lazyPut(() => BannerController(bannerServiceInterface: Get.find()));
-  Get.lazyPut(() => CategoryController(categoryServiceInterface: Get.find()));
+  Get.lazyPut(() => CategoryController(categoryServiceInterface: Get.find()), fenix: true);
   Get.lazyPut(() => ItemController(itemServiceInterface: Get.find()));
   Get.lazyPut(() => CartController(cartServiceInterface: Get.find()));
-  Get.lazyPut(() => StoreController(storeServiceInterface: Get.find()));
+  Get.lazyPut(() => StoreController(storeServiceInterface: storeServiceInterface));
   Get.lazyPut(() => FavouriteController(favouriteServiceInterface: Get.find()));
   Get.lazyPut(() => HomeController(homeServiceInterface: Get.find()));
+  Get.lazyPut(() => ReelsController(reelsServiceInterface: Get.find()), fenix: true);
   Get.lazyPut(() => SearchController(searchServiceInterface: Get.find()));
   Get.lazyPut(() => CouponController(couponServiceInterface: Get.find()));
   Get.lazyPut(() => OrderController(orderServiceInterface: Get.find()));
-  Get.lazyPut(
-      () => NotificationController(notificationServiceInterface: Get.find()));
+  Get.lazyPut(() => OfferController(offerServiceInterface: Get.find()));
+  Get.lazyPut(() => NotificationController(notificationServiceInterface: Get.find()));
   Get.lazyPut(() => CampaignController(campaignServiceInterface: Get.find()));
   Get.lazyPut(() => ParcelController(parcelServiceInterface: Get.find()));
   Get.lazyPut(() => WalletController(walletServiceInterface: Get.find()));
@@ -609,18 +870,52 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => PaymentController(paymentServiceInterface: Get.find()));
   Get.lazyPut(() => HtmlController(htmlServiceInterface: Get.find()));
   Get.lazyPut(() => ReviewController(reviewServiceInterface: Get.find()));
-  Get.lazyPut(() => CategoryController(categoryServiceInterface: Get.find()));
   Get.lazyPut(() => LoyaltyController(loyaltyServiceInterface: Get.find()));
-  Get.lazyPut(
-      () => VerificationController(verificationServiceInterface: Get.find()));
+  Get.lazyPut(() => VerificationController(verificationServiceInterface: Get.find()));
   Get.lazyPut(() => BrandsController(brandsServiceInterface: Get.find()));
   Get.lazyPut(() => BusinessController(businessServiceInterface: Get.find()));
-  Get.lazyPut(
-      () => AdvertisementController(advertisementServiceInterface: Get.find()));
   Get.lazyPut(() => ProController(proServiceInterface: Get.find()));
-  Get.lazyPut(() => OfferController(offerServiceInterface: Get.find()));
+  Get.lazyPut(() => AdvertisementController(advertisementServiceInterface: Get.find()));
   Get.lazyPut(() => SmartBannerController(smartBannerServiceInterface: Get.find()));
 
+  // Rental controllers
+  Get.lazyPut(() => TaxiLocationController(taxiLocationServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiHomeController(taxiHomeServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiCartController(taxiCartServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiVendorController(taxiVendorServiceInterface: Get.find()));
+  Get.lazyPut(() => VerifiedProviderController(verifiedProviderServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiOrderController(taxiOrderServiceInterface: Get.find()));
+  Get.lazyPut(() => TaxiFavouriteController(taxiFavouriteServiceInterface: Get.find()));
+
+  // Ride Share controllers
+  Get.lazyPut(() => SearchLocationController(searchLocationServiceInterface: Get.find(), locationServiceInterface: Get.find()));
+  Get.lazyPut(() => RideHomeController(rideHomeServiceInterface: Get.find()));
+  Get.lazyPut(() => MapController());
+  Get.lazyPut(() => RideController(rideOrderServiceInterface: Get.find()));
+  Get.lazyPut(() => TripController(tripServiceInterface: Get.find()));
+  Get.lazyPut(() => SafetyAlertController(safetyAlertServiceInterface: Get.find()));
+  Get.lazyPut(() => RidePaymentController(ridePaymentServiceInterface: Get.find()));
+
+  // Service Module controllers
+  Get.lazyPut(() => ServiceController(serviceServiceInterface: Get.find(), bookingServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceExploreController(serviceServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceVerifiedProviderController(serviceServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceCampaignController(serviceServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceDetailsController(serviceDetailsServiceInterface: Get.find()));
+  Get.lazyPut(() => ProviderDataController(providerDetailsServiceInterface: Get.find(), bookingServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceCategoryController(serviceCategoryServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceCartController(serviceCartServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceCheckoutController(serviceCheckoutServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => CustomServiceRequestController(
+    categoryServiceInterface: Get.find(),
+    customServiceRequestServiceInterface: Get.find(),
+  ), fenix: true);
+  Get.lazyPut(() => RequestedServiceController(
+    categoryServiceInterface: Get.find(),
+    requestedServiceServiceInterface: Get.find(),
+  ), fenix: true);
+  Get.lazyPut(() => BookingController(bookingServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => ServiceReviewController(serviceReviewServiceInterface: Get.find()), fenix: true);
 
   /// Retrieving localized data
   Map<String, Map<String, String>> languages = {};
@@ -636,9 +931,4 @@ Future<Map<String, Map<String, String>>> init() async {
         json;
   }
   return languages;
-
 }
-
-
-
-

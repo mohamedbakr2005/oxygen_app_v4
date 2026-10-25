@@ -7,6 +7,7 @@ import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/recommended_product_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_banner_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_category_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/repositories/store_repository_interface.dart';
 import 'package:Oxygen_Mart/features/store/domain/services/store_service_interface.dart';
@@ -155,5 +156,20 @@ class StoreService implements StoreServiceInterface {
       }
     }
     return replace;
+  }
+
+  @override
+  Future<StoreModel?> getQuickDeliveryStores({int offset = 1, int limit = 10, int? moduleId, String name = ''}) async {
+    return await storeRepositoryInterface.getQuickDeliveryStores(offset: offset, limit: limit, moduleId: moduleId, name: name);
+  }
+
+  @override
+  Future<StoreModel?> getNearbyStores({int offset = 1, int limit = 10, int? moduleId, String name = ''}) async {
+    return await storeRepositoryInterface.getNearbyStores(offset: offset, limit: limit, moduleId: moduleId, name: name);
+  }
+
+  @override
+  Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId) async {
+    return await storeRepositoryInterface.getStoreCategoryItems(storeId);
   }
 }

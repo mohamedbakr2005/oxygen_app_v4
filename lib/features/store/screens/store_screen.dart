@@ -1,15 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/common/widgets/item_view.dart';
 import 'package:Oxygen_Mart/common/widgets/item_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/paginated_list_view.dart';
-import 'package:Oxygen_Mart/common/widgets/veg_filter_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/web_item_view.dart';
 import 'package:Oxygen_Mart/common/widgets/web_item_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
@@ -17,10 +16,8 @@ import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/category/controllers/category_controller.dart';
 import 'package:Oxygen_Mart/features/category/domain/models/category_model.dart';
 import 'package:Oxygen_Mart/features/checkout/screens/checkout_screen.dart';
-import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
-import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/pro/screens/subscription_plan_screen.dart';
 import 'package:Oxygen_Mart/features/pro/widgets/pro_plan_banner_widget.dart';
@@ -29,7 +26,6 @@ import 'package:Oxygen_Mart/features/search/widgets/custom_check_box_widget.dart
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
-import 'package:Oxygen_Mart/features/store/widgets/customizable_space_bar_widget.dart';
 import 'package:Oxygen_Mart/features/store/widgets/store_banner_widget.dart';
 import 'package:Oxygen_Mart/features/store/widgets/store_description_view_widget.dart';
 import 'package:Oxygen_Mart/features/store/widgets/store_details_screen_shimmer_widget.dart';
@@ -43,9 +39,15 @@ import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 
+import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
+import 'package:Oxygen_Mart/helper/address_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/bottom_cart_widget.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:Oxygen_Mart/features/store/widgets/store_hero_widget.dart';
+import 'package:Oxygen_Mart/common/widgets/back_to_top.dart';
 import 'package:Oxygen_Mart/features/store/widgets/store_header_info_widget.dart';
 
 class StoreScreen extends StatefulWidget {
@@ -65,22 +67,71 @@ class StoreScreen extends StatefulWidget {
 class _StoreScreenState extends State<StoreScreen> {
   final ScrollController scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  ModuleModel? _initialModule;
+  bool _showBackToTop = false;
+  static const double _backToTopThreshold = 400;
+
+  void _scrollToTop() {
+    scrollController.animateTo(0, duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+  }
 
   @override
   void initState() {
     super.initState();
-
+    _initialModule = Get.find<SplashController>().module;
     initDataCall();
   }
 
   @override
   void dispose() {
-    super.dispose();
-
+    _restoreModuleContext();
     scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _restoreModuleContext() {
+    if (!Get.isRegistered<SplashController>()) return;
+    final splash = Get.find<SplashController>();
+    if (_initialModule == null) {
+      splash.setModule(null, notify: true);
+      splash.selectHomeModule();
+      if (Get.isRegistered<ApiClient>() && Get.isRegistered<SharedPreferences>()) {
+        final addressModel = AddressHelper.getUserAddressFromSharedPref();
+        Get.find<ApiClient>().updateHeader(
+          Get.find<SharedPreferences>().getString(AppConstants.token),
+          addressModel?.zoneIds,
+          addressModel?.areaIds,
+          Get.find<LocalizationController>().locale.languageCode,
+          null,
+          addressModel?.latitude,
+          addressModel?.longitude,
+          null,
+        );
+      }
+    } else {
+      splash.setModule(_initialModule, notify: true);
+      if (Get.isRegistered<ApiClient>() && Get.isRegistered<SharedPreferences>()) {
+        final addressModel = AddressHelper.getUserAddressFromSharedPref();
+        Get.find<ApiClient>().updateHeader(
+          Get.find<SharedPreferences>().getString(AppConstants.token),
+          addressModel?.zoneIds,
+          addressModel?.areaIds,
+          Get.find<LocalizationController>().locale.languageCode,
+          _initialModule!.id,
+          addressModel?.latitude,
+          addressModel?.longitude,
+          null,
+        );
+      }
+    }
   }
 
   Future<void> initDataCall() async {
+    if (kDebugMode) {
+      print('[STORE_SCREEN] OPEN id: ${widget.store?.id}, slug: ${widget.slug}, fromModule: ${widget.fromModule}');
+      print('[STORE_SCREEN] ACTIVE MODULE: ${Get.find<SplashController>().module?.id} (${Get.find<SplashController>().module?.moduleType})');
+    }
     Get.find<StoreController>().clearStoreDetails(); // Clear stale data first
     if (Get.find<StoreController>().isSearching) {
       Get.find<StoreController>().changeSearchStatus(isUpdate: false);
@@ -88,12 +139,40 @@ class _StoreScreenState extends State<StoreScreen> {
     Get.find<StoreController>().hideAnimation();
 
     // 1. Fetch Store Details (Awaited)
-    await Get.find<StoreController>().getStoreDetails(
+    final Store? storeDetails = await Get.find<StoreController>().getStoreDetails(
       Store(id: widget.store!.id),
       widget.fromModule,
       slug: widget.slug,
     );
     Get.find<StoreController>().showButtonAnimation();
+
+    // 2. Set module context for store screen
+    final int? storeModuleId = storeDetails?.moduleId ?? widget.store?.moduleId;
+    ModuleModel? storeModule;
+    if (storeModuleId != null && Get.find<SplashController>().moduleList != null) {
+      for (final ModuleModel m in Get.find<SplashController>().moduleList!) {
+        if (m.id == storeModuleId) {
+          storeModule = m;
+          break;
+        }
+      }
+    }
+    if (storeModule != null) {
+      Get.find<SplashController>().setModule(storeModule, notify: false);
+      final addressModel = AddressHelper.getUserAddressFromSharedPref();
+      if (Get.isRegistered<ApiClient>() && Get.isRegistered<SharedPreferences>()) {
+        Get.find<ApiClient>().updateHeader(
+          Get.find<SharedPreferences>().getString(AppConstants.token),
+          addressModel?.zoneIds,
+          addressModel?.areaIds,
+          Get.find<LocalizationController>().locale.languageCode,
+          storeModule.id,
+          addressModel?.latitude,
+          addressModel?.longitude,
+          null,
+        );
+      }
+    }
 
     if (Get.find<SplashController>().proStaus && AuthHelper.isLoggedIn()) {
       Get.find<ProController>().getProActiveOffer(
@@ -101,25 +180,25 @@ class _StoreScreenState extends State<StoreScreen> {
       );
     }
 
-    // 2. Fetch Categories if missing (Awaited)
-    if (Get.find<CategoryController>().categoryList == null) {
-      await Get.find<CategoryController>().getCategoryList(true);
+    // 3. Fetch Categories for this store's module (Awaited)
+    await Get.find<CategoryController>().getCategoryList(true);
+    Get.find<StoreController>().setCategoryList();
+
+    // 4. Parallel fetch for other store-specific data
+    final int? targetStoreId = widget.store!.id ?? Get.find<StoreController>().store?.id;
+    if (targetStoreId != null) {
+      await Future.wait([
+        Get.find<StoreController>().getStoreBannerList(targetStoreId),
+        Get.find<StoreController>().getRestaurantRecommendedItemList(targetStoreId, false),
+        Get.find<StoreController>().getStoreItemList(targetStoreId, 1, 'all', false),
+      ]);
     }
 
-    // 3. Parallel fetch for other store-specific data
-    await Future.wait([
-      Get.find<StoreController>().getStoreBannerList(
-          widget.store!.id ?? Get.find<StoreController>().store!.id),
-      Get.find<StoreController>().getRestaurantRecommendedItemList(
-          widget.store!.id ?? Get.find<StoreController>().store!.id, false),
-      Get.find<StoreController>().getStoreItemList(
-          widget.store!.id ?? Get.find<StoreController>().store!.id,
-          1,
-          'all',
-          false),
-    ]);
-
     scrollController.addListener(() {
+      final bool showBackToTop = scrollController.position.pixels > _backToTopThreshold;
+      if (showBackToTop != _showBackToTop) {
+        setState(() => _showBackToTop = showBackToTop);
+      }
       if (scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
         if (Get.find<StoreController>().showFavButton) {
@@ -137,7 +216,14 @@ class _StoreScreenState extends State<StoreScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          _restoreModuleContext();
+        }
+      },
+      child: Scaffold(
         appBar: ResponsiveHelper.isDesktop(context) ? const WebMenuBar() : null,
         endDrawer: const MenuDrawer(),
         endDrawerEnableOpenDragGesture: false,
@@ -151,15 +237,19 @@ class _StoreScreenState extends State<StoreScreen> {
               store = storeController.store;
               storeController.setCategoryList();
             }
+            final String? currentModuleType =
+                storeController.store?.moduleType ??
+                    Get.find<SplashController>().module?.moduleType;
             final bool isPharmacy =
-                Get.find<SplashController>().module?.moduleType.toString() ==
-                    AppConstants.pharmacy;
+                currentModuleType?.toString() == AppConstants.pharmacy;
             return RefreshIndicator(
               onRefresh: () async => await initDataCall(),
               child: (storeController.store != null &&
                       storeController.store!.name != null &&
                       categoryController.categoryList != null)
-                  ? CustomScrollView(
+                  ? Stack(
+                      children: [
+                        CustomScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       controller: scrollController,
                       slivers: [
@@ -263,7 +353,7 @@ class _StoreScreenState extends State<StoreScreen> {
                                       StoreHeroWidget(store: store),
                                       StoreHeaderInfoWidget(
                                         store: store,
-                                        distance: '${store!.distance != null ? store!.distance!.toStringAsFixed(2) : storeController.getRestaurantDistance(LatLng(double.parse(store!.latitude!), double.parse(store!.longitude!))).toStringAsFixed(2)} ${'km'.tr}',
+                                        distance: '${store?.distance != null ? store!.distance!.toStringAsFixed(2) : ((store?.latitude != null && store?.longitude != null) ? storeController.getRestaurantDistance(LatLng(double.parse(store!.latitude!), double.parse(store.longitude!))).toStringAsFixed(2) : '0')} ${'km'.tr}',
                                       ),
                                     ],
                                   ),
@@ -1512,7 +1602,14 @@ class _StoreScreenState extends State<StoreScreen> {
                               ),
                             )),
                     ],
-                  )
+                  ),
+                  BackToTopButton(
+                    visible: _showBackToTop,
+                    onTap: _scrollToTop,
+                    top: 75,
+                  ),
+                ],
+              )
                 : const StoreDetailsScreenShimmerWidget(),
             );
           });
@@ -1592,7 +1689,9 @@ class _StoreScreenState extends State<StoreScreen> {
                   !ResponsiveHelper.isDesktop(context)
               ? const BottomCartWidget()
               : const SizedBox();
-        }));
+        }),
+      ),
+    );
   }
 
   Widget _buildPharmacyGradientHeader(

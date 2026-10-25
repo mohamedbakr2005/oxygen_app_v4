@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
+import 'package:Oxygen_Mart/helper/address_helper.dart';
 
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
@@ -272,29 +274,42 @@ class CartController extends GetxController implements GetxService {
         'Item',
         storeId: cartModel.item?.storeId,
       );
-      await addToCartOnline(onlineCart, storeId: cartModel.item?.storeId);
+      await addToCartOnline(onlineCart, storeId: cartModel.item?.storeId, trackEvent: false);
     }
 
-        try {
+    try {
       FirebaseAnalytics.instance.logAddToCart(
         items: [
           AnalyticsEventItem(
             itemId: cartModel.item?.id?.toString() ?? '',
             itemName: cartModel.item?.name ?? '',
-            price: cartModel.discountedPrice ?? cartModel.price ?? 0,
+            price: (cartModel.discountedPrice ?? cartModel.price ?? cartModel.item?.price ?? 0).toDouble(),
             quantity: cartModel.quantity ?? 1,
           )
         ],
       );
     } catch (_) {}
     try {
+      final double price = (cartModel.discountedPrice ?? cartModel.price ?? cartModel.item?.price ?? 0).toDouble();
+      final int qty = cartModel.quantity ?? 1;
+      final String itemId = cartModel.item?.id?.toString() ?? 'unknown';
+      final String itemName = cartModel.item?.name ?? 'unknown';
+
       Get.find<MetaAnalyticsService>().addToCart(
-        contentId: cartModel.item?.id?.toString() ?? '',
-        contentName: cartModel.item?.name ?? '',
-        price: cartModel.discountedPrice ?? cartModel.price ?? 0,
-        quantity: cartModel.quantity ?? 1,
-        value: (cartModel.discountedPrice ?? cartModel.price ?? 0) * (cartModel.quantity ?? 1),
+        contentId: itemId,
+        contentName: itemName,
+        quantity: qty,
+        price: price,
         currency: 'EGP',
+        value: price * qty,
+        contentIds: [itemId],
+        contents: [
+          {
+            'id': itemId,
+            'quantity': qty,
+            'item_price': price,
+          }
+        ],
       );
     } catch (_) {}
     calculationCart();
@@ -441,7 +456,8 @@ class CartController extends GetxController implements GetxService {
     }
   }
 
-  Future<bool> addToCartOnline(OnlineCart cart, {int? storeId}) async {
+  Future<bool> addToCartOnline(OnlineCart cart, {int? storeId, bool trackEvent = true}) async {
+    final int beforeCount = _cartList.length;
     _isLoading = true;
     bool success = false;
     update();
@@ -459,14 +475,53 @@ class CartController extends GetxController implements GetxService {
       calculationCart();
       success = true;
       await getAllCarts(notify: false);
+
+      if (trackEvent) {
+        try {
+          final addedCartModel = _cartList.firstWhereOrNull((c) => c.item?.id == (cart.itemId ?? cart.itemCampaignId));
+          final item = addedCartModel?.item;
+          final double price = (addedCartModel?.discountedPrice ?? addedCartModel?.price ?? item?.price ?? 0.0).toDouble();
+          final int qty = cart.quantity ?? 1;
+          final String itemIdStr = (cart.itemId ?? cart.itemCampaignId)?.toString() ?? item?.id?.toString() ?? 'unknown';
+          final String itemName = item?.name ?? 'unknown';
+
+          Get.find<MetaAnalyticsService>().addToCart(
+            contentId: itemIdStr,
+            contentName: itemName,
+            quantity: qty,
+            price: price,
+            currency: 'EGP',
+            value: price * qty,
+            contentIds: [itemIdStr],
+            contents: [
+              {
+                'id': itemIdStr,
+                'quantity': qty,
+                'item_price': price,
+              }
+            ],
+          );
+        } catch (_) {}
+      }
     }
     _isLoading = false;
     update();
+
+    _logCartDiagnostic(
+      action: 'ADD_TO_CART',
+      storeId: storeId,
+      productId: cart.itemId,
+      quantity: cart.quantity,
+      apiResult: success ? 'SUCCESS' : 'FAILED',
+      stateBeforeCount: beforeCount,
+      stateAfterCount: _cartList.length,
+    );
 
     return success;
   }
 
   Future<bool> updateCartOnline(OnlineCart cart, {int? storeId}) async {
+    final int beforeCount = _cartList.length;
     _isLoading = true;
     bool success = false;
     update();
@@ -488,10 +543,21 @@ class CartController extends GetxController implements GetxService {
     _isLoading = false;
     update();
 
+    _logCartDiagnostic(
+      action: 'UPDATE_CART',
+      storeId: storeId,
+      productId: cart.itemId,
+      quantity: cart.quantity,
+      apiResult: success ? 'SUCCESS' : 'FAILED',
+      stateBeforeCount: beforeCount,
+      stateAfterCount: _cartList.length,
+    );
+
     return success;
   }
 
   Future<void> updateCartQuantityOnline(int cartId, double price, int quantity, {int? storeId}) async {
+    final int beforeCount = _cartList.length;
     _isLoading = true;
     update();
     bool success = await cartServiceInterface.updateCartQuantityOnline(cartId, price, quantity, storeId: storeId);
@@ -506,10 +572,21 @@ class CartController extends GetxController implements GetxService {
     }
     _isLoading = false;
     update();
+
+    _logCartDiagnostic(
+      action: 'UPDATE_QUANTITY',
+      storeId: storeId,
+      productId: cartId,
+      quantity: quantity,
+      apiResult: success ? 'SUCCESS' : 'FAILED',
+      stateBeforeCount: beforeCount,
+      stateAfterCount: _cartList.length,
+    );
   }
 
   Future<void> getCartDataOnline({int? storeId}) async {
     if(ModuleHelper.getModule() != null || ModuleHelper.getCacheModule() != null) {
+      final int beforeCount = _cartList.length;
       _isLoading = true;
       // Schedule update after build phase completes to avoid "setState during build" error
       Future.microtask(() => update());
@@ -524,10 +601,19 @@ class CartController extends GetxController implements GetxService {
       }
       _isLoading = false;
       update();
+
+      _logCartDiagnostic(
+        action: 'GET_CART_ONLINE',
+        storeId: storeId,
+        apiResult: onlineCartList != null ? 'SUCCESS (${onlineCartList.length} items)' : 'EMPTY/FAILED',
+        stateBeforeCount: beforeCount,
+        stateAfterCount: _cartList.length,
+      );
     }
   }
 
   Future<bool> removeCartItemOnline(int cartId, {Item? item, int? storeId}) async {
+    final int beforeCount = _cartList.length;
     _isLoading = true;
     update();
     bool success = await cartServiceInterface.removeCartItemOnline(cartId, storeId: storeId);
@@ -543,10 +629,21 @@ class CartController extends GetxController implements GetxService {
     }
     _isLoading = false;
     update();
+
+    _logCartDiagnostic(
+      action: 'REMOVE_ITEM',
+      storeId: storeId,
+      productId: cartId,
+      apiResult: success ? 'SUCCESS' : 'FAILED',
+      stateBeforeCount: beforeCount,
+      stateAfterCount: _cartList.length,
+    );
+
     return success;
   }
 
   Future<bool> clearCartOnline() async {
+    final int beforeCount = _cartList.length;
     _isLoading = true;
     update();
     bool success = await cartServiceInterface.clearCartOnline();
@@ -555,6 +652,14 @@ class CartController extends GetxController implements GetxService {
     }
     _isLoading = false;
     update();
+
+    _logCartDiagnostic(
+      action: 'CLEAR_CART',
+      apiResult: success ? 'SUCCESS' : 'FAILED',
+      stateBeforeCount: beforeCount,
+      stateAfterCount: _cartList.length,
+    );
+
     return success;
   }
 
@@ -628,6 +733,12 @@ class CartController extends GetxController implements GetxService {
     _isAllCartsLoading = false;
     _isLoading = false;
     update();
+
+    _logCartDiagnostic(
+      action: 'GET_ALL_CARTS',
+      apiResult: result != null ? 'SUCCESS (${result.length} store groups)' : 'EMPTY/FAILED',
+      stateAfterCount: _cartList.length,
+    );
   }
 
   AllCartsModel? getCartsForStore(int storeId) {
@@ -663,5 +774,39 @@ class CartController extends GetxController implements GetxService {
 
   void handleRealtimeCartEvent(dynamic data) {
     getCartDataOnline();
+  }
+
+  void _logCartDiagnostic({
+    required String action,
+    int? storeId,
+    int? productId,
+    int? quantity,
+    String? apiResult,
+    int? stateBeforeCount,
+    int? stateAfterCount,
+  }) {
+    if (kDebugMode) {
+      final bool isGuest = AuthHelper.isGuestLoggedIn();
+      final bool isLogged = AuthHelper.isLoggedIn();
+      final String userType = isLogged ? 'AUTHENTICATED' : (isGuest ? 'GUEST' : 'ANONYMOUS');
+      final int? moduleId = ModuleHelper.getModule()?.id ?? ModuleHelper.getCacheModule()?.id;
+      final String? moduleSource = ModuleHelper.getModule()?.moduleType ?? ModuleHelper.getCacheModule()?.moduleType;
+      final int? zoneId = AddressHelper.getUserAddressFromSharedPref()?.zoneId;
+
+      debugPrint('══════════════ [CART DIAGNOSTIC] ══════════════');
+      debugPrint('CART ACTION: $action');
+      debugPrint('CURRENT USER TYPE: $userType (Logged: $isLogged, Guest: $isGuest, GuestId: ${AuthHelper.getGuestId()})');
+      debugPrint('CURRENT MODULE ID: $moduleId (Source: $moduleSource)');
+      debugPrint('CURRENT ZONE ID: $zoneId');
+      debugPrint('CURRENT STORE ID: $storeId');
+      if (productId != null) debugPrint('PRODUCT ID: $productId');
+      if (quantity != null) debugPrint('QUANTITY: $quantity');
+      if (apiResult != null) debugPrint('API RESULT: $apiResult');
+      if (stateBeforeCount != null) debugPrint('CART STATE BEFORE: $stateBeforeCount items');
+      if (stateAfterCount != null) debugPrint('CART STATE AFTER: $stateAfterCount items');
+      debugPrint('CART ITEM COUNT (Total: $allCartsItemCount, CurrentModule: ${_cartList.length})');
+      debugPrint('CART CONTROLLER INSTANCE: ${identityHashCode(this)}');
+      debugPrint('════════════════════════════════════════════════');
+    }
   }
 }

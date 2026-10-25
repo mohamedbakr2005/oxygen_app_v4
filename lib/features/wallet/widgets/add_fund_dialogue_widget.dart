@@ -57,179 +57,302 @@ class _AddFundDialogueWidgetState extends State<AddFundDialogueWidget> {
     super.dispose();
   }
 
+  void _addQuickAmount(int amount) {
+    double current = double.tryParse(inputAmountController.text) ?? 0;
+    double next = current + amount;
+    setState(() {
+      inputAmountController.text = next.toStringAsFixed(0);
+      Get.find<WalletController>().isTextFieldEmpty(inputAmountController.text);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      Align(
-        alignment: Alignment.topRight,
-        child: InkWell(
-          onTap: () {
-            Get.back();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).cardColor.withOpacity(0.5),
-            ),
-            padding: const EdgeInsets.all(3),
-            child: const Icon(Icons.clear),
-          ),
-        ),
-      ),
-      const SizedBox(height: Dimensions.paddingSizeSmall),
-      GetBuilder<WalletController>(builder: (walletController) {
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-            color: Theme.of(context).cardColor,
-          ),
+    return Center(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
           width: context.width * 0.9,
           constraints: BoxConstraints(
-              minHeight: context.height * 0.34,
-              maxHeight: context.height * 0.7),
-          padding: const EdgeInsets.all(Dimensions.paddingSizeLarge),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const SizedBox(height: Dimensions.paddingSizeLarge),
-            Text('add_fund_to_wallet'.tr,
-                style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge)),
-            const SizedBox(height: Dimensions.paddingSizeSmall),
-            Text('add_fund_form_secured_digital_payment_gateways'.tr,
-                style:
-                    robotoRegular.copyWith(fontSize: Dimensions.fontSizeSmall),
-                textAlign: TextAlign.center),
-            const SizedBox(height: Dimensions.paddingSizeLarge),
-            CustomTextField(
-              hintText: 'enter_amount'.tr,
-              titleText: 'enter_amount'.tr,
-              showLabelText: false,
-              inputType: TextInputType.number,
-              focusNode: focusNode,
-              inputAction: TextInputAction.done,
-              controller: inputAmountController,
-              textAlign: TextAlign.center,
-              isAmount: true,
-              onChanged: (String value) {
-                _checkFormatters(value);
-                try {
-                  if (double.parse(value) > 0) {
-                    walletController.isTextFieldEmpty(value);
-                  }
-                } catch (e) {
-                  walletController.isTextFieldEmpty('');
-                }
-              },
-            ),
-            const SizedBox(height: Dimensions.paddingSizeLarge),
-            Flexible(
-              child: RichText(
-                text: TextSpan(children: [
-                  TextSpan(
-                      text: 'choose_payment_method'.tr,
-                      style: robotoBold.copyWith(
-                          fontSize: Dimensions.fontSizeLarge,
-                          color: Theme.of(context).textTheme.bodyLarge!.color)),
-                  const TextSpan(text: ' '),
-                  TextSpan(
-                    text: 'faster_and_secure_way_to_pay_bill'.tr,
-                    style: robotoRegular.copyWith(
-                        fontSize: Dimensions.fontSizeSmall,
-                        color: Theme.of(context).hintColor),
-                  ),
-                ]),
+            minHeight: context.height * 0.34,
+            maxHeight: context.height * 0.8,
+            maxWidth: 500,
+          ),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
-            ),
-            Flexible(
-              child: Scrollbar(
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    const SizedBox(height: Dimensions.paddingSizeSmall),
-                    ListView.builder(
-                      itemCount: Get.find<SplashController>()
+            ],
+          ),
+          child: GetBuilder<WalletController>(builder: (walletController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header with Close Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SizedBox(width: 32),
+                      Container(
+                        height: 52,
+                        width: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F7A42), Color(0xFF1EA35D)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1EA35D).withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => Get.back(),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(context)
+                                .disabledColor
+                                .withOpacity(0.15),
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: Theme.of(context).hintColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  Text(
+                    'add_fund_to_wallet'.tr,
+                    style: robotoBold.copyWith(
+                      fontSize: Dimensions.fontSizeLarge + 2,
+                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'add_fund_form_secured_digital_payment_gateways'.tr,
+                    style: robotoRegular.copyWith(
+                      fontSize: Dimensions.fontSizeSmall,
+                      color: Theme.of(context).hintColor,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Amount TextField
+                  CustomTextField(
+                    hintText: '0',
+                    titleText: 'enter_amount'.tr,
+                    showLabelText: false,
+                    inputType: TextInputType.number,
+                    focusNode: focusNode,
+                    inputAction: TextInputAction.done,
+                    controller: inputAmountController,
+                    textAlign: TextAlign.center,
+                    isAmount: true,
+                    onChanged: (String value) {
+                      _checkFormatters(value);
+                      try {
+                        if (double.parse(value) > 0) {
+                          walletController.isTextFieldEmpty(value);
+                        }
+                      } catch (e) {
+                        walletController.isTextFieldEmpty('');
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Quick Amount Chips (+50, +100, +200, +500)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildQuickAmountChip('+50', () => _addQuickAmount(50)),
+                      const SizedBox(width: 8),
+                      _buildQuickAmountChip('+100', () => _addQuickAmount(100)),
+                      const SizedBox(width: 8),
+                      _buildQuickAmountChip('+200', () => _addQuickAmount(200)),
+                      const SizedBox(width: 8),
+                      _buildQuickAmountChip('+500', () => _addQuickAmount(500)),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Payment method selector header
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'choose_payment_method'.tr,
+                      style: robotoBold.copyWith(
+                        fontSize: Dimensions.fontSizeDefault,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Payment method list
+                  ListView.separated(
+                    itemCount: Get.find<SplashController>()
+                            .configModel
+                            ?.activePaymentMethodList
+                            ?.length ??
+                        0,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    separatorBuilder: (c, i) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = Get.find<SplashController>()
                           .configModel!
-                          .activePaymentMethodList!
-                          .length,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        bool isSelected = Get.find<SplashController>()
-                                .configModel!
-                                .activePaymentMethodList![index]
-                                .getWay! ==
-                            walletController.digitalPaymentName;
-                        return InkWell(
-                          onTap: () {
-                            walletController.changeDigitalPaymentName(
-                                Get.find<SplashController>()
-                                    .configModel!
-                                    .activePaymentMethodList![index]
-                                    .getWay!);
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Theme.of(context)
-                                        .primaryColor
-                                        .withOpacity(0.05)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(
-                                    Dimensions.radiusDefault)),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: Dimensions.paddingSizeSmall,
-                                vertical: Dimensions.paddingSizeLarge),
-                            child: Row(children: [
+                          .activePaymentMethodList![index];
+                      bool isSelected =
+                          item.getWay == walletController.digitalPaymentName;
+
+                      return InkWell(
+                        onTap: () {
+                          walletController
+                              .changeDigitalPaymentName(item.getWay!);
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.06)
+                                : Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : Theme.of(context)
+                                      .disabledColor
+                                      .withOpacity(0.2),
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
                               Container(
-                                height: 20,
-                                width: 20,
+                                height: 22,
+                                width: 22,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? Colors.green
-                                      : Theme.of(context).cardColor,
+                                      ? const Color(0xFF0F7A42)
+                                      : Colors.transparent,
                                   border: Border.all(
-                                      color: Theme.of(context).disabledColor),
+                                    color: isSelected
+                                        ? const Color(0xFF0F7A42)
+                                        : Theme.of(context).disabledColor,
+                                    width: 1.5,
+                                  ),
                                 ),
-                                child: Icon(Icons.check,
-                                    color: Theme.of(context).cardColor,
-                                    size: 16),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 15,
+                                      )
+                                    : null,
                               ),
                               const SizedBox(
                                   width: Dimensions.paddingSizeDefault),
                               CustomImage(
-                                height: 20,
+                                height: 24,
+                                width: 40,
                                 fit: BoxFit.contain,
-                                image:
-                                    '${Get.find<SplashController>().configModel!.activePaymentMethodList![index].getWayImageFullUrl}',
+                                image: '${item.getWayImageFullUrl}',
                               ),
-                              const SizedBox(
-                                  width: Dimensions.paddingSizeSmall),
-                              Text(
-                                Get.find<SplashController>()
-                                    .configModel!
-                                    .activePaymentMethodList![index]
-                                    .getWayTitle!,
-                                style: robotoMedium.copyWith(
-                                    fontSize: Dimensions.fontSizeDefault),
+                              const SizedBox(width: Dimensions.paddingSizeSmall),
+                              Expanded(
+                                child: Text(
+                                  item.getWayTitle ?? '',
+                                  style: robotoMedium.copyWith(
+                                    fontSize: Dimensions.fontSizeDefault,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.color,
+                                  ),
+                                ),
                               ),
-                            ]),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: Dimensions.paddingSizeLarge),
-                  ]),
-                ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Add Fund Action Button
+                  CustomButton(
+                    radius: Dimensions.radiusDefault,
+                    isBold: true,
+                    buttonText: 'add_fund'.tr,
+                    isLoading: walletController.isLoading,
+                    onPressed: () => _onAddFundButtonClicked(walletController),
+                  ),
+                ],
               ),
-            ),
-            CustomButton(
-              buttonText: 'add_fund'.tr,
-              isLoading: walletController.isLoading,
-              onPressed: () => _onAddFundButtonClicked(walletController),
-            ),
-          ]),
-        );
-      }),
-    ]);
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickAmountChip(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Theme.of(context).primaryColor.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: robotoBold.copyWith(
+            fontSize: 12,
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
+      ),
+    );
   }
 
   void _checkFormatters(String value) {

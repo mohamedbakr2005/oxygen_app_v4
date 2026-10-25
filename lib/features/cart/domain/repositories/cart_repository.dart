@@ -115,10 +115,11 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   Future<List<OnlineCartModel>?> _getCartDataOnline({int? storeId}) async {
     List<OnlineCartModel>? onlineCartList;
     final String? token = sharedPreferences.getString(AppConstants.token);
+    final int? cacheModuleId = ModuleHelper.getCacheModule()?.id;
     Map<String, String>? header = {
       'Content-Type': 'application/json; charset=UTF-8',
       AppConstants.localizationKey: AppConstants.languages[0].languageCode!,
-      AppConstants.moduleId: '${ModuleHelper.getCacheModule()?.id}',
+      if (cacheModuleId != null) AppConstants.moduleId: '$cacheModuleId',
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
 
@@ -182,10 +183,11 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   Future<List<AllCartsModel>?> getAllCarts() async {
     List<AllCartsModel>? allCarts;
     final String? token = sharedPreferences.getString(AppConstants.token);
+    final int? cacheModuleId = ModuleHelper.getCacheModule()?.id;
     Map<String, String>? header = {
       'Content-Type': 'application/json; charset=UTF-8',
       AppConstants.localizationKey: AppConstants.languages[0].languageCode!,
-      AppConstants.moduleId: '${ModuleHelper.getCacheModule()?.id}',
+      if (cacheModuleId != null) AppConstants.moduleId: '$cacheModuleId',
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
     if(ModuleHelper.getCacheModule()?.id == null) {

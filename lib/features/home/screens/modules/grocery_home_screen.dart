@@ -47,7 +47,7 @@ class GroceryHomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: Dimensions.paddingSizeSmall),
 
-        const ModuleListWidget(),
+        // const ModuleListWidget(),
         const SpecialOfferView(isFood: false, isShop: false),
         // const TodaysDealsSectionWidget(),
         const SizedBox(height: Dimensions.paddingSizeSmall),

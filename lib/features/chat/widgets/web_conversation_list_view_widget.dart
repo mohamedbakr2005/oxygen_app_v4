@@ -45,7 +45,6 @@ class _WebConversationListViewWidgetState
 
   @override
   Widget build(BuildContext context) {
-    User? user;
     return (widget.conversation != null &&
             widget.conversation?.conversations != null)
         ? widget.conversation!.conversations!.isNotEmpty
@@ -77,23 +76,28 @@ class _WebConversationListViewWidgetState
                           padding: const EdgeInsets.symmetric(
                               horizontal: Dimensions.paddingSizeLarge),
                           itemBuilder: (context, index) {
-                            String? type;
-                            if (widget.conversation!.conversations![index]!
-                                        .senderType ==
-                                    UserType.user.name ||
-                                widget.conversation?.conversations![index]!
-                                        .senderType ==
-                                    UserType.customer.name) {
-                              user = widget.conversation?.conversations![index]!
-                                  .receiver;
-                              type = widget.conversation?.conversations![index]!
-                                  .receiverType;
-                            } else {
-                              user = widget
-                                  .conversation?.conversations![index]!.sender;
-                              type = widget.conversation?.conversations![index]!
-                                  .senderType;
+                            final Conversation? conv = widget.conversation?.conversations?[index];
+                            if (conv == null) {
+                              return const SizedBox.shrink();
                             }
+
+                            String? type;
+                            User? user;
+                            if (conv.senderType == UserType.user.name ||
+                                conv.senderType == UserType.customer.name) {
+                              user = conv.receiver;
+                              type = conv.receiverType;
+                            } else {
+                              user = conv.sender;
+                              type = conv.senderType;
+                            }
+
+                            final String userName = user != null
+                                ? '${user.fName ?? ''} ${user.lName ?? ''}'.trim()
+                                : '';
+                            final String displayTitle = userName.isNotEmpty
+                                ? userName
+                                : '${(type ?? 'user').tr} ${'deleted'.tr}';
 
                             return Column(
                               children: [
@@ -112,38 +116,11 @@ class _WebConversationListViewWidgetState
                                   ),
                                   child: CustomInkWell(
                                     onTap: () {
-                                      String? type;
-                                      if (widget
-                                                  .conversation!
-                                                  .conversations![index]!
-                                                  .senderType ==
-                                              UserType.user.name ||
-                                          widget
-                                                  .conversation
-                                                  ?.conversations![index]!
-                                                  .senderType ==
-                                              UserType.customer.name) {
-                                        user = widget.conversation
-                                            ?.conversations![index]!.receiver;
-                                        type = widget
-                                            .conversation
-                                            ?.conversations![index]!
-                                            .receiverType;
-                                      } else {
-                                        user = widget.conversation
-                                            ?.conversations![index]!.sender;
-                                        type = widget.conversation
-                                            ?.conversations![index]!.senderType;
-                                      }
-
                                       if (AuthHelper.isLoggedIn()) {
                                         Get.find<ChatController>().getMessages(
                                             1,
                                             NotificationBodyModel(
-                                              type: widget
-                                                  .conversation!
-                                                  .conversations![index]!
-                                                  .senderType,
+                                              type: conv.senderType,
                                               notificationType:
                                                   NotificationType.message,
                                               adminId:
@@ -160,8 +137,7 @@ class _WebConversationListViewWidgetState
                                                   : null,
                                             ),
                                             user,
-                                            widget.conversation
-                                                ?.conversations![index]!.id,
+                                            conv.id,
                                             firstLoad: true);
                                         if (Get.find<ProfileController>()
                                                     .userInfoModel ==
@@ -190,13 +166,11 @@ class _WebConversationListViewWidgetState
                                                     UserType.delivery_man.name
                                                 ? user?.id
                                                 : null,
-                                            conversationId: widget.conversation
-                                                ?.conversations![index]!.id,
+                                            conversationId: conv.id,
                                             index: index,
                                             image:
-                                                '${user != null ? user?.imageFullUrl : ''}',
-                                            name:
-                                                '${user?.fName} ${user?.lName}',
+                                                '${user?.imageFullUrl ?? ''}',
+                                            name: userName,
                                             receiverType: type,
                                           ),
                                         );
@@ -220,7 +194,7 @@ class _WebConversationListViewWidgetState
                                             height: 50,
                                             width: 50,
                                             image:
-                                                '${user != null ? user?.imageFullUrl : ''}',
+                                                '${user?.imageFullUrl ?? ''}',
                                           )),
                                           const SizedBox(
                                               width:
@@ -232,123 +206,97 @@ class _WebConversationListViewWidgetState
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
-                                                user != null
-                                                    ? Text(
-                                                        '${user?.fName} ${user?.lName}',
-                                                        style: robotoMedium,
-                                                      )
-                                                    : Text(
-                                                        '${type!.tr} ${'deleted'.tr}',
-                                                        style: robotoMedium),
+                                                Text(
+                                                  displayTitle,
+                                                  style: robotoMedium,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                                 const SizedBox(
                                                     height: Dimensions
                                                         .paddingSizeExtraSmall),
-                                                widget
-                                                            .conversation!
-                                                            .conversations![
-                                                                index]!
-                                                            .lastMessage !=
-                                                        null
-                                                    ? Text(
-                                                        widget
-                                                                .conversation!
-                                                                .conversations![
-                                                                    index]!
-                                                                .lastMessage!
-                                                                .message ??
-                                                            '',
-                                                        style: robotoRegular.copyWith(
-                                                            fontSize: Dimensions
-                                                                .fontSizeSmall,
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .disabledColor),
-                                                      )
-                                                    : const SizedBox(),
+                                                if (conv.lastMessage?.message != null &&
+                                                    conv.lastMessage!.message!.isNotEmpty)
+                                                  Text(
+                                                    conv.lastMessage!.message!,
+                                                    style: robotoRegular.copyWith(
+                                                        fontSize: Dimensions
+                                                            .fontSizeSmall,
+                                                        color: Theme.of(
+                                                                context)
+                                                            .disabledColor),
+                                                  ),
                                               ])),
                                         ]),
                                       ),
-                                      Positioned(
-                                        right:
-                                            Get.find<LocalizationController>()
-                                                    .isLtr
-                                                ? 5
-                                                : null,
-                                        top: 15,
-                                        left: Get.find<LocalizationController>()
-                                                .isLtr
-                                            ? null
-                                            : 5,
-                                        child: Text(
-                                          DateConverter.convertOnlyTodayTime(
-                                              widget
-                                                  .conversation!
-                                                  .conversations![index]!
-                                                  .lastMessageTime!),
-                                          style: robotoRegular.copyWith(
-                                              color:
-                                                  Theme.of(context).hintColor,
-                                              fontSize: Dimensions
-                                                  .fontSizeExtraSmall),
+                                      if (conv.lastMessageTime != null &&
+                                          conv.lastMessageTime!.isNotEmpty)
+                                        Positioned(
+                                          right:
+                                              Get.find<LocalizationController>()
+                                                      .isLtr
+                                                  ? 5
+                                                  : null,
+                                          top: 15,
+                                          left: Get.find<LocalizationController>()
+                                                  .isLtr
+                                              ? null
+                                              : 5,
+                                          child: Text(
+                                            DateConverter.convertOnlyTodayTime(
+                                                conv.lastMessageTime!),
+                                            style: robotoRegular.copyWith(
+                                                color:
+                                                    Theme.of(context).hintColor,
+                                                fontSize: Dimensions
+                                                    .fontSizeExtraSmall),
+                                          ),
                                         ),
-                                      ),
                                       GetBuilder<ProfileController>(
                                           builder: (profileController) {
-                                        return (profileController
-                                                        .userInfoModel !=
-                                                    null &&
-                                                profileController.userInfoModel!
-                                                        .userInfo !=
-                                                    null &&
-                                                widget
-                                                        .conversation!
-                                                        .conversations![index]!
-                                                        .lastMessage!
-                                                        .senderId !=
-                                                    profileController
-                                                        .userInfoModel!
-                                                        .userInfo!
-                                                        .id &&
-                                                widget
-                                                        .conversation!
-                                                        .conversations![index]!
-                                                        .unreadMessageCount! >
-                                                    0)
-                                            ? Positioned(
-                                                right: Get.find<
-                                                            LocalizationController>()
-                                                        .isLtr
-                                                    ? 5
-                                                    : null,
-                                                bottom: 8,
-                                                left: Get.find<
-                                                            LocalizationController>()
-                                                        .isLtr
-                                                    ? null
-                                                    : 5,
-                                                child: Container(
-                                                  padding: const EdgeInsets.all(
-                                                      Dimensions
-                                                          .paddingSizeExtraSmall),
-                                                  decoration: BoxDecoration(
-                                                      color: Theme.of(context)
-                                                          .primaryColor,
-                                                      shape: BoxShape.circle),
-                                                  child: Text(
-                                                    widget
-                                                        .conversation!
-                                                        .conversations![index]!
-                                                        .unreadMessageCount
-                                                        .toString(),
-                                                    style: robotoMedium.copyWith(
-                                                        color: Theme.of(context)
-                                                            .cardColor,
-                                                        fontSize: Dimensions
-                                                            .fontSizeExtraSmall),
-                                                  ),
-                                                ),
-                                              )
-                                            : const SizedBox();
+                                        final int? currentUserId = profileController.userInfoModel?.userInfo?.id ??
+                                            profileController.userInfoModel?.id;
+                                        final int? senderId = conv.lastMessage?.senderId;
+                                        final int unreadCount = conv.unreadMessageCount ?? 0;
+                                        final bool showUnread = currentUserId != null &&
+                                            senderId != null &&
+                                            senderId != currentUserId &&
+                                            unreadCount > 0;
+
+                                        if (!showUnread) {
+                                          return const SizedBox();
+                                        }
+
+                                        return Positioned(
+                                          right: Get.find<
+                                                      LocalizationController>()
+                                                  .isLtr
+                                              ? 5
+                                              : null,
+                                          bottom: 8,
+                                          left: Get.find<
+                                                      LocalizationController>()
+                                                  .isLtr
+                                              ? null
+                                              : 5,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(
+                                                Dimensions
+                                                    .paddingSizeExtraSmall),
+                                            decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .primaryColor,
+                                                shape: BoxShape.circle),
+                                            child: Text(
+                                              unreadCount.toString(),
+                                              style: robotoMedium.copyWith(
+                                                  color: Theme.of(context)
+                                                      .cardColor,
+                                                  fontSize: Dimensions
+                                                      .fontSizeExtraSmall),
+                                            ),
+                                          ),
+                                        );
                                       }),
                                     ]),
                                   ),

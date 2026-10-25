@@ -22,6 +22,8 @@ import 'package:Oxygen_Mart/util/styles.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_app_bar.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
+import 'package:Oxygen_Mart/helper/validate_check.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -37,9 +39,24 @@ class VerificationScreen extends StatefulWidget {
   final bool fromForgetPassword;
   final UpdateUserModel? userModel;
   final bool backFromThis;
-  const VerificationScreen({super.key, required this.number, required this.password, required this.fromSignUp,
-    required this.token, this.email, required this.loginType, this.firebaseSession, required this.fromForgetPassword,
-    this.userModel, this.backFromThis = false});
+  final String? customerName;
+  final String? orderId;
+
+  const VerificationScreen({
+    super.key,
+    required this.number,
+    required this.password,
+    required this.fromSignUp,
+    required this.token,
+    this.email,
+    required this.loginType,
+    this.firebaseSession,
+    required this.fromForgetPassword,
+    this.userModel,
+    this.backFromThis = false,
+    this.customerName,
+    this.orderId,
+  });
 
   @override
   VerificationScreenState createState() => VerificationScreenState();
@@ -62,7 +79,8 @@ class VerificationScreenState extends State<VerificationScreen> {
 
     Get.find<VerificationController>().updateVerificationCode('', canUpdate: false);
     if(widget.number != null && widget.number!.isNotEmpty) {
-      _number = widget.number!.startsWith('+') ? widget.number : '+${widget.number!.substring(1, widget.number!.length)}';
+      String clean = widget.number!.replaceAll(' ', '').trim();
+      _number = clean.startsWith('+') ? clean : '+$clean';
     }
     _email = widget.email;
     _startTimer();
@@ -132,7 +150,7 @@ class VerificationScreenState extends State<VerificationScreen> {
                 child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                   RichText(text: TextSpan(children: [
                     TextSpan(text: 'we_have_a_verification_code'.tr, style: robotoRegular.copyWith(color: Theme.of(context).hintColor)),
-                    TextSpan(text: ' ${(_email != null && _email!.isNotEmpty) ? _email : _number}', style: robotoMedium.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color)),
+                    TextSpan(text: ' ${(_email != null && _email!.isNotEmpty) ? _email : ValidateCheck.maskPhone(_number)}', style: robotoMedium.copyWith(color: Theme.of(context).textTheme.bodyLarge!.color)),
                   ]), textAlign: TextAlign.center,),
                 ],
                 ),
@@ -208,10 +226,12 @@ class VerificationScreenState extends State<VerificationScreen> {
                       }
                       else if(widget.fromSignUp) {
                         verificationController.verifyPhone(data: VerificationDataModel(
-                          phone: _number, email: _email, verificationType: _number != null
+                          phone: _number?.replaceAll(' ', '').trim(), email: _email?.trim(), verificationType: _number != null
                             ? VerificationTypeEnum.phone.name : VerificationTypeEnum.email.name,
-                          otp: verificationController.verificationCode, loginType: widget.loginType,
+                          otp: verificationController.verificationCode.trim(), loginType: widget.loginType,
                           guestId: AuthHelper.getGuestId(),
+                          name: widget.customerName,
+                          orderId: widget.orderId,
                         )).then((value) {
                           if(value.isSuccess) {
                             _handleVerifyResponse(value, _number, _email);
@@ -291,7 +311,7 @@ class VerificationScreenState extends State<VerificationScreen> {
           backFromThis: widget.backFromThis,
         ));
       }
-    } else if(response.authResponseModel != null && !response.authResponseModel!.isPersonalInfo!) {
+    } else if(response.authResponseModel != null && response.authResponseModel!.isPersonalInfo == false) {
       if(ResponsiveHelper.isDesktop(context)) {
         Get.back();
         Get.dialog(NewUserSetupScreen(name: '', loginType: widget.loginType, phone: number, email: email, backFromThis: widget.backFromThis));
@@ -299,6 +319,8 @@ class VerificationScreenState extends State<VerificationScreen> {
         Get.toNamed(RouteHelper.getNewUserSetupScreen(name: '', loginType: widget.loginType, phone: number, email: email, backFromThis: widget.backFromThis));
       }
     } else {
+      Get.find<ProfileController>().getUserInfo();
+      Get.find<CartController>().getAllCarts();
 
       if(widget.fromForgetPassword) {
         Get.toNamed(RouteHelper.getResetPasswordRoute(phone: _number, email: _email, token: Get.find<VerificationController>().verificationCode, page: 'reset-password'));
@@ -319,7 +341,7 @@ class VerificationScreenState extends State<VerificationScreen> {
       Get.find<ProfileController>().updateUserInfo(widget.userModel!, Get.find<AuthController>().getUserToken(), fromVerification: true);
     } else if(widget.fromSignUp) {
       if(widget.loginType == CentralizeLoginType.otp.name) {
-        Get.find<AuthController>().otpLogin(phone: _number!, otp: '', loginType: widget.loginType, verified: '').then((response) {
+        Get.find<AuthController>().otpLogin(phone: _number!.replaceAll(' ', '').trim(), otp: '', loginType: widget.loginType, verified: '').then((response) {
           if (response.isSuccess) {
             _startTimer();
             showCustomSnackBar('resend_code_successful'.tr, isError: false);

@@ -1,14 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
 import 'package:Oxygen_Mart/features/coupon/domain/models/coupon_model.dart';
 import 'package:Oxygen_Mart/features/coupon/widgets/coupon_card_widget.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class CouponBottomSheet extends StatelessWidget {
   final int? storeId;
@@ -99,20 +98,18 @@ class CouponBottomSheet extends StatelessWidget {
                           );
                         },
                       )
-                    : Column(children: [
-                        Image.asset(Images.noCoupon, height: 70),
-                        const SizedBox(height: Dimensions.paddingSizeSmall),
-                        Text('no_promo_available'.tr, style: robotoMedium),
-                        const SizedBox(
-                            height: Dimensions.paddingSizeExtraSmall),
-                        Text(
-                          '${'please_add_manually_or_collect_promo_from'.tr} ${Get.find<SplashController>().configModel!.businessName!}',
-                          style: robotoMedium.copyWith(
-                              fontSize: Dimensions.fontSizeSmall,
-                              color: Theme.of(context).disabledColor),
-                        ),
-                        const SizedBox(height: 50),
-                      ])
+                    : Column(
+                        children: [
+                          Image.asset(Images.noCoupon,
+                              height: 70, width: 70),
+                          const SizedBox(height: Dimensions.paddingSizeSmall),
+                          Text('no_promo_available'.tr,
+                              style: robotoMedium.copyWith(
+                                  color: Theme.of(context).disabledColor)),
+                          const SizedBox(
+                              height: Dimensions.paddingSizeExtraLarge),
+                        ],
+                      )
                 : const Center(child: CircularProgressIndicator());
           })
         ]),

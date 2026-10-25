@@ -150,6 +150,7 @@ class AuthRepository implements AuthRepositoryInterface{
       activeModuleId,
       addressModel?.latitude,
       addressModel?.longitude,
+      addressModel?.zoneId,
     );
     return await sharedPreferences.setString(AppConstants.token, token);
   }
@@ -243,7 +244,7 @@ class AuthRepository implements AuthRepositoryInterface{
       AddressModel? addressModel = AddressModel.fromJson(jsonDecode(sharedPreferences.getString(AppConstants.userAddress)!));
       apiClient.updateHeader(
         null, addressModel.zoneIds, null, sharedPreferences.getString(AppConstants.languageCode), null,
-        addressModel.latitude, addressModel.longitude,
+        addressModel.latitude, addressModel.longitude, null,
       );
     }
     return true;

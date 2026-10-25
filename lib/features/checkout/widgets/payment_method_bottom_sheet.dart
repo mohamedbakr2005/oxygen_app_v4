@@ -1,124 +1,437 @@
-import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
-import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
-import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import 'package:Oxygen_Mart/features/checkout/widgets/payment_methods_view.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_ink_well.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
+import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
+import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/price_converter.dart';
+import 'package:Oxygen_Mart/helper/responsive_helper.dart';
+import 'package:Oxygen_Mart/util/dimensions.dart';
+import 'package:Oxygen_Mart/util/styles.dart';
 
 class PaymentMethodBottomSheet extends StatefulWidget {
   final bool isCashOnDeliveryActive;
   final bool isDigitalPaymentActive;
   final bool isOfflinePaymentActive;
-  final bool isWalletActive;
-  final int? storeId;
   final double totalPrice;
-  const PaymentMethodBottomSheet(
-      {super.key,
-      required this.isCashOnDeliveryActive,
-      required this.isDigitalPaymentActive,
-      required this.isWalletActive,
-      required this.storeId,
-      required this.totalPrice,
-      required this.isOfflinePaymentActive});
+  final PaymentModel? paymentModel;
+  final bool fromHome;
+  final bool isServiceModule;
+  final bool isPayAfterServiceActive;
+  const PaymentMethodBottomSheet({super.key, required this.isCashOnDeliveryActive, required this.isDigitalPaymentActive,
+    required this.totalPrice, required this.isOfflinePaymentActive, this.paymentModel, this.fromHome = false,
+    this.isServiceModule = false, this.isPayAfterServiceActive = false});
 
   @override
-  State<PaymentMethodBottomSheet> createState() =>
-      _PaymentMethodBottomSheetState();
+  State<PaymentMethodBottomSheet> createState() => _PaymentMethodBottomSheetState();
 }
 
 class _PaymentMethodBottomSheetState extends State<PaymentMethodBottomSheet> {
+  bool notHideCod = true;
+  bool notHideWallet = true;
+  bool notHideDigital = true;
+  final JustTheController tooltipController = JustTheController();
+  final TextEditingController _amountController = TextEditingController();
+  bool showChangeAmount = true;
+
   @override
   void initState() {
     super.initState();
-    final checkout = Get.find<CheckoutController>();
 
-    // نرجّع الـ payment method بس علشان مايفضلش محتفظ بالاختيار القديم
-    checkout.setPaymentMethod(-1, isUpdate: false);
+    CheckoutController checkoutController = Get.find<CheckoutController>();
 
-    print(
-        '=====digital payments : ${Get.find<SplashController>().configModel!.activePaymentMethodList!.first.toJson()}');
+    if(widget.paymentModel != null) {
+      checkoutController.getOfflineMethodList();
+      checkoutController.setPaymentMethod(-1, isUpdate: false);
+    }
+
+    if(checkoutController.exchangeAmount > 0) {
+      showChangeAmount = true;
+      _amountController.text = checkoutController.exchangeAmount.toString();
+    }
+
+    configurePartialPayment();
+  }
+
+  void configurePartialPayment() {
+    if(!AuthHelper.isGuestLoggedIn()) {
+      bool partialPaymentStatus = Get.find<SplashController>().configModel?.partialPaymentStatus ?? false;
+      
+      if(Get.find<CheckoutController>().isPartialPay){
+        notHideWallet = false;
+        if(Get.find<SplashController>().configModel!.partialPaymentMethod! == 'cod'){
+          notHideCod = true;
+          notHideDigital = false;
+        } else if(Get.find<SplashController>().configModel!.partialPaymentMethod! == 'digital_payment'){
+          notHideCod = false;
+          notHideDigital = true;
+        } else if(Get.find<SplashController>().configModel!.partialPaymentMethod! == 'both'){
+          notHideCod = true;
+          notHideDigital = true;
+        }
+      } else {
+        if(!partialPaymentStatus) {
+          double walletBalance = Get.find<ProfileController>().userInfoModel?.walletBalance ?? 0;
+          notHideWallet = walletBalance >= widget.totalPrice;
+        } else {
+          notHideWallet = true;
+        }
+        notHideCod = true;
+        notHideDigital = true;
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isDesktop = ResponsiveHelper.isDesktop(context);
-
     return SizedBox(
       width: 550,
-      child: Container(
-        constraints:
-            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.vertical(
-            top: const Radius.circular(24),
-            bottom: Radius.circular(ResponsiveHelper.isDesktop(context) ? 24 : 0),
+      child: GetBuilder<CheckoutController>(builder: (checkoutController) {
+        bool disablePayments = checkoutController.paymentMethodIndex == 1 && !checkoutController.isPartialPay;
+
+        return Container(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.vertical(top: const Radius.circular(Dimensions.radiusLarge), bottom: Radius.circular(ResponsiveHelper.isDesktop(context) ? Dimensions.radiusLarge : 0)),
           ),
-        ),
-        padding: EdgeInsets.symmetric(
-            horizontal: isDesktop
-                ? Dimensions.paddingSizeSmall
-                : Dimensions.paddingSizeLarge,
-            vertical: Dimensions.paddingSizeLarge),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ResponsiveHelper.isDesktop(context)
-              ? Align(
-                  alignment: Alignment.topRight,
-                  child: InkWell(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      height: 30,
-                      width: 30,
-                      margin: const EdgeInsets.symmetric(
-                          vertical: Dimensions.paddingSizeExtraSmall),
-                      decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(50)),
-                      child: const Icon(Icons.clear),
-                    ),
-                  ),
-                )
-              : Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                    height: 4,
-                    width: 35,
-                    margin: const EdgeInsets.symmetric(
-                        vertical: Dimensions.paddingSizeExtraSmall),
-                    decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+
+            ResponsiveHelper.isDesktop(context) ? Align(
+              alignment: Alignment.topRight,
+              child: InkWell(
+                onTap: () => Get.back(),
+                child: Container(
+                  height: 30, width: 30,
+                  margin: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeExtraSmall),
+                  decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(50)),
+                  child: const Icon(Icons.clear),
                 ),
-          const SizedBox(height: Dimensions.paddingSizeLarge),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? Dimensions.paddingSizeDefault : 0),
-                child: PaymentMethodsView(
-                  isCashOnDeliveryActive: widget.isCashOnDeliveryActive,
-                  isDigitalPaymentActive: widget.isDigitalPaymentActive,
-                  isWalletActive: widget.isWalletActive,
-                  storeId: widget.storeId,
-                  totalPrice: widget.totalPrice,
-                  isOfflinePaymentActive: widget.isOfflinePaymentActive,
+              ),
+            ) : Align(
+              alignment: Alignment.center,
+              child: Container(
+                height: 5, width: 40,
+                margin: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
+                decoration: BoxDecoration(color: Theme.of(context).disabledColor.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+
+            Text('choose_payment_method'.tr, style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge)),
+            const SizedBox(height: Dimensions.paddingSizeSmall),
+
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeLarge, vertical: Dimensions.paddingSizeSmall),
+                child: Column(
+                  children: [
+
+                    Text('total_bill'.tr, style: robotoMedium.copyWith(fontSize: 14, color: Colors.grey.shade700)),
+                    const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+
+                    Text(PriceConverter.convertPrice(widget.totalPrice), style: robotoMedium.copyWith(fontSize: 20, color: Theme.of(context).primaryColor)),
+                    const SizedBox(height: Dimensions.paddingSizeLarge),
+
+                    walletView(checkoutController),
+
+                    (widget.isServiceModule ? (widget.isPayAfterServiceActive && notHideCod) : (widget.isCashOnDeliveryActive && notHideCod)) ? paymentButtonView(
+                      padding: const EdgeInsets.only(bottom: Dimensions.paddingSizeDefault),
+                      title: widget.isServiceModule ? 'pay_after_service'.tr : 'cash_on_delivery'.tr,
+                      isSelected: checkoutController.paymentMethodIndex == 0,
+                      disablePayments: disablePayments,
+                      onTap: () {
+                        if (!disablePayments) {
+                          checkoutController.setPaymentMethod(3);
+                          if(showChangeAmount) {
+                            setState(() {
+                              showChangeAmount = false;
+                            });
+                          }
+                        }
+                      },
+                    ) : const SizedBox(),
+                  ],
                 ),
               ),
             ),
+
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall, horizontal: Dimensions.paddingSizeLarge),
+                child: GetBuilder<OrderController>(
+                  builder: (orderController) {
+                    return CustomButton(
+                      buttonText: widget.paymentModel == null ? 'select'.tr : 'proceed'.tr,
+                      isLoading: widget.paymentModel != null ? orderController.isLoading : false,
+                      onPressed: () {
+                        if(widget.paymentModel != null) {
+                          if(checkoutController.paymentMethodIndex == 0) {
+                            if((((widget.paymentModel?.maxCodOrderAmount != null && widget.paymentModel!.orderAmount! < widget.paymentModel!.maxCodOrderAmount!) || widget.paymentModel!.maxCodOrderAmount == null || widget.paymentModel!.maxCodOrderAmount == 0) && widget.paymentModel!.orderType != 'parcel') || widget.paymentModel!.orderType == 'parcel'){
+                              Get.find<CheckoutController>().paymentAfterDigitalCancel(widget.paymentModel!, widget.fromHome);
+                            } else {
+                              showCustomSnackBar('${'you_cant_order_more_then'.tr} ${PriceConverter.convertPrice(orderController.paymentModel!.maxCodOrderAmount)} ${'in_cash_on_delivery'.tr}', getXSnackBar: true);
+                              return;
+                            }
+                          } else {
+                            Get.find<CheckoutController>().paymentAfterDigitalCancel(widget.paymentModel!, widget.fromHome);
+                          }
+
+
+                        } else {
+                          Get.back();
+                        }
+                      },
+                    );
+                  }
+                ),
+              ),
+            ),
+
+          ]),
+        );
+      }),
+    );
+  }
+
+  Widget changeAmountView(CheckoutController checkoutController) {
+    return Column(children: [
+      AnimatedSize(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        child: showChangeAmount && checkoutController.paymentMethodIndex == 0 
+          ? AnimatedOpacity(
+              duration: const Duration(milliseconds: 250),
+              opacity: showChangeAmount ? 1.0 : 0.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).disabledColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                  border: Border.all(color: Theme.of(context).disabledColor.withValues(alpha: 0.2)),
+                ),
+                padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
+                margin: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, spacing: Dimensions.paddingSizeExtraSmall, children: [
+
+                  Text('${'change_amount'.tr}(${Get.find<SplashController>().configModel?.currencySymbol})', style: robotoBold.copyWith(
+                    color: checkoutController.paymentMethodIndex == 0 ? Theme.of(context).textTheme.bodyLarge!.color : Theme.of(context).disabledColor,
+                  )),
+
+                  Text(
+                    (widget.isServiceModule
+                        ? 'specify_the_amount_of_change_the_serviceman_needs_to_bring_when_delivering_the_order'
+                        : 'specify_the_amount_of_change_the_deliveryman_needs_to_bring_when_delivering_the_order').tr,
+                    style: robotoRegular.copyWith(color: Theme.of(context).disabledColor),
+                  ),
+                  const SizedBox(height: Dimensions.paddingSizeExtraSmall),
+
+                  CustomTextField(
+                    titleText: 'amount'.tr,
+                    showLabelText: false,
+                    inputType: TextInputType.number,
+                    isAmount: true,
+                    inputAction: TextInputAction.done,
+                    controller: _amountController,
+                    isEnabled: checkoutController.paymentMethodIndex == 0 ? true : false,
+                    onChanged: (String value){
+                      checkoutController.setExchangeAmount(double.tryParse(value) ?? 0);
+                    },
+                  ),
+                ]),
+              ),
+            )
+          : const SizedBox(),
+      ),
+
+      if(checkoutController.paymentMethodIndex == 0)
+        CustomInkWell(
+          onTap: (){
+            setState(() {
+              showChangeAmount = !showChangeAmount;
+            });
+          },
+          radius: Dimensions.radiusSmall,
+          padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
+          child: Text(showChangeAmount ? 'see_less'.tr : 'see_more'.tr , style: robotoBold.copyWith(color: Colors.blue)),
+        ),
+      const SizedBox(height: Dimensions.paddingSizeSmall),
+    ]);
+  }
+
+  Widget paymentButtonView({required String title, String? image, required bool isSelected, required Function? onTap, bool disablePayments = false, bool isDigitalPayment = false, required EdgeInsetsGeometry padding}) {
+    print('=======imammm: $image');
+    return Padding(
+      padding: padding,
+      child: InkWell(
+        onTap: onTap as void Function()?,
+        child: Container(
+          decoration: image != null ? null : BoxDecoration(
+            borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+            border: Border.all(color: isSelected && isDigitalPayment ? Theme.of(context).primaryColor.withValues(alpha: 0.2) : Theme.of(context).disabledColor.withValues(alpha: 0.2)),
           ),
-          SafeArea(
-            child: CustomButton(
-              radius: 16,
-              buttonText: 'select'.tr,
-              onPressed: () => Get.back(),
+          padding: const EdgeInsets.all(Dimensions.paddingSizeSmall),
+          child: Row(children: [
+
+            image != null ? CustomImage(
+              height: 15, fit: BoxFit.contain,
+              image: image, color: disablePayments ? Theme.of(context).disabledColor : null,
+            ) : const SizedBox(),
+            const SizedBox(width: Dimensions.paddingSizeSmall),
+
+            Expanded(
+              child: Text(
+                title,
+                style: isDigitalPayment ? robotoMedium.copyWith(fontSize: Dimensions.fontSizeSmall, color: disablePayments ? Theme.of(context).disabledColor : Theme.of(context).textTheme.bodyLarge!.color) :
+                robotoSemiBold.copyWith(fontSize: Dimensions.fontSizeDefault, color: disablePayments ? Theme.of(context).disabledColor : Theme.of(context).textTheme.bodyLarge!.color),
+              ),
+            ),
+
+            Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              size: 24,
+              color: isSelected ? Theme.of(context).primaryColor : Theme.of(context).disabledColor.withValues(alpha: 0.5),
+            ),
+
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget walletView(CheckoutController checkoutController) {
+    double walletBalance = Get.find<ProfileController>().userInfoModel?.walletBalance??0;
+    bool? partialPaymentStatus = Get.find<SplashController>().configModel?.partialPaymentStatus;
+    print(" partialPaymentStatus: $partialPaymentStatus");
+    double balance = 0;
+    if(walletBalance <= 0 || (widget.paymentModel != null && walletBalance < widget.totalPrice) || (walletBalance < widget.totalPrice && !partialPaymentStatus!)) {
+      return const SizedBox();
+    }
+    if(walletBalance > widget.totalPrice && checkoutController.paymentMethodIndex == 1) {
+      balance = walletBalance - widget.totalPrice;
+    }
+    bool isWalletSelected = checkoutController.paymentMethodIndex == 1 || checkoutController.isPartialPay;
+
+    return AuthHelper.isLoggedIn() && Get.find<SplashController>().configModel!.customerWalletStatus == 1
+        && Get.find<ProfileController>().userInfoModel != null && (checkoutController.distance != -1)
+        && Get.find<ProfileController>().userInfoModel!.walletBalance! > 0 && (notHideWallet || checkoutController.isPartialPay) ? Column(children: [
+      Container(
+        padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+        margin: const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeDefault),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+          border: Border.all(color: Theme.of(context).disabledColor, width: 0.3),
+        ),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+
+            Text(isWalletSelected ? 'wallet_remaining_balance'.tr : 'wallet_balance'.tr, style: robotoMedium.copyWith(fontSize: 12, color: Colors.grey.shade700)),
+
+            Row(children: [
+              Text(
+                PriceConverter.convertPrice(isWalletSelected ? balance : walletBalance),
+                style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeExtraLarge),
+              ),
+
+              Text(
+                isWalletSelected ? ' (${'applied'.tr})' : '',
+                style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).primaryColor),
+              ),
+            ])
+          ]),
+
+          CustomInkWell(
+            onTap: () {
+              if(isWalletSelected) {
+                checkoutController.setPaymentMethod(-1);
+                if(checkoutController.isPartialPay) {
+                  checkoutController.changePartialPayment();
+                }
+              } else {
+                if(checkoutController.isPartialPay) {
+                  checkoutController.changePartialPayment();
+                }
+                checkoutController.setPaymentMethod(1);
+                if(walletBalance < widget.totalPrice) {
+                  checkoutController.changePartialPayment();
+                }
+                if(showChangeAmount) {
+                  setState(() {
+                    showChangeAmount = false;
+                  });
+                }
+              }
+              configurePartialPayment();
+            },
+            radius: 5,
+            child: isWalletSelected ? const Icon(Icons.clear, color: Colors.red) : Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), border: Border.all(color: Theme.of(context).primaryColor, width: 1)),
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 20),
+              child: Text('apply'.tr, style: robotoMedium.copyWith(fontSize: 12, color: Theme.of(context).primaryColor)),
             ),
           ),
         ]),
       ),
-    );
+
+      if(isWalletSelected && !checkoutController.isPartialPay)
+        Container(
+          margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
+          decoration: BoxDecoration(
+            color: Theme.of(context).disabledColor.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+
+            Text('paid_by_wallet'.tr, style: robotoBold.copyWith(fontSize: 14)),
+            Text(PriceConverter.convertPrice(widget.totalPrice), style: robotoMedium.copyWith(fontSize: 18))
+
+          ]),
+        ),
+
+
+      if(isWalletSelected && checkoutController.isPartialPay)
+        Column(children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
+            decoration: BoxDecoration(
+              color: Theme.of(context).disabledColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Column(children: [
+
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+
+                Text('paid_by_wallet'.tr, style: robotoMedium.copyWith(fontSize: 14, color: Colors.grey.shade700)),
+                Text(PriceConverter.convertPrice(walletBalance), style: robotoMedium.copyWith(fontSize: 14, color: Colors.grey.shade700))
+
+              ]),
+              const SizedBox(height: 5),
+
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+
+                Text('remaining_bill'.tr, style: robotoMedium.copyWith(fontSize: 14)),
+                Text(PriceConverter.convertPrice(widget.totalPrice - walletBalance), style: robotoBold.copyWith(fontSize: 18)),
+
+              ])
+            ]),
+          ),
+
+          if(checkoutController.paymentMethodIndex == 1)
+            Text('* ${'please_select_a_option_to_pay_remain_billing_amount'.tr}', style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: const Color(0xFFE74B4B))),
+          const SizedBox(height: Dimensions.paddingSizeSmall),
+        ]),
+
+
+    ]) : const SizedBox();
   }
+
 }

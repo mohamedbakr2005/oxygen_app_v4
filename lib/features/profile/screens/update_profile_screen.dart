@@ -22,6 +22,7 @@ import 'package:Oxygen_Mart/features/profile/widgets/profile_bg_widget.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/custom_validator.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
+import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/helper/validate_check.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
@@ -92,41 +93,61 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     });
   }
 
+  Future<void> _handleBack(ProfileController profileController) async {
+    final bool hasNoPhone = profileController.userInfoModel?.phone == null || profileController.userInfoModel!.phone!.isEmpty;
+    if (hasNoPhone) {
+      await Get.find<AuthController>().clearSharedData();
+      Get.find<AuthController>().socialLogout();
+      Get.offAllNamed(RouteHelper.getInitialRoute());
+    } else {
+      Get.back();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isLoggedIn = Get.find<AuthController>().isLoggedIn();
-    return Scaffold(
-      appBar: ResponsiveHelper.isDesktop(context) ? const WebMenuBar() : null,
-      endDrawer: const MenuDrawer(),
-      endDrawerEnableOpenDragGesture: false,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: GetBuilder<ProfileController>(builder: (profileController) {
-        if (profileController.userInfoModel != null &&
-            _phoneController.text.isEmpty &&
-            _isPhoneLoading) {
-          if (profileController.userInfoModel?.phone != null &&
-              profileController.userInfoModel!.phone!.isNotEmpty) {
-            _splitPhoneNumber(profileController.userInfoModel!.phone!);
-          }
+    return GetBuilder<ProfileController>(builder: (profileController) {
+      if (profileController.userInfoModel != null &&
+          _phoneController.text.isEmpty &&
+          _isPhoneLoading) {
+        if (profileController.userInfoModel?.phone != null &&
+            profileController.userInfoModel!.phone!.isNotEmpty) {
+          _splitPhoneNumber(profileController.userInfoModel!.phone!);
         }
+      }
 
-        if (profileController.userInfoModel != null &&
-            _nameController.text.isEmpty) {
-          _nameController.text =
-              '${profileController.userInfoModel?.fName ?? ''} ${profileController.userInfoModel?.lName ?? ''}';
-        }
+      if (profileController.userInfoModel != null &&
+          _nameController.text.isEmpty) {
+        _nameController.text =
+            '${profileController.userInfoModel?.fName ?? ''} ${profileController.userInfoModel?.lName ?? ''}';
+      }
 
-        if (profileController.userInfoModel != null &&
-            _emailController.text.isEmpty) {
-          _emailController.text = profileController.userInfoModel?.email ?? '';
-        }
+      if (profileController.userInfoModel != null &&
+          _emailController.text.isEmpty) {
+        _emailController.text = profileController.userInfoModel?.email ?? '';
+      }
 
-        return isLoggedIn
-            ? profileController.userInfoModel != null
-                ? ResponsiveHelper.isDesktop(context)
-                    ? webView(profileController, isLoggedIn)
-                    : ProfileBgWidget(
-                        backButton: true,
+      final bool hasNoPhone = profileController.userInfoModel?.phone == null || profileController.userInfoModel!.phone!.isEmpty;
+
+      return PopScope(
+        canPop: !hasNoPhone,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          await _handleBack(profileController);
+        },
+        child: Scaffold(
+          appBar: ResponsiveHelper.isDesktop(context) ? const WebMenuBar() : null,
+          endDrawer: const MenuDrawer(),
+          endDrawerEnableOpenDragGesture: false,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: isLoggedIn
+              ? profileController.userInfoModel != null
+                  ? ResponsiveHelper.isDesktop(context)
+                      ? webView(profileController, isLoggedIn)
+                      : ProfileBgWidget(
+                          backButton: true,
+                          onBackPressed: () => _handleBack(profileController),
                         circularImage: Center(
                             child: Stack(children: [
                           ClipOval(
@@ -165,7 +186,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                               onTap: () => profileController.pickImage(),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.3),
+                                  color: Colors.black.withValues(alpha: 0.3),
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                       width: 1,
@@ -361,9 +382,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             : NotLoggedInScreen(callBack: (value) {
                 _initCall();
                 setState(() {});
-              });
-      }),
-    );
+              }),
+        ),
+      );
+    });
   }
 
   Widget webView(ProfileController profileController, bool isLoggedIn) {
@@ -411,7 +433,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                         bottom: Radius.circular(Dimensions.radiusDefault)),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           spreadRadius: 1,
                           blurRadius: 10,
                           offset: const Offset(0, 1))
@@ -454,7 +476,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           onTap: () => profileController.pickImage(),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
                             child: Container(

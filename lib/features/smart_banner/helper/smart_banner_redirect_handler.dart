@@ -37,23 +37,15 @@ class SmartBannerRedirectHandler {
     final SplashController splash = Get.find<SplashController>();
     final List<ModuleModel>? modules = splash.moduleList;
     if (modules == null || modules.isEmpty) return;
-    final ModuleModel? target = modules.firstWhereOrNull((ModuleModel m) => m.id == moduleId);
-    if (target != null) {
-      splash.switchModule(target);
+    final int index = modules.indexWhere((ModuleModel m) => m.id == moduleId);
+    if (index != -1) {
+      splash.selectModuleByTabIndex(index + 1);
     }
   }
 
   static void _handleStorePage(SmartBanner banner) {
     if (banner.redirectTargetId == null) {
       return;
-    }
-    if (Get.find<SplashController>().moduleList != null) {
-      for (ModuleModel module in Get.find<SplashController>().moduleList!) {
-        if (module.id == banner.moduleId) {
-          Get.find<SplashController>().setModule(module);
-          break;
-        }
-      }
     }
     Get.toNamed(RouteHelper.getStoreRoute(
       id: banner.redirectTargetId,
@@ -67,16 +59,9 @@ class SmartBannerRedirectHandler {
     if (banner.redirectTargetId == null) {
       return;
     }
-    if (Get.find<SplashController>().moduleList != null) {
-      for (ModuleModel module in Get.find<SplashController>().moduleList!) {
-        if (module.id == banner.moduleId) {
-          Get.find<SplashController>().setModule(module);
-          break;
-        }
-      }
-    }
     Get.toNamed(RouteHelper.getCategoryItemRoute(
-      banner.redirectTargetId, banner.title ?? '',
+      banner.redirectTargetId,
+      banner.title ?? '',
       moduleId: banner.moduleId,
       slug: 'category_${banner.redirectTargetId}',
     ));

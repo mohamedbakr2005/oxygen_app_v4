@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
+import 'package:Oxygen_Mart/features/order/domain/models/last_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_cancellation_body.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dart';
@@ -267,4 +269,36 @@ class OrderService implements OrderServiceInterface {
   Future<ReorderResponseModel?> reorder(int orderId) async {
     return await orderRepositoryInterface.reorder(orderId);
   }
+
+  @override
+  Future<bool> deleteOrder(int orderId) async {
+    return await orderRepositoryInterface.deleteOrder(orderId);
+  }
+
+  @override
+  Future<bool> switchToWalletPayment(String? orderID) async {
+    bool isSuccess = false;
+    Response response = await orderRepositoryInterface.switchToWalletPayment(orderID);
+    if (response.statusCode == 200) {
+      isSuccess = true;
+      showCustomSnackBar(response.body['message'], isError: false);
+    }
+    return isSuccess;
+  }
+
+  @override
+  Future<List<LastOrderModel>?> getLastOrders({required bool isHome, int? storeId}) async {
+    return await orderRepositoryInterface.getLastOrders(isHome: isHome, storeId: storeId);
+  }
+
+  @override
+  Future<bool> submitParcelReturn({required int orderId, required String orderStatus, required int returnOtp}) async {
+    return await orderRepositoryInterface.submitParcelReturn(orderId: orderId, orderStatus: orderStatus, returnOtp: returnOtp);
+  }
+
+  @override
+  Future<PaymentModel?> getPaymentFailedDetails(String? orderID) async {
+    return await orderRepositoryInterface.getPaymentFailedDetails(orderID);
+  }
 }
+

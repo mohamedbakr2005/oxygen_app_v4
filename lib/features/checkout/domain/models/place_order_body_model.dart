@@ -1,10 +1,10 @@
 import 'dart:convert';
-
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/helper/type_converter_helper.dart';
 
 class PlaceOrderBodyModel {
+  int? _isGuest;
   List<OnlineCart>? _cart;
   double? _couponDiscountAmount;
   double? _orderAmount;
@@ -41,10 +41,13 @@ class PlaceOrderBodyModel {
   double? _extraPackagingAmount;
   int? _createNewUser;
   String? _password;
-  int? _isGuest;
+  bool? isPrescriptionOrder;
+  double? _bringChangeAmount;
   bool? _monthlySubscribe;
+  String? _saverDeliveryType;
 
   PlaceOrderBodyModel({
+    int? isGuest,
     required List<OnlineCart> cart,
     required double? couponDiscountAmount,
     required String? couponCode,
@@ -53,37 +56,39 @@ class PlaceOrderBodyModel {
     required String paymentMethod,
     required int? storeId,
     required double? distance,
-    required String? scheduleAt,
+    String? scheduleAt,
     required double? discountAmount,
-    required double taxAmount,
+    double? taxAmount,
     required String orderNote,
-    required String? address,
+    String? address,
     required AddressModel? receiverDetails,
-    required String? latitude,
-    required String? longitude,
-    required int? senderZoneId,
-    required String contactPersonName,
-    required String? contactPersonNumber,
-    required String? addressType,
+    String? latitude,
+    String? longitude,
+    int? senderZoneId,
+    String? contactPersonName,
+    String? contactPersonNumber,
+    String? addressType,
     required String? parcelCategoryId,
     required String? chargePayer,
-    required String streetNumber,
-    required String house,
-    required String floor,
+    String? streetNumber,
+    String? house,
+    String? floor,
     required String dmTips,
     required String unavailableItemNote,
-    required String deliveryInstruction,
+    String? deliveryInstruction,
     required int cutlery,
     required int partialPayment,
     required int guestId,
     required int isBuyNow,
-    required String? guestEmail,
+    String? guestEmail,
     required double? extraPackagingAmount,
     required int? createNewUser,
     required String? password,
-    required int? isGuest,
+    this.isPrescriptionOrder = false,
+    double? bringChangeAmount,
     bool? monthlySubscribe,
-  }) {
+    String? saverDeliveryType,
+  }) : _isGuest = isGuest {
     _cart = cart;
     _couponDiscountAmount = couponDiscountAmount;
     _orderAmount = orderAmount;
@@ -120,8 +125,10 @@ class PlaceOrderBodyModel {
     _extraPackagingAmount = extraPackagingAmount;
     _createNewUser = createNewUser;
     _password = password;
-    _isGuest = isGuest;
+    isPrescriptionOrder = isPrescriptionOrder ?? false;
+    _bringChangeAmount = bringChangeAmount;
     _monthlySubscribe = monthlySubscribe;
+    _saverDeliveryType = saverDeliveryType;
   }
 
   List<OnlineCart>? get cart => _cart;
@@ -155,12 +162,15 @@ class PlaceOrderBodyModel {
   int? get partialPayment => _partialPayment;
   int? get guestId => _guestId;
   int? get isBuyNow => _isBuyNow;
+  int? get isGuest => _isGuest;
   String? get guestEmail => _guestEmail;
   double? get extraPackagingAmount => _extraPackagingAmount;
   int? get createNewUser => _createNewUser;
   String? get password => _password;
-  int? get isGuest => _isGuest;
+  bool? get isPrescription => isPrescriptionOrder;
+  double? get bringChangeAmount => _bringChangeAmount;
   bool? get monthlySubscribe => _monthlySubscribe;
+  String? get saverDeliveryType => _saverDeliveryType;
 
   PlaceOrderBodyModel.fromJson(Map<String, dynamic> json) {
     if (json['cart'] != null) {
@@ -169,31 +179,23 @@ class PlaceOrderBodyModel {
         _cart!.add(OnlineCart.fromJson(v));
       });
     }
-    _couponDiscountAmount =
-        double.parse(json['coupon_discount_amount'] ?? 0.toString());
+    _couponDiscountAmount = double.parse(json['coupon_discount_amount'] ?? 0.toString());
     _orderAmount = double.parse(json['order_amount'].toString());
     _orderType = json['order_type'];
     _paymentMethod = json['payment_method'];
     _orderNote = json['order_note'];
     _couponCode = json['coupon_code'];
-    _storeId = json['store_id'] != null
-        ? int.parse(json['store_id'].toString())
-        : null;
+    _storeId = json['store_id'] != null ? int.parse(json['store_id'].toString()) : null;
     _distance = double.parse(json['distance'].toString());
     _scheduleAt = json['schedule_at'];
     _discountAmount = double.parse(json['discount_amount'].toString());
     _taxAmount = double.parse(json['tax_amount'].toString());
     _address = json['address'];
-    _receiverDetails = json['receiver_details'] != null
-        ? AddressModel.fromJson(json['receiver_details'] is String
-            ? jsonDecode(json['receiver_details'])
-            : json['receiver_details'])
-        : null;
+    _receiverDetails = json['receiver_details'] != null ? AddressModel.fromJson(json['receiver_details'] is String ? jsonDecode(json['receiver_details'])
+        : json['receiver_details']) : null;
     _latitude = json['latitude'];
     _longitude = json['longitude'];
-    _senderZoneId = json['sender_zone_id'] != null
-        ? int.parse(json['sender_zone_id'].toString())
-        : null;
+    _senderZoneId = json['sender_zone_id'] != null ? int.parse(json['sender_zone_id'].toString()) : null;
     _contactPersonName = json['contact_person_name'];
     _contactPersonNumber = json['contact_person_number'];
     _addressType = json['address_type'];
@@ -205,28 +207,18 @@ class PlaceOrderBodyModel {
     _dmTips = json['dm_tips'];
     _unavailableItemNote = json['unavailable_item_note'];
     _deliveryInstruction = json['delivery_instruction'];
-    _cutlery =
-        json['cutlery'] != null ? int.parse(json['cutlery'].toString()) : null;
-    _partialPayment = json['partial_payment'] != null
-        ? int.parse(json['partial_payment'].toString())
-        : null;
-    _guestId = json['guest_id'] != null
-        ? int.parse(json['guest_id'].toString())
-        : null;
+    _cutlery = json['cutlery'] != null ? int.parse(json['cutlery'].toString()) : null;
+    _partialPayment = json['partial_payment'] != null ? int.parse(json['partial_payment'].toString()) : null;
+    _guestId = json['guest_id'] != null ? int.parse(json['guest_id'].toString()) : null;
     _isBuyNow = int.parse(json['is_buy_now'].toString());
     _guestEmail = json['contact_person_email'];
-    _extraPackagingAmount = json['extra_packaging_amount'] != null &&
-            json['extra_packaging_amount'] != 'null'
-        ? double.parse(json['extra_packaging_amount'].toString())
-        : null;
-    _createNewUser = json['create_new_user'] != null
-        ? int.parse(json['create_new_user'].toString())
-        : null;
+    _extraPackagingAmount = json['extra_packaging_amount'] != null && json['extra_packaging_amount'] != 'null' ? double.parse(json['extra_packaging_amount'].toString()) : null;
+    _createNewUser = json['create_new_user'] != null ? int.parse(json['create_new_user'].toString()) : null;
     _password = json['password'];
-    _isGuest = json['is_guest'] != null
-        ? int.parse(json['is_guest'].toString())
-        : null;
+    isPrescriptionOrder = json['is_prescription'] != null ? json['is_prescription'] == 'true' : false;
+    _bringChangeAmount = json['bring_change_amount'] != null ? double.parse(json['bring_change_amount'].toString()) : null;
     _monthlySubscribe = TypeConverterHelper.getBool(json['monthly_subscribe']);
+    _saverDeliveryType = json['delivery_type'];
   }
 
   Map<String, String> toJson() {
@@ -264,9 +256,8 @@ class PlaceOrderBodyModel {
     if (_senderZoneId != null) {
       data['sender_zone_id'] = _senderZoneId.toString();
     }
-    data['contact_person_name'] = _contactPersonName!;
+    data['contact_person_name'] = _contactPersonName ?? '';
     data['contact_person_number'] = _contactPersonNumber ?? '';
-
     data['address_type'] = _addressType ?? '';
     if (_parcelCategoryId != null) {
       data['parcel_category_id'] = _parcelCategoryId!;
@@ -288,7 +279,7 @@ class PlaceOrderBodyModel {
       data['guest_id'] = _guestId.toString();
     }
     data['is_buy_now'] = _isBuyNow.toString();
-    if (_guestEmail != null && _guestEmail!.isNotEmpty) {
+    if (_guestEmail != null) {
       data['contact_person_email'] = _guestEmail!;
     }
     data['extra_packaging_amount'] = _extraPackagingAmount.toString();
@@ -296,18 +287,22 @@ class PlaceOrderBodyModel {
     if (_password != null) {
       data['password'] = _password!;
     }
-    if (_isGuest != null) {
-      data['is_guest'] = _isGuest.toString();
+    data['is_prescription'] = isPrescriptionOrder == true ? 'true' : 'false';
+    if(_bringChangeAmount != null) {
+      data['bring_change_amount'] = _bringChangeAmount.toString();
     }
-    if (_monthlySubscribe != null) {
+    if(_monthlySubscribe != null) {
       data['monthly_subscribe'] = _monthlySubscribe! ? 'true' : 'false';
     }
-
+    if(_saverDeliveryType != null) {
+      data['delivery_type'] = _saverDeliveryType!;
+    }
     return data;
   }
 }
 
 class OnlineCart {
+  int? _storeId;
   int? _cartId;
   int? _itemId;
   int? _itemCampaignId;
@@ -321,22 +316,23 @@ class OnlineCart {
   List<int?>? _addOnQtys;
   String? _model;
   String? _itemType;
-  int? _storeId;
+  int? _reelId;
 
   OnlineCart(
-      int? cartId,
-      int? itemId,
-      int? itemCampaignId,
-      String price,
-      String variant,
-      List<Variation>? variation,
-      List<OrderVariation>? variations,
-      int? quantity,
-      List<int?> addOnIds,
-      List<AddOns>? addOns,
-      List<int?> addOnQtys,
-      String model,
-      {String? itemType, int? storeId}) {
+    int? cartId,
+    int? itemId,
+    int? itemCampaignId,
+    String price,
+    String variant,
+    List<Variation>? variation,
+    List<OrderVariation>? variations,
+    int? quantity,
+    List<int?> addOnIds,
+    List<AddOns>? addOns,
+    List<int?> addOnQtys,
+    String model,
+    {String? itemType, int? reelId, int? storeId}){
+    _storeId = storeId;
     _cartId = cartId;
     _itemId = itemId;
     _itemCampaignId = itemCampaignId;
@@ -350,9 +346,10 @@ class OnlineCart {
     _addOnQtys = addOnQtys;
     _model = model;
     _itemType = itemType;
-    _storeId = storeId;
+    _reelId = reelId;
   }
 
+  int? get storeId => _storeId;
   int? get cartId => _cartId;
   int? get itemId => _itemId;
   int? get itemCampaignId => _itemCampaignId;
@@ -365,7 +362,7 @@ class OnlineCart {
   List<int?>? get addOnQtys => _addOnQtys;
   String? get model => _model;
   String? get itemType => _itemType;
-  int? get storeId => _storeId;
+  int? get reelId => _reelId;
 
   OnlineCart.fromJson(Map<String, dynamic> json) {
     _cartId = json['cart_id'];
@@ -373,9 +370,7 @@ class OnlineCart {
     _itemCampaignId = json['item_campaign_id'];
     _price = json['price'];
     _variant = json['variant'];
-    if (json['variation'] != null &&
-        json['variation'].isNotEmpty &&
-        json['variation'][0]['price'] != null) {
+    if (json['variation'] != null && json['variation'].isNotEmpty && json['variation'][0]['price'] != null) {
       _variation = [];
       json['variation'].forEach((v) {
         _variation!.add(Variation.fromJson(v));
@@ -399,12 +394,15 @@ class OnlineCart {
     if (json['item_type'] != null && json['item_type'] != 'null') {
       _itemType = json['item_type'];
     }
-    _storeId = json['store_id'];
+    _reelId = json['reel_id'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['item_id'] = _itemId;
+    if (_storeId != null) {
+      data['store_id'] = _storeId;
+    }
     data['cart_id'] = _cartId;
     data['item_campaign_id'] = _itemCampaignId;
     data['price'] = _price;
@@ -424,6 +422,9 @@ class OnlineCart {
     if (_itemType != null) {
       data['item_type'] = _itemType;
     }
+    if (_reelId != null) {
+      data['reel_id'] = _reelId;
+    }
     return data;
   }
 }
@@ -436,9 +437,7 @@ class OrderVariation {
 
   OrderVariation.fromJson(Map<String, dynamic> json) {
     name = json['name'];
-    values = json['values'] != null
-        ? OrderVariationValue.fromJson(json['values'])
-        : null;
+    values = json['values'] != null ? OrderVariationValue.fromJson(json['values']) : null;
   }
 
   Map<String, dynamic> toJson() {

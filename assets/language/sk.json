@@ -1322,5 +1322,9 @@
   "write_email": "Write email",
   "password_field_is_required": "Password field is required",
   "select_time": "Select Time",
-  "oxgenMart": "Oxygen Mart"
+  "oxgenMart": "Oxygen Mart",
+  "redirecting_to_verification": "Presmerovanie na overenie...",
+  "sending_otp_code": "Odosielanie overovacieho kódu...",
+  "could_not_send_otp_please_retry": "Kód sa nepodarilo odoslať, skúste to znova",
+  "resend_code": "Znova odoslať kód"
 }

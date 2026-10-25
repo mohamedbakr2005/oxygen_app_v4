@@ -67,6 +67,20 @@ class ItemRepository implements ItemRepositoryInterface {
         await apiClient.getData('${AppConstants.itemDetailsUri}$itemID');
     if (response.statusCode == 200) {
       item = Item.fromJson(response.body);
+    } else if (response.statusCode == 403) {
+      // Defense-in-depth: If backend requires moduleId header, retry with active, cache, or default module (1: Grocery)
+      final int fallbackModuleId = (Get.isRegistered<SplashController>() ? Get.find<SplashController>().module?.id : null) ??
+          (Get.isRegistered<SplashController>() ? Get.find<SplashController>().cacheModule?.id : null) ??
+          1;
+      Response retryResponse = await apiClient.getData(
+        '${AppConstants.itemDetailsUri}$itemID',
+        headers: {
+          AppConstants.moduleId: '$fallbackModuleId',
+        },
+      );
+      if (retryResponse.statusCode == 200) {
+        item = Item.fromJson(retryResponse.body);
+      }
     }
     return item;
   }

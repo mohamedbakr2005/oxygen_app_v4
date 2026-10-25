@@ -60,6 +60,6 @@ class ParcelService implements ParcelServiceInterface {
 
   @override
   Future<Response> placeOrder(PlaceOrderBodyModel orderBody) async {
-    return await checkoutRepositoryInterface.placeOrder(orderBody, null);
+    return await checkoutRepositoryInterface.placeOrder(orderBody, null, null);
   }
 }

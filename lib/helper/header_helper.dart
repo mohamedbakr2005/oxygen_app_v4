@@ -23,12 +23,11 @@ class HeaderHelper {
             .id;
       } catch (_) {}
     }
-    return {
+    Map<String, String> header = {
       'Content-Type': 'application/json; charset=UTF-8',
       AppConstants.zoneId: addressModel?.zoneIds != null
           ? jsonEncode(addressModel?.zoneIds)
           : '',
-      moduleID != null ? AppConstants.moduleId : '$moduleID': '',
       AppConstants.localizationKey:
           sharedPreferences.getString(AppConstants.languageCode) ??
               AppConstants.languages[0].languageCode!,
@@ -38,7 +37,10 @@ class HeaderHelper {
       AppConstants.longitude: addressModel?.longitude != null
           ? jsonEncode(addressModel?.longitude)
           : '',
-      // 'Authorization': 'Bearer $token'
     };
+    if (moduleID != null) {
+      header[AppConstants.moduleId] = '$moduleID';
+    }
+    return header;
   }
 }

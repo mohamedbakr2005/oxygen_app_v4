@@ -2,7 +2,6 @@ import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/helper/type_converter_helper.dart';
 
 class ConfigModel {
-  bool? proMemberStatus;
   String? businessName;
   String? logoFullUrl;
   String? address;
@@ -33,6 +32,7 @@ class ConfigModel {
   List<Language>? language;
   bool? toggleVegNonVeg;
   bool? toggleDmRegistration;
+  bool? toggleRiderRegistration;
   bool? toggleStoreRegistration;
   int? scheduleOrderSlotDuration;
   int? digitAfterDecimalPoint;
@@ -43,7 +43,7 @@ class ConfigModel {
   LandingPageSettings? landingPageSettings;
   List<SocialMedia>? socialMedia;
   String? footerText;
-  LandingPageLinks? landingPageLinks;
+  DownloadUserAppLinks? downloadUserAppLinks;
   int? loyaltyPointExchangeRate;
   double? loyaltyPointItemPurchasePoint;
   int? loyaltyPointStatus;
@@ -59,7 +59,6 @@ class ConfigModel {
   int? cancellationPolicyStatus;
   int? shippingPolicyStatus;
   bool? prescriptionStatus;
-  int? taxIncluded;
   String? cookiesText;
   int? homeDeliveryStatus;
   int? takeawayStatus;
@@ -70,10 +69,10 @@ class ConfigModel {
   double? additionCharge;
   List<PaymentBody>? activePaymentMethodList;
   DigitalPaymentInfo? digitalPaymentInfo;
+  ValidationConfig? validationConfig;
   bool? addFundStatus;
   bool? offlinePaymentStatus;
   bool? guestCheckoutStatus;
-
   double? adminCommission;
   int? subscriptionFreeTrialDays;
   bool? subscriptionFreeTrialStatus;
@@ -83,14 +82,60 @@ class ConfigModel {
   bool? countryPickerStatus;
   bool? firebaseOtpVerification;
   CentralizeLoginSetup? centralizeLoginSetup;
-  bool? aiChatStatus;
-  int? monthlyOrderRemainder;
+  double? vehicleDistanceMinPrice;
+  double? vehicleHourlyMinPrice;
+  double? vehicleDayWiseMinPrice;
+  AdminFreeDelivery? adminFreeDelivery;
   bool? isSmsActive;
   bool? isMailActive;
+  int? parcelCancellationStatus;
+  ParcelCancellationBasicSetup? parcelCancellationBasicSetup;
+  ParcelReturnTimeFee? parcelReturnTimeFee;
+  bool? websocketEnabled;
+  String? websocketUrl;
+
+  bool? safetyFeatureStatus;
+  int? safetyFeatureMinimumTripDelayTime;
+  String? safetyFeatureMinimumTripDelayTimeType;
+  bool? afterTripCompleteSafetyFeatureActiveStatus;
+  int? afterTripCompleteSafetyFeatureSetTime;
+  String? afterTripCompleteSafetyFeatureSetTimeFormat;
+  String? safetyFeatureEmergencyGovtNumber;
+  bool? reviewStatus;
+  int? popularTips;
+  double? searchRadius;
+  bool? otpConfirmationForTrip;
+  double? minBookingAmount;
+  double? maxBookingAmount;
+  int? scheduleBooking;
+  int? directProviderBooking;
+  int? serviceAtProviderLocation;
+  int? repeatBooking;
+  int? instantBooking;
+  // int? scheduleBookingTimeRestriction;
+  AdvanceBooking? advanceBooking;
+  bool? confirmationOtpStatus;
+  int? bidingStatus;
+  int? referralEarningStatus;
+  double? completionRadius;
+  bool? webSocketStatus;
+  String? webSocketUri;
+  int? webSocketPort;
+  String? webSocketKey;
+  String? webSocketScheme;
+  ReferralData? dmReferralData;
+  ReferralData? riderReferralData;
+  int? customerRoutePreference;
+  int? repeatOrderOption;
+  int? monthlyOrderRemainder;
   MaintenanceModeData? maintenanceModeData;
+  bool? proMemberStatus;
+  bool? aiChatStatus;
+  int? systemTaxIncludeStatus;
+  ServiceModuleConfig? serviceModule;
+  bool? verifiedStoreStatus;
 
   ConfigModel({
-    this.proMemberStatus,
     this.businessName,
     this.logoFullUrl,
     this.address,
@@ -121,6 +166,7 @@ class ConfigModel {
     this.language,
     this.toggleVegNonVeg,
     this.toggleDmRegistration,
+    this.toggleRiderRegistration,
     this.toggleStoreRegistration,
     this.scheduleOrderSlotDuration,
     this.digitAfterDecimalPoint,
@@ -131,7 +177,7 @@ class ConfigModel {
     this.landingPageSettings,
     this.socialMedia,
     this.footerText,
-    this.landingPageLinks,
+    this.downloadUserAppLinks,
     this.loyaltyPointExchangeRate,
     this.loyaltyPointItemPurchasePoint,
     this.loyaltyPointStatus,
@@ -147,7 +193,6 @@ class ConfigModel {
     this.cancellationPolicyStatus,
     this.shippingPolicyStatus,
     this.prescriptionStatus,
-    this.taxIncluded,
     this.cookiesText,
     this.homeDeliveryStatus,
     this.takeawayStatus,
@@ -158,6 +203,7 @@ class ConfigModel {
     this.additionCharge,
     this.activePaymentMethodList,
     this.digitalPaymentInfo,
+    this.validationConfig,
     this.addFundStatus,
     this.offlinePaymentStatus,
     this.guestCheckoutStatus,
@@ -169,11 +215,57 @@ class ConfigModel {
     this.countryPickerStatus,
     this.firebaseOtpVerification,
     this.centralizeLoginSetup,
-    this.aiChatStatus,
-    this.monthlyOrderRemainder,
+    this.vehicleDistanceMinPrice,
+    this.vehicleHourlyMinPrice,
+    this.vehicleDayWiseMinPrice,
+    this.adminFreeDelivery,
     this.isSmsActive,
     this.isMailActive,
+    this.parcelCancellationStatus,
+    this.parcelCancellationBasicSetup,
+    this.parcelReturnTimeFee,
+    this.websocketEnabled,
+    this.websocketUrl,
+    this.afterTripCompleteSafetyFeatureActiveStatus,
+    this.afterTripCompleteSafetyFeatureSetTime,
+    this.afterTripCompleteSafetyFeatureSetTimeFormat,
+    this.safetyFeatureEmergencyGovtNumber,
+    this.safetyFeatureMinimumTripDelayTime,
+    this.safetyFeatureMinimumTripDelayTimeType,
+    this.safetyFeatureStatus,
+    this.reviewStatus,
+    this.popularTips,
+    this.searchRadius,
+    this.otpConfirmationForTrip,
+    this.minBookingAmount,
+    this.maxBookingAmount,
+    this.scheduleBooking,
+    this.directProviderBooking,
+    this.serviceAtProviderLocation,
+    this.repeatBooking,
+    this.instantBooking,
+    // this.scheduleBookingTimeRestriction,
+    this.advanceBooking,
+    this.confirmationOtpStatus,
+    this.bidingStatus,
+    this.referralEarningStatus,
+    this.completionRadius,
+    this.webSocketUri,
+    this.webSocketPort,
+    this.webSocketKey,
+    this.webSocketStatus,
+    this.webSocketScheme,
+    this.dmReferralData,
+    this.riderReferralData,
+    this.customerRoutePreference,
+    this.repeatOrderOption,
+    this.monthlyOrderRemainder,
     this.maintenanceModeData,
+    this.proMemberStatus,
+    this.aiChatStatus,
+    this.systemTaxIncludeStatus,
+    this.serviceModule,
+    this.verifiedStoreStatus,
   });
 
   ConfigModel.fromJson(Map<String, dynamic> json) {
@@ -183,13 +275,10 @@ class ConfigModel {
     phone = json['phone'];
     email = json['email'];
     country = json['country'];
-    defaultLocation = json['default_location'] != null
-        ? DefaultLocation.fromJson(json['default_location'])
-        : null;
+    defaultLocation = json['default_location'] != null ? DefaultLocation.fromJson(json['default_location']) : null;
     currencySymbol = json['currency_symbol'];
     currencySymbolDirection = json['currency_symbol_direction'];
-    appMinimumVersionAndroid =
-        json['app_minimum_version_android']?.toDouble() ?? 0.0;
+    appMinimumVersionAndroid = json['app_minimum_version_android']?.toDouble() ?? 0.0;
     appUrlAndroid = json['app_url_android'];
     appMinimumVersionIos = json['app_minimum_version_ios']?.toDouble() ?? 0.0;
     appUrlIos = json['app_url_ios'];
@@ -200,7 +289,7 @@ class ConfigModel {
     digitalPayment = json['digital_payment'];
     perKmShippingCharge = json['per_km_shipping_charge']?.toDouble();
     minimumShippingCharge = json['minimum_shipping_charge']?.toDouble();
-    freeDeliveryOver = json['free_delivery_over']?.toDouble();
+    freeDeliveryOver = json['free_delivery_over'] != null ? double.tryParse(json['free_delivery_over'].toString()) : null;
     demo = json['demo'];
     maintenanceMode = json['maintenance_mode'];
     orderConfirmationModel = json['order_confirmation_model'];
@@ -215,23 +304,15 @@ class ConfigModel {
     }
     toggleVegNonVeg = json['toggle_veg_non_veg'];
     toggleDmRegistration = json['toggle_dm_registration'];
+    toggleRiderRegistration = json['toggle_rider_registration'];
     toggleStoreRegistration = json['toggle_store_registration'];
-    scheduleOrderSlotDuration = json['schedule_order_slot_duration'] == 0
-        ? 30
-        : json['schedule_order_slot_duration'];
+    scheduleOrderSlotDuration = json['schedule_order_slot_duration'] == 0 ? 30 : json['schedule_order_slot_duration'];
     digitAfterDecimalPoint = json['digit_after_decimal_point'];
-    module =
-        json['module'] != null ? ModuleModel.fromJson(json['module']) : null;
-    moduleConfig = json['module_config'] != null
-        ? ModuleConfig.fromJson(json['module_config'])
-        : null;
-    parcelPerKmShippingCharge =
-        json['parcel_per_km_shipping_charge']?.toDouble();
-    parcelMinimumShippingCharge =
-        json['parcel_minimum_shipping_charge']?.toDouble();
-    landingPageSettings = json['landing_page_settings'] != null
-        ? LandingPageSettings.fromJson(json['landing_page_settings'])
-        : null;
+    module = json['module'] != null ? ModuleModel.fromJson(json['module']) : null;
+    moduleConfig = json['module_config'] != null ? ModuleConfig.fromJson(json['module_config']) : null;
+    parcelPerKmShippingCharge = json['parcel_per_km_shipping_charge']?.toDouble();
+    parcelMinimumShippingCharge = json['parcel_minimum_shipping_charge']?.toDouble();
+    landingPageSettings = json['landing_page_settings'] != null ? LandingPageSettings.fromJson(json['landing_page_settings']) : null;
     if (json['social_media'] != null) {
       socialMedia = <SocialMedia>[];
       json['social_media'].forEach((v) {
@@ -239,18 +320,15 @@ class ConfigModel {
       });
     }
     footerText = json['footer_text'];
-    landingPageLinks = json['landing_page_links'] != null
-        ? LandingPageLinks.fromJson(json['landing_page_links'])
-        : null;
+    downloadUserAppLinks = json['download_user_app_links'] != null ? DownloadUserAppLinks.fromJson(json['download_user_app_links']) : null;
     loyaltyPointExchangeRate = json['loyalty_point_exchange_rate'];
-    loyaltyPointItemPurchasePoint =
-        json['loyalty_point_item_purchase_point']?.toDouble();
-    loyaltyPointStatus = json['loyalty_point_status'];
+    loyaltyPointItemPurchasePoint = json['loyalty_point_item_purchase_point']?.toDouble();
+    loyaltyPointStatus = json['loyalty_point_status'] ;
     minimumPointToTransfer = json['loyalty_point_minimum_point'];
     customerWalletStatus = json['customer_wallet_status'];
     dmTipsStatus = json['dm_tips_status'];
     refEarningStatus = json['ref_earning_status'];
-    refundActiveStatus = json['refund_active_status'];
+    refundActiveStatus = TypeConverterHelper.getBool(json['refund_active_status']);
     refEarningExchangeRate = json['ref_earning_exchange_rate']?.toDouble();
     if (json['social_login'] != null) {
       socialLogin = <SocialLogin>[];
@@ -268,7 +346,6 @@ class ConfigModel {
     cancellationPolicyStatus = json['cancelation_policy'];
     shippingPolicyStatus = json['shipping_policy'];
     prescriptionStatus = json['prescription_order_status'];
-    taxIncluded = json['tax_included'];
     cookiesText = json['cookies_text'];
     homeDeliveryStatus = json['home_delivery_status'];
     takeawayStatus = json['takeaway_status'];
@@ -283,36 +360,82 @@ class ConfigModel {
         activePaymentMethodList!.add(PaymentBody.fromJson(v));
       });
     }
-    digitalPaymentInfo = json['digital_payment_info'] != null
-        ? DigitalPaymentInfo.fromJson(json['digital_payment_info'])
-        : null;
+    digitalPaymentInfo = json['digital_payment_info'] != null ? DigitalPaymentInfo.fromJson(json['digital_payment_info']) : null;
+    validationConfig = json['validation_config'] != null ? ValidationConfig.fromJson(json['validation_config']) : null;
     addFundStatus = json['add_fund_status'] == 1;
     offlinePaymentStatus = json['offline_payment_status'] == 1;
     guestCheckoutStatus = json['guest_checkout_status'] == 1;
     adminCommission = json['admin_commission']?.toDouble();
     subscriptionFreeTrialDays = json['subscription_free_trial_days'];
-    subscriptionFreeTrialStatus =
-        json['subscription_free_trial_status'] == 1 ? true : false;
+    subscriptionFreeTrialStatus = json['subscription_free_trial_status'] == 1 ? true : false;
     subscriptionBusinessModel = json['subscription_business_model'];
     commissionBusinessModel = json['commission_business_model'];
     subscriptionFreeTrialType = json['subscription_free_trial_type'];
     countryPickerStatus = json['country_picker_status'] == 1;
     firebaseOtpVerification = json['firebase_otp_verification'] == 1;
-    centralizeLoginSetup = json['centralize_login'] != null
-        ? CentralizeLoginSetup.fromJson(json['centralize_login'])
-        : null;
-    aiChatStatus = json['ai_chat_status'] == 1 || json['ai_chat_status'] == true || json['ai_chat_status']?.toString() == '1' || json['ai_chat_status']?.toString() == 'true';
-    monthlyOrderRemainder = (json['monthly_order_reminder'] == 1 || json['monthly_order_reminder'] == true || json['monthly_order_reminder']?.toString() == '1' || json['monthly_order_reminder']?.toString() == 'true')
-        ? 1
-        : ((json['monthly_order_remainder'] == 1 || json['monthly_order_remainder'] == true || json['monthly_order_remainder']?.toString() == '1' || json['monthly_order_remainder']?.toString() == 'true')
-            ? 1
-            : ((json['monthly_order_status'] == 1 || json['monthly_order_status'] == true || json['monthly_order_status']?.toString() == '1' || json['monthly_order_status']?.toString() == 'true')
-                ? 1
-                : 0));
+    centralizeLoginSetup = json['centralize_login'] != null ? CentralizeLoginSetup.fromJson(json['centralize_login']) : null;
+    vehicleDistanceMinPrice = json['vehicle_distance_min']?.toDouble();
+    vehicleHourlyMinPrice = json['vehicle_hourly_min']?.toDouble();
+    vehicleDayWiseMinPrice = json['vehicle_day_wise_min']?.toDouble();
+    adminFreeDelivery = json['admin_free_delivery'] != null ? AdminFreeDelivery.fromJson(json['admin_free_delivery']) : null;
     isSmsActive = json['is_sms_active'];
     isMailActive = json['is_mail_active'];
-    proMemberStatus = TypeConverterHelper.getBool(json['pro_member_status']);
+    parcelCancellationStatus = json['parcel_cancellation_status'];
+    parcelCancellationBasicSetup = json['parcel_cancellation_basic_setup'] != null ? ParcelCancellationBasicSetup.fromJson(json['parcel_cancellation_basic_setup']) : null;
+    parcelReturnTimeFee = json['parcel_return_time_fee'] != null ? ParcelReturnTimeFee.fromJson(json['parcel_return_time_fee']) : null;
+    websocketEnabled = json['websocket_status'] == 1;
+    websocketUrl = json['websocket_url'];
+
+    safetyFeatureStatus = json['safety_feature_status'] == 1;
+    safetyFeatureMinimumTripDelayTime = json['ride_safety_delay_time'];
+    safetyFeatureMinimumTripDelayTimeType = json['ride_safety_delay_time_format'];
+    afterTripCompleteSafetyFeatureActiveStatus = json['safety_feature_after_ride_complete_status'] == 1;
+    afterTripCompleteSafetyFeatureSetTime = int.tryParse(json['safety_feature_after_ride_complete_time'].toString());
+    afterTripCompleteSafetyFeatureSetTimeFormat = json['safety_feature_after_ride_complete_time_format'];
+    safetyFeatureEmergencyGovtNumber = json['emergency_govt_number'];
+
+    reviewStatus = json['review_status'];
+    popularTips = json['popular_tips'];
+    if(json['ride_search_radius'] != null){
+      try{
+        searchRadius = json['ride_search_radius'].toDouble();
+      }catch(e){
+        searchRadius = double.parse(json['ride_search_radius'].toString());
+      }
+    }
+    otpConfirmationForTrip = json['ride_otp_confirmation'] == 1;
+    minBookingAmount = double.tryParse('${json['min_booking_amount']}');
+    maxBookingAmount = double.tryParse('${json['max_booking_amount']}');
+    scheduleBooking = int.tryParse('${json['schedule_booking']}');
+    directProviderBooking = int.tryParse('${json['direct_provider_booking']}');
+    serviceAtProviderLocation = int.tryParse(json['service_at_provider_place'].toString());
+    repeatBooking = int.tryParse(json['repeat_booking'].toString());
+    instantBooking = int.tryParse(json['instant_booking'].toString());
+    // scheduleBookingTimeRestriction = int.tryParse(json['schedule_booking_time_restriction'].toString());
+    advanceBooking= json['advanced_booking'] != null ? AdvanceBooking.fromJson(json['advanced_booking']) : null;
+    if (json['confirm_otp_for_complete_service'] != null) {
+      confirmationOtpStatus= json['confirm_otp_for_complete_service'] == 1 ? true : false;
+    }
+    bidingStatus = int.tryParse('${json['bidding_status']}');
+    referralEarningStatus = int.tryParse(json['rider_referral_earning_status'].toString());
+    if(json['rider_completion_radius'] != null){
+      try{
+        completionRadius = json['rider_completion_radius'].toDouble();
+      }catch(e){
+        completionRadius = double.parse(json['rider_completion_radius'].toString());
+      }
+    }
+    dmReferralData = json['dm_referral_data'] != null ? ReferralData.fromJson(json['dm_referral_data']) : null;
+    riderReferralData = json['rider_referral_data'] != null ? ReferralData.fromJson(json['rider_referral_data']) : null;
+    customerRoutePreference = json['customer_route_preference'];
+    repeatOrderOption = json['repeat_order_option'];
+    monthlyOrderRemainder = json['monthly_order_reminder'];
     maintenanceModeData = json['maintenance_mode_data'] != null ? MaintenanceModeData.fromJson(json['maintenance_mode_data']) : null;
+    proMemberStatus = TypeConverterHelper.getBool(json['pro_member_status']);
+    aiChatStatus = TypeConverterHelper.getBool(json['ai_chat_status']);
+    systemTaxIncludeStatus = json['system_tax_include_status'];
+    serviceModule = json['service_module'] != null ? ServiceModuleConfig.fromJson(json['service_module']) : null;
+    verifiedStoreStatus = TypeConverterHelper.getBool(json['verified_store_status']);
   }
 
   Map<String, dynamic> toJson() {
@@ -339,7 +462,6 @@ class ConfigModel {
     data['digital_payment'] = digitalPayment;
     data['per_km_shipping_charge'] = perKmShippingCharge;
     data['minimum_shipping_charge'] = minimumShippingCharge;
-    data['free_delivery_over'] = freeDeliveryOver;
     data['demo'] = demo;
     data['maintenance_mode'] = maintenanceMode;
     data['order_confirmation_model'] = orderConfirmationModel;
@@ -369,8 +491,8 @@ class ConfigModel {
       data['social_media'] = socialMedia!.map((v) => v.toJson()).toList();
     }
     data['footer_text'] = footerText;
-    if (landingPageLinks != null) {
-      data['landing_page_links'] = landingPageLinks!.toJson();
+    if (downloadUserAppLinks != null) {
+      data['landing_page_links'] = downloadUserAppLinks!.toJson();
     }
     data['loyalty_point_exchange_rate'] = loyaltyPointExchangeRate;
     data['loyalty_point_item_purchase_point'] = loyaltyPointItemPurchasePoint;
@@ -387,7 +509,6 @@ class ConfigModel {
     if (appleLogin != null) {
       data['apple_login'] = appleLogin!.map((v) => v.toJson()).toList();
     }
-    data['tax_included'] = taxIncluded;
     data['cookies_text'] = cookiesText;
     data['home_delivery_status'] = homeDeliveryStatus;
     data['takeaway_status'] = takeawayStatus;
@@ -397,11 +518,13 @@ class ConfigModel {
     data['additional_charge_name'] = additionalChargeName;
     data['additional_charge'] = additionCharge;
     if (activePaymentMethodList != null) {
-      data['active_payment_method_list'] =
-          activePaymentMethodList!.map((v) => v.toJson()).toList();
+      data['active_payment_method_list'] = activePaymentMethodList!.map((v) => v.toJson()).toList();
     }
     if (digitalPaymentInfo != null) {
       data['digital_payment_info'] = digitalPaymentInfo!.toJson();
+    }
+    if (validationConfig != null) {
+      data['validation_config'] = validationConfig!.toJson();
     }
     data['add_fund_status'] = addFundStatus;
     data['offline_payment_status'] = offlinePaymentStatus;
@@ -417,13 +540,73 @@ class ConfigModel {
     if (centralizeLoginSetup != null) {
       data['centralize_login'] = centralizeLoginSetup!.toJson();
     }
-    data['monthly_order_reminder'] = monthlyOrderRemainder;
+    data['vehicle_distance_min'] = vehicleDistanceMinPrice;
+    data['vehicle_hourly_min'] = vehicleHourlyMinPrice;
+    data['vehicle_day_wise_min'] = vehicleDayWiseMinPrice;
+    if (adminFreeDelivery != null) {
+      data['admin_free_delivery'] = adminFreeDelivery!.toJson();
+    }
     data['is_sms_active'] = isSmsActive;
     data['is_mail_active'] = isMailActive;
-    data['pro_member_status'] = proMemberStatus;
+    data['parcel_cancellation_status'] = parcelCancellationStatus;
+    if (parcelCancellationBasicSetup != null) {
+      data['parcel_cancellation_basic_setup'] = parcelCancellationBasicSetup!.toJson();
+    }
+    if (parcelReturnTimeFee != null) {
+      data['parcel_return_time_fee'] = parcelReturnTimeFee!.toJson();
+    }
+    data['customer_route_preference'] = customerRoutePreference;
+    data['repeat_order_option'] = repeatOrderOption;
+    data['monthly_order_reminder'] = monthlyOrderRemainder;
     if (maintenanceModeData != null) {
       data['maintenance_mode_data'] = maintenanceModeData!.toJson();
     }
+    data['pro_member_status'] = proMemberStatus;
+    data['system_tax_include_status'] = systemTaxIncludeStatus;
+    if (serviceModule != null) {
+      data['service_module'] = serviceModule!.toJson();
+    }
+    data['verified_store_status'] = verifiedStoreStatus;
+    return data;
+  }
+}
+
+class ServiceModuleConfig {
+  bool? scheduleTimeRestrictionStatus;
+  int? scheduleTimeRestrictionValue;
+  String? scheduleTimeRestrictionUnit;
+  bool? biddingSystem;
+  int? postValidationDays;
+  bool? otpForCompleteService;
+  bool? rebookingOption;
+  bool? providerVerifiedBadge;
+
+  ServiceModuleConfig({
+    this.scheduleTimeRestrictionStatus, this.scheduleTimeRestrictionValue, this.scheduleTimeRestrictionUnit, this.biddingSystem, this.postValidationDays,
+    this.otpForCompleteService, this.rebookingOption, this.providerVerifiedBadge,
+  });
+
+  ServiceModuleConfig.fromJson(Map<String, dynamic> json) {
+    scheduleTimeRestrictionStatus = TypeConverterHelper.getBool(json['schedule_time_restriction_status']);
+    scheduleTimeRestrictionValue = int.tryParse('${json['schedule_time_restriction_value']}');
+    scheduleTimeRestrictionUnit = json['schedule_time_restriction_unit'];
+    biddingSystem = TypeConverterHelper.getBool(json['bidding_system']);
+    postValidationDays = int.tryParse('${json['post_validation_days']}');
+    otpForCompleteService = TypeConverterHelper.getBool(json['otp_for_complete_service']);
+    rebookingOption = TypeConverterHelper.getBool(json['rebooking_option']);
+    providerVerifiedBadge = TypeConverterHelper.getBool(json['provider_verified_badge']);
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['schedule_time_restriction_status'] = scheduleTimeRestrictionStatus;
+    data['schedule_time_restriction_value'] = scheduleTimeRestrictionValue;
+    data['schedule_time_restriction_unit'] = scheduleTimeRestrictionUnit;
+    data['bidding_system'] = biddingSystem;
+    data['post_validation_days'] = postValidationDays;
+    data['otp_for_complete_service'] = otpForCompleteService;
+    data['rebooking_option'] = rebookingOption;
+    data['provider_verified_badge'] = providerVerifiedBadge;
     return data;
   }
 }
@@ -576,9 +759,7 @@ class ModuleConfig {
 
   ModuleConfig.fromJson(Map<String, dynamic> json) {
     moduleType = json['module_type'].cast<String>();
-    module = json[moduleType![0]] != null
-        ? Module.fromJson(json[moduleType![0]])
-        : null;
+    module = json[moduleType![0]] != null ? Module.fromJson(json[moduleType![0]]) : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -601,6 +782,7 @@ class Module {
   bool? showRestaurantText;
   bool? isParcel;
   bool? isTaxi;
+  bool? isRide;
   bool? newVariation;
   String? description;
 
@@ -614,6 +796,7 @@ class Module {
     this.showRestaurantText,
     this.isParcel,
     this.isTaxi,
+    this.isRide,
     this.newVariation,
     this.description,
   });
@@ -627,7 +810,8 @@ class Module {
     orderAttachment = json['order_attachment'];
     showRestaurantText = json['show_restaurant_text'];
     isParcel = json['is_parcel'];
-    isTaxi = json['is_taxi'];
+    isTaxi = json['is_taxi']?? false;
+    isRide = json['is_ride']?? false;
     newVariation = json['new_variation'];
     description = json['description'];
   }
@@ -714,32 +898,32 @@ class SocialMedia {
   }
 }
 
-class LandingPageLinks {
-  String? appUrlAndroidStatus;
-  String? appUrlAndroid;
-  String? appUrlIosStatus;
-  String? appUrlIos;
+class DownloadUserAppLinks {
+  String? playStoreUrlStatus;
+  String? playStoreUrl;
+  String? appleStoreUrlStatus;
+  String? appleStoreUrl;
 
-  LandingPageLinks({
-    this.appUrlAndroidStatus,
-    this.appUrlAndroid,
-    this.appUrlIosStatus,
-    this.appUrlIos,
+  DownloadUserAppLinks({
+    this.playStoreUrlStatus,
+    this.playStoreUrl,
+    this.appleStoreUrlStatus,
+    this.appleStoreUrl,
   });
 
-  LandingPageLinks.fromJson(Map<String, dynamic> json) {
-    appUrlAndroidStatus = json['app_url_android_status'].toString();
-    appUrlAndroid = json['app_url_android'];
-    appUrlIosStatus = json['app_url_ios_status'].toString();
-    appUrlIos = json['app_url_ios'];
+  DownloadUserAppLinks.fromJson(Map<String, dynamic> json) {
+    playStoreUrlStatus = json['playstore_url_status'].toString();
+    playStoreUrl = json['playstore_url'];
+    appleStoreUrlStatus = json['apple_store_url_status'].toString();
+    appleStoreUrl = json['apple_store_url'];
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    data['app_url_android_status'] = appUrlAndroidStatus;
-    data['app_url_android'] = appUrlAndroid;
-    data['app_url_ios_status'] = appUrlIosStatus;
-    data['app_url_ios'] = appUrlIos;
+    data['playstore_url_status'] = playStoreUrlStatus;
+    data['playstore_url'] = playStoreUrl;
+    data['apple_store_url_status'] = appleStoreUrlStatus;
+    data['apple_store_url'] = appleStoreUrl;
     return data;
   }
 }
@@ -796,13 +980,10 @@ class DigitalPaymentInfo {
   bool? pluginPaymentGateways;
   bool? defaultPaymentGateways;
 
-  DigitalPaymentInfo(
-      {this.digitalPayment,
-      this.pluginPaymentGateways,
-      this.defaultPaymentGateways});
+  DigitalPaymentInfo({this.digitalPayment, this.pluginPaymentGateways, this.defaultPaymentGateways});
 
   DigitalPaymentInfo.fromJson(Map<String, dynamic> json) {
-    digitalPayment = json['digital_payment'];
+    digitalPayment =  json['digital_payment'];
     pluginPaymentGateways = json['plugin_payment_gateways'];
     defaultPaymentGateways = json['default_payment_gateways'];
   }
@@ -812,6 +993,63 @@ class DigitalPaymentInfo {
     data['digital_payment'] = digitalPayment;
     data['plugin_payment_gateways'] = pluginPaymentGateways;
     data['default_payment_gateways'] = defaultPaymentGateways;
+    return data;
+  }
+}
+
+class ValidationConfig {
+ String? imageFormat;
+ String? imageExtension;
+ String? imageFormatForValidation;
+ String? videoFormat;
+ String? videoExtension;
+ int? productVideoMaxFileSize;
+ String? documentFormat;
+ String? documentExtension;
+ String? audioFormat;
+ String? audioExtension;
+ String? fileFormat;
+ String? fileFormatForImagePicker;
+ String? fileExtension;
+ int? maxFileSize;
+
+  ValidationConfig({this.imageFormat, this.imageExtension, this.imageFormatForValidation, this.videoFormat,
+    this.videoExtension, this.productVideoMaxFileSize, this.documentFormat, this.documentExtension, this.audioFormat,
+    this.audioExtension, this.fileFormat, this.fileFormatForImagePicker, this.fileExtension, this.maxFileSize});
+
+  ValidationConfig.fromJson(Map<String, dynamic> json) {
+    imageFormat = json['image_format'];
+    imageExtension = json['image_extension'];
+    imageFormatForValidation = json['image_format_for_validation'];
+    videoFormat = json['video_format'];
+    videoExtension = json['video_extension'];
+    productVideoMaxFileSize = json['product_video_max_file_size'];
+    documentFormat = json['document_format'];
+    documentExtension = json['document_extension'];
+    audioFormat = json['audio_format'];
+    audioExtension = json['audio_extension'];
+    fileFormat = json['file_format'];
+    fileFormatForImagePicker = json['file_format_for_image_picker'];
+    fileExtension = json['file_extension'];
+    maxFileSize = json['max_file_size'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['image_format'] = imageFormat;
+    data['image_extension'] = imageExtension;
+    data['image_format_for_validation'] = imageFormatForValidation;
+    data['video_format'] = videoFormat;
+    data['video_extension'] = videoExtension;
+    data['product_video_max_file_size'] = productVideoMaxFileSize;
+    data['document_format'] = documentFormat;
+    data['document_extension'] = documentExtension;
+    data['audio_format'] = audioFormat;
+    data['audio_extension'] = audioExtension;
+    data['file_format'] = fileFormat;
+    data['file_format_for_image_picker'] = fileFormatForImagePicker;
+    data['file_extension'] = fileExtension;
+    data['max_file_size'] = maxFileSize;
     return data;
   }
 }
@@ -877,6 +1115,125 @@ class CentralizeLoginSetup {
     data['apple_login_status'] = appleLoginStatus;
     data['email_verification_status'] = emailVerificationStatus;
     data['phone_verification_status'] = phoneVerificationStatus;
+    return data;
+  }
+}
+
+class AdminFreeDelivery {
+  bool? status;
+  String? type;
+  double? freeDeliveryOver;
+
+  AdminFreeDelivery({this.status, this.type, this.freeDeliveryOver});
+
+  AdminFreeDelivery.fromJson(Map<String, dynamic> json) {
+    status = json['status'];
+    type = json['type'];
+    freeDeliveryOver = json['free_delivery_over']?.toDouble();
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['status'] = status;
+    data['type'] = type;
+    data['free_delivery_over'] = freeDeliveryOver;
+    return data;
+  }
+}
+
+class ParcelCancellationBasicSetup {
+  String? returnFeeStatus;
+  String? returnFee;
+  //String? doNotChargeReturnFeeOnDeliverymanCancel;
+
+  ParcelCancellationBasicSetup({this.returnFeeStatus, this.returnFee, /*this.doNotChargeReturnFeeOnDeliverymanCancel*/});
+
+  ParcelCancellationBasicSetup.fromJson(Map<String, dynamic> json) {
+    returnFeeStatus = json['return_fee_status'];
+    returnFee = json['return_fee'];
+    //doNotChargeReturnFeeOnDeliverymanCancel = json['do_not_charge_return_fee_on_deliveryman_cancel'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['return_fee_status'] = returnFeeStatus;
+    data['return_fee'] = returnFee;
+    //data['do_not_charge_return_fee_on_deliveryman_cancel'] = doNotChargeReturnFeeOnDeliverymanCancel;
+    return data;
+  }
+}
+
+class ParcelReturnTimeFee {
+  String? status;
+  String? parcelReturnTime;
+  String? returnTimeType;
+  String? returnFeeForDm;
+
+  ParcelReturnTimeFee({this.status, this.parcelReturnTime, this.returnTimeType, this.returnFeeForDm});
+
+  ParcelReturnTimeFee.fromJson(Map<String, dynamic> json) {
+    status = json['status']?.toString();
+    parcelReturnTime = json['parcel_return_time'];
+    returnTimeType = json['return_time_type'];
+    returnFeeForDm = json['return_fee_for_dm'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['status'] = status;
+    data['parcel_return_time'] = parcelReturnTime;
+    data['return_time_type'] = returnTimeType;
+    data['return_fee_for_dm'] = returnFeeForDm;
+    return data;
+  }
+}
+
+class AdvanceBooking {
+  int? advancedBookingRestrictionValue;
+  int? advancedBookingRestrictionValueStatus;
+  String? advancedBookingRestrictionType;
+
+  AdvanceBooking({
+    this.advancedBookingRestrictionValue,
+    this.advancedBookingRestrictionType,
+    this.advancedBookingRestrictionValueStatus,
+  });
+
+  AdvanceBooking.fromJson(Map<String, dynamic> json) {
+    advancedBookingRestrictionValue = json['advanced_booking_restriction_value'];
+    advancedBookingRestrictionValueStatus =
+        int.tryParse('${json['advanced_booking_restriction_value_status']}');
+    advancedBookingRestrictionType = json['advanced_booking_restriction_type'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['advanced_booking_restriction_value'] =
+        advancedBookingRestrictionValue;
+    data['advanced_booking_restriction_value_status'] =
+        advancedBookingRestrictionValueStatus;
+    data['advanced_booking_restriction_type'] =
+        advancedBookingRestrictionType;
+    return data;
+  }
+}
+
+class ReferralData {
+  bool? referalStatus;
+  double? referalAmount;
+
+
+  ReferralData({this.referalStatus, this.referalAmount});
+
+  ReferralData.fromJson(Map<String, dynamic> json) {
+    referalStatus = json['referal_status'];
+    referalAmount = json['referal_amount']?.toDouble();
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['referal_status'] = referalStatus;
+    data['referal_amount'] = referalAmount;
     return data;
   }
 }
@@ -960,4 +1317,3 @@ class MaintenanceMessageSetup {
     return data;
   }
 }
-

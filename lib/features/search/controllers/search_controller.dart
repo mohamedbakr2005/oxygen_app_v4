@@ -1,6 +1,8 @@
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/top_category_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/trending_search_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/services/search_service_interface.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
@@ -370,4 +372,25 @@ class SearchController extends GetxController implements GetxService {
     _popularCategoryList = await searchServiceInterface.getPopularCategories();
     update();
   }
+
+  List<TopCategory>? _topCategoryList;
+  List<TopCategory>? get topCategoryList => _topCategoryList;
+
+  Future<void> getTopCategories({bool notify = true}) async {
+    _topCategoryList = null;
+    if (notify) update();
+    _topCategoryList = await searchServiceInterface.getTopCategories();
+    update();
+  }
+
+  List<TrendingSearch>? _trendingSearchList;
+  List<TrendingSearch>? get trendingSearchList => _trendingSearchList;
+
+  Future<void> getTrendingSearches({bool isGlobal = false, bool notify = true}) async {
+    _trendingSearchList = null;
+    if (notify) update();
+    _trendingSearchList = await searchServiceInterface.getTrendingSearches(isGlobal: isGlobal);
+    update();
+  }
 }
+

@@ -6,12 +6,13 @@ import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
-import 'package:Oxygen_Mart/features/auth/domain/enum/centralize_login_enum.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/custom_validator.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
+import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/helper/validate_check.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
@@ -23,7 +24,10 @@ class NewUserSetupScreen extends StatefulWidget {
   final String? phone;
   final String? email;
   final bool backFromThis;
-  const NewUserSetupScreen({super.key, required this.name, required this.loginType, required this.phone, required this.email, required this.backFromThis});
+
+  const NewUserSetupScreen({super.key,
+    required this.name, required this.loginType, required this.phone, required this.email, required this.backFromThis,
+  });
 
   @override
   State<NewUserSetupScreen> createState() => _NewUserSetupScreenState();
@@ -41,47 +45,65 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
   String? _countryDialCode;
   GlobalKey<FormState>? _formKeyInfo;
 
-  bool _isSocial = false;
+  bool _isPhoneRequired = false;
 
   @override
   void initState() {
     super.initState();
-    _isSocial = widget.loginType == CentralizeLoginType.social.name;
+    _isPhoneRequired = widget.phone == null || widget.phone!.isEmpty || widget.phone == 'null';
     _formKeyInfo = GlobalKey<FormState>();
     _countryDialCode = CountryCode.fromCountryCode(Get.find<SplashController>().configModel!.country!).dialCode;
-    _isSocial ? _nameController.text = widget.name : _nameController.text = '';
+    _nameController.text = widget.name;
+    if (widget.email != null && widget.email!.isNotEmpty && widget.email != 'null') {
+      _emailController.text = widget.email!;
+    }
+    if (widget.phone != null && widget.phone!.isNotEmpty && widget.phone != 'null') {
+      _phoneController.text = widget.phone!;
+    }
+  }
+
+  Future<void> _handleCancelAndLogout() async {
+    await Get.find<AuthController>().clearSharedData();
+    Get.find<AuthController>().socialLogout();
+    Get.offAllNamed(RouteHelper.getInitialRoute());
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ResponsiveHelper.isDesktop(context) ? Colors.transparent : Theme.of(context).cardColor,
-      appBar: ResponsiveHelper.isDesktop(context) ? null : AppBar(leading: IconButton(
-        onPressed: () => Get.back(),
-        icon: Icon(Icons.arrow_back_ios_rounded, color: Theme.of(context).textTheme.bodyLarge!.color),
-      ), elevation: 0, backgroundColor: Theme.of(context).cardColor),
-      body: SafeArea(child: Align(
-        alignment: Alignment.center,
-        child: Container(
-          width: context.width > 700 ? 500 : context.width,
-          padding: context.width > 700 ? const EdgeInsets.all(50) : const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeExtraLarge),
-          margin: context.width > 700 ? const EdgeInsets.all(50) : EdgeInsets.zero,
-          decoration: context.width > 700 ? BoxDecoration(
-            color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
-            boxShadow: ResponsiveHelper.isDesktop(context) ? null : [BoxShadow(color: Colors.grey[Get.isDarkMode ? 700 : 300]!, blurRadius: 5, spreadRadius: 1)],
-          ) : null,
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKeyInfo,
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleCancelAndLogout();
+      },
+      child: Scaffold(
+        backgroundColor: ResponsiveHelper.isDesktop(context) ? Colors.transparent : Theme.of(context).cardColor,
+        appBar: ResponsiveHelper.isDesktop(context) ? null : AppBar(leading: IconButton(
+          onPressed: () => _handleCancelAndLogout(),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: Theme.of(context).textTheme.bodyLarge!.color),
+        ), elevation: 0, backgroundColor: Theme.of(context).cardColor),
+        body: SafeArea(child: Align(
+          alignment: Alignment.center,
+          child: Container(
+            width: context.width > 700 ? 500 : context.width,
+            padding: context.width > 700 ? const EdgeInsets.all(50) : const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeExtraLarge),
+            margin: context.width > 700 ? const EdgeInsets.all(50) : EdgeInsets.zero,
+            decoration: context.width > 700 ? BoxDecoration(
+              color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
+              boxShadow: ResponsiveHelper.isDesktop(context) ? null : [BoxShadow(color: Colors.grey[Get.isDarkMode ? 700 : 300]!, blurRadius: 5, spreadRadius: 1)],
+            ) : null,
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKeyInfo,
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
 
-                ResponsiveHelper.isDesktop(context) ? Align(
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    onPressed: () => Get.back(),
-                    icon: const Icon(Icons.clear),
-                  ),
-                ) : const SizedBox(),
+                  ResponsiveHelper.isDesktop(context) ? Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      onPressed: () => _handleCancelAndLogout(),
+                      icon: const Icon(Icons.clear),
+                    ),
+                  ) : const SizedBox(),
 
                 Image.asset(Images.logo, width: 125),
                 const SizedBox(height: Dimensions.paddingSizeLarge),
@@ -96,7 +118,7 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
                   required: true,
                   controller: _nameController,
                   focusNode: _nameFocus,
-                  nextFocus: _isSocial ? _phoneFocus : _emailFocus,
+                  nextFocus: _isPhoneRequired ? _phoneFocus : _emailFocus,
                   inputType: TextInputType.name,
                   capitalization: TextCapitalization.words,
                   prefixIcon: CupertinoIcons.person_alt_circle_fill,
@@ -105,7 +127,7 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
                 ),
                 const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
-                _isSocial ? CustomTextField(
+                _isPhoneRequired ? CustomTextField(
                   titleText: 'xxx-xxx-xxxxx'.tr,
                   labelText: 'phone'.tr,
                   showLabelText: true,
@@ -125,13 +147,13 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
                   titleText: 'enter_email'.tr,
                   labelText: 'email'.tr,
                   showLabelText: true,
-                  required: true,
+                  required: false,
                   controller: _emailController,
                   focusNode: _emailFocus,
                   nextFocus: _referCodeFocus,
                   inputType: TextInputType.emailAddress,
                   prefixIcon: CupertinoIcons.mail_solid,
-                  validator: (value) => ValidateCheck.validateEmail(value),
+                  validator: (value) => ValidateCheck.validateEmail(value, required: false),
                 ),
                 const SizedBox(height: Dimensions.paddingSizeExtraLarge),
 
@@ -161,8 +183,7 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
                     isLoading: authController.isLoading,
                     onPressed: () async {
                       if(_formKeyInfo!.currentState!.validate()) {
-
-                        if(widget.phone == null || widget.phone!.isEmpty) {
+                        if(_isPhoneRequired) {
                           String numberWithCountryCode =  _countryDialCode! + _phoneController.text.trim();
                           PhoneValid phoneValid = await CustomValidator.isPhoneValid(numberWithCountryCode);
                           numberWithCountryCode = phoneValid.phone;
@@ -172,9 +193,8 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
                             _updatePersonalInfo(authController, numberWithCountryCode);
                           }
                         } else {
-                          _updatePersonalInfo(authController, '');
+                          _updatePersonalInfo(authController, widget.phone ?? '');
                         }
-
                       }
                     },
                   );
@@ -185,25 +205,31 @@ class _NewUserSetupScreenState extends State<NewUserSetupScreen> {
           ),
 
         ),
-      )),
+      ))),
     );
   }
 
   void _updatePersonalInfo(AuthController authController, String numberWithCountryCode) {
     String name = _nameController.text.trim();
+    String emailText = _emailController.text.trim();
+    String? email = (widget.email != null && widget.email!.isNotEmpty && widget.email != 'null')
+        ? widget.email
+        : (emailText.isNotEmpty ? emailText : null);
     authController.updatePersonalInfo(
-      name: name.isNotEmpty ? name : widget.name, phone: (widget.phone != null && widget.phone!.isNotEmpty) ?  widget.phone : numberWithCountryCode,
-      loginType: widget.loginType, email: widget.email ?? _emailController.text.trim(),
+      name: name.isNotEmpty ? name : widget.name,
+      phone: _isPhoneRequired ? numberWithCountryCode : (widget.phone != null && widget.phone!.isNotEmpty ? widget.phone : numberWithCountryCode),
+      loginType: widget.loginType,
+      email: email,
       referCode: _referCodeController.text.trim(),
+      alreadyInApp: widget.backFromThis,
     ).then((response) {
       if(response.isSuccess) {
-        // if(widget.backFromThis && AddressHelper.getUserAddressFromSharedPref() != null) {
-        //   Get.back();
-        //   Get.back();
-        //   Get.find<LocationController>().syncZoneData();
-        // } else {
+        if(widget.backFromThis && AddressHelper.getUserAddressFromSharedPref() != null) {
+          Get.find<LocationController>().syncZoneData();
+          Get.back();
+        } else {
           Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
-        // }
+        }
       } else {
         showCustomSnackBar(response.message);
       }

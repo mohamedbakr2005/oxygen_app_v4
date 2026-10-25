@@ -39,17 +39,7 @@ class ShopHomeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault, vertical: Dimensions.paddingSizeSmall),
           child: InkWell(
             onTap: () {
-              var splashCtrl = Get.find<SplashController>();
-              if (splashCtrl.moduleList != null) {
-                try {
-                  var groceryModule = splashCtrl.moduleList!.firstWhere((m) => m.moduleType == AppConstants.grocery);
-                  splashCtrl.switchModule(groceryModule);
-                } catch (e) {
-                  splashCtrl.removeModule();
-                }
-              } else {
-                splashCtrl.removeModule();
-              }
+              Get.find<SplashController>().removeModule();
               Get.find<StoreController>().resetStoreData();
             },
             child: Container(

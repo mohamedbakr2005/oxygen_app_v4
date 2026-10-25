@@ -1323,5 +1323,9 @@
     "enter_name": "Введите имя",
     "timed_out_please_try_again_after_few_minutes": "Время ожидания истекло. Пожалуйста, попробуйте снова через несколько минут",
     "from_you": "от вас",
-    "oxgenMart": "Oxygen Mart"
+    "oxgenMart": "Oxygen Mart",
+    "redirecting_to_verification": "Перенаправление на подтверждение...",
+    "sending_otp_code": "Отправка кода подтверждения...",
+    "could_not_send_otp_please_retry": "Не удалось отправить код подтверждения, повторите попытку",
+    "resend_code": "Отправить код повторно"
 }

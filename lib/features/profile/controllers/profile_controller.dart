@@ -14,7 +14,6 @@ import 'package:Oxygen_Mart/features/profile/domain/services/profile_service_int
 import 'package:Oxygen_Mart/features/verification/screens/verification_screen.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 
 class ProfileController extends GetxController implements GetxService {
   final ProfileServiceInterface profileServiceInterface;
@@ -31,11 +30,29 @@ class ProfileController extends GetxController implements GetxService {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Future<void> getUserInfo() async {
+  Future<void> getUserInfo({bool reload = false}) async {
     _pickedFile = null;
     UserInfoModel? userInfoModel = await profileServiceInterface.getUserInfo();
     if (userInfoModel != null) {
       _userInfoModel = userInfoModel;
+      if (Get.find<AuthController>().isLoggedIn() && (_userInfoModel!.phone == null || _userInfoModel!.phone!.isEmpty)) {
+        String currentRoute = Get.currentRoute;
+        if (!currentRoute.contains(RouteHelper.newUserSetupScreen) &&
+            !currentRoute.contains(RouteHelper.updateProfile) &&
+            !currentRoute.contains(RouteHelper.verification) &&
+            !currentRoute.contains(RouteHelper.signIn) &&
+            !currentRoute.contains(RouteHelper.splash)) {
+          String name = '${_userInfoModel!.fName ?? ''} ${_userInfoModel!.lName ?? ''}'.trim();
+          String email = _userInfoModel!.email ?? '';
+          Get.offAllNamed(RouteHelper.getNewUserSetupScreen(
+            name: name,
+            loginType: CentralizeLoginType.social.name,
+            phone: '',
+            email: email,
+            backFromThis: false,
+          ));
+        }
+      }
     }
     update();
   }

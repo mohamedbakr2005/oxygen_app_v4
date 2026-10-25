@@ -4,6 +4,8 @@ import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/top_category_model.dart';
+import 'package:Oxygen_Mart/features/search/domain/models/trending_search_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/repositories/search_repository_interface.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
@@ -101,4 +103,35 @@ class SearchRepository implements SearchRepositoryInterface {
     }
     return popularCategoryList;
   }
+
+  @override
+  Future<List<TrendingSearch>?> getTrendingSearches({bool isGlobal = false}) async {
+    List<TrendingSearch>? trendingSearches;
+    final Map<String, String>? headers = isGlobal
+        ? ({...apiClient.getHeader()}..remove(AppConstants.moduleId))
+        : null;
+    Response response = await apiClient.getData(
+      '${AppConstants.trendingSearchesUri}${isGlobal ? '?is_global=true' : ''}',
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      trendingSearches = TrendingSearchModel.fromJson(response.body).trendingSearches;
+    }
+    return trendingSearches;
+  }
+
+  @override
+  Future<List<TopCategory>?> getTopCategories({int offset = 1}) async {
+    List<TopCategory>? categories;
+    final Map<String, String> headers = {...apiClient.getHeader()}..remove(AppConstants.moduleId);
+    Response response = await apiClient.getData(
+      '${AppConstants.topCategoriesUri}?limit=10&offset=$offset',
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      categories = TopCategoryModel.fromJson(response.body).categories;
+    }
+    return categories;
+  }
 }
+

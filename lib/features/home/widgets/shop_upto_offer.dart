@@ -35,10 +35,9 @@ class ShopUpToOffer extends StatelessWidget {
       final String title = '${_prefixKey.tr} $discountText ${'off'.tr}!';
 
       return SingleDealWidget(
-        beginColor: const Color(0xFFFFF1C2),
-        endColor: const Color(0xFFFFF1C2).withValues(alpha: 0.9),
         title: title,
         subTitle: 'dont_miss_out_order_favorites'.tr,
+        discountTag: discountText,
         onTap: () {
           Get.to(() => const OfferScreen());
         },

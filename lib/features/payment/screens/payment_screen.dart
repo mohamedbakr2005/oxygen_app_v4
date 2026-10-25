@@ -56,6 +56,18 @@ class PaymentScreenState extends State<PaymentScreen> {
   late MyInAppBrowser browser;
   double? _maximumCodOrderAmount;
 
+  bool _isValidUrl(String? url) {
+    if (url == null) return false;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed == 'null' ||
+        trimmed == 'http://null/' ||
+        trimmed == 'http://null') {
+      return false;
+    }
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -66,33 +78,33 @@ class PaymentScreenState extends State<PaymentScreen> {
     );
     print("🔥 Analytics: add_payment_info → ${widget.paymentMethod}");
 
-    if (widget.addFundUrl == '' &&
-        widget.addFundUrl!.isEmpty &&
-        widget.subscriptionUrl == '' &&
-        widget.subscriptionUrl!.isEmpty) {
-      selectedUrl =
-          '${AppConstants.baseUrl}/payment-mobile?customer_id=${widget.createAccount ? widget.createUserId : widget.orderModel.userId == 0 ? widget.guestId : widget.orderModel.userId}&order_id=${widget.orderModel.id}&payment_method=${widget.paymentMethod}';
-    } else if (widget.subscriptionUrl != '' &&
-        widget.subscriptionUrl!.isNotEmpty) {
-      selectedUrl = widget.subscriptionUrl!;
+    if (_isValidUrl(widget.subscriptionUrl)) {
+      selectedUrl = widget.subscriptionUrl!.trim();
+    } else if (_isValidUrl(widget.addFundUrl)) {
+      selectedUrl = widget.addFundUrl!.trim();
     } else {
-      selectedUrl = widget.addFundUrl!;
+      final customerId = widget.createAccount && widget.createUserId != null
+          ? widget.createUserId
+          : (widget.orderModel.userId == 0 ? widget.guestId : widget.orderModel.userId);
+      selectedUrl =
+          '${AppConstants.baseUrl}/payment-mobile?customer_id=$customerId&order_id=${widget.orderModel.id}&payment_method=${widget.paymentMethod}';
     }
 
     _initData();
   }
 
   void _initData() async {
-    if (widget.addFundUrl == '' &&
-        widget.addFundUrl!.isEmpty &&
-        widget.subscriptionUrl == '' &&
-        widget.subscriptionUrl!.isEmpty) {
-      for (ZoneData zData
-          in AddressHelper.getUserAddressFromSharedPref()!.zoneData!) {
-        for (Modules m in zData.modules!) {
-          if (m.id == Get.find<SplashController>().module!.id) {
-            _maximumCodOrderAmount = m.pivot!.maximumCodOrderAmount;
-            break;
+    if (!_isValidUrl(widget.addFundUrl)) {
+      final userAddress = AddressHelper.getUserAddressFromSharedPref();
+      if (userAddress?.zoneData != null) {
+        for (ZoneData zData in userAddress!.zoneData!) {
+          if (zData.modules != null) {
+            for (Modules m in zData.modules!) {
+              if (m.id == Get.find<SplashController>().module?.id) {
+                _maximumCodOrderAmount = m.pivot?.maximumCodOrderAmount;
+                break;
+              }
+            }
           }
         }
       }
@@ -180,8 +192,7 @@ class PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<bool?> _exitApp() async {
-    if ((widget.addFundUrl == null || widget.addFundUrl!.isEmpty) &&
-        (widget.subscriptionUrl == '' && widget.subscriptionUrl!.isEmpty)) {
+    if (!_isValidUrl(widget.addFundUrl) && !_isValidUrl(widget.subscriptionUrl)) {
       return Get.dialog(PaymentFailedDialog(
         orderID: widget.orderModel.id.toString(),
         orderAmount: widget.orderModel.orderAmount,
@@ -194,8 +205,7 @@ class PaymentScreenState extends State<PaymentScreen> {
       ));
     } else {
       return Get.dialog(FundPaymentDialogWidget(
-          isSubscription: widget.subscriptionUrl != null &&
-              widget.subscriptionUrl!.isNotEmpty));
+          isSubscription: _isValidUrl(widget.subscriptionUrl)));
     }
   }
 }

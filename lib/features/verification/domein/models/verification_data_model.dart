@@ -5,6 +5,8 @@ class VerificationDataModel {
   String? otp;
   String? loginType;
   String? guestId;
+  String? name;
+  String? orderId;
 
   VerificationDataModel({
     this.phone,
@@ -13,6 +15,8 @@ class VerificationDataModel {
     this.otp,
     this.loginType,
     this.guestId,
+    this.name,
+    this.orderId,
   });
 
   VerificationDataModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,8 @@ class VerificationDataModel {
     otp = json['otp'];
     loginType = json['login_type'];
     guestId = json['guest_id'];
+    name = json['name'];
+    orderId = json['order_id'];
   }
 
   Map<String, dynamic> toJson() {
@@ -37,6 +43,12 @@ class VerificationDataModel {
     data['login_type'] = loginType;
     if (guestId != null) {
       data['guest_id'] = guestId;
+    }
+    if (name != null) {
+      data['name'] = name;
+    }
+    if (orderId != null) {
+      data['order_id'] = orderId;
     }
     return data;
   }

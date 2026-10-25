@@ -10,6 +10,7 @@ import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
+import 'package:Oxygen_Mart/features/splash/domain/models/app_download_section_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/models/landing_model.dart';
 import 'package:Oxygen_Mart/features/splash/domain/repositories/splash_repository_interface.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
@@ -144,6 +145,7 @@ class SplashRepository implements SplashRepositoryInterface {
       storeCategoryID,
       addressModel?.latitude,
       addressModel?.longitude,
+      addressModel?.zoneId,
     );
   }
 
@@ -227,9 +229,11 @@ class SplashRepository implements SplashRepositoryInterface {
       addressModel?.zoneIds,
       addressModel?.areaIds,
       sharedPreferences.getString(AppConstants.languageCode),
-      module?.id,
+      module?.id?.toString(),
       addressModel?.latitude,
       addressModel?.longitude,
+      (module != null && module.moduleType.toString() == AppConstants.ride) ? addressModel?.rideZoneId : null,
+      fromModule: true,
     );
     if (module != null) {
       await sharedPreferences.setString(
@@ -240,13 +244,14 @@ class SplashRepository implements SplashRepositoryInterface {
   }
 
   @override
-  Future<void> setCacheModule(ModuleModel? module) async {
+  Future<ModuleModel?> setCacheModule(ModuleModel? module) async {
     if (module != null) {
       await sharedPreferences.setString(
           AppConstants.cacheModuleId, jsonEncode(module.toJson()));
     } else {
       await sharedPreferences.remove(AppConstants.cacheModuleId);
     }
+    return module;
   }
 
   @override
@@ -359,6 +364,16 @@ class SplashRepository implements SplashRepositoryInterface {
       debugPrint('Topic Subscription Failed, $e');
       return false;
     }
+  }
+
+  @override
+  Future<AppDownloadSectionModel?> getAppDownloadSection() async {
+    AppDownloadSectionModel? appDownloadSectionModel;
+    Response response = await apiClient.getData(AppConstants.appDownloadSectionUri);
+    if (response.statusCode == 200 && response.body != null) {
+      appDownloadSectionModel = AppDownloadSectionModel.fromJson(response.body);
+    }
+    return appDownloadSectionModel;
   }
 
   @override

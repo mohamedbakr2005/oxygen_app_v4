@@ -23,10 +23,10 @@ class CouponScreen extends StatefulWidget {
 
 class _CouponScreenState extends State<CouponScreen> {
   ScrollController scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-
     initCall();
   }
 
@@ -34,6 +34,12 @@ class _CouponScreenState extends State<CouponScreen> {
     if (AuthHelper.isLoggedIn()) {
       Get.find<CouponController>().getCouponList();
     }
+  }
+
+  @override
+  void dispose() {
+    scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -54,61 +60,67 @@ class _CouponScreenState extends State<CouponScreen> {
                           },
                           child: SingleChildScrollView(
                             controller: scrollController,
-                            physics: const AlwaysScrollableScrollPhysics(),
+                            physics: const AlwaysScrollableScrollPhysics(
+                              parent: BouncingScrollPhysics(),
+                            ),
                             child: Column(
                               children: [
                                 WebScreenTitleWidget(title: 'coupon'.tr),
                                 Center(
-                                    child: FooterView(
-                                  child: SizedBox(
+                                  child: FooterView(
+                                    child: Container(
                                       width: Dimensions.webMaxWidth,
-                                      child: GridView.builder(
-                                        gridDelegate:
-                                            SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: ResponsiveHelper
-                                                  .isDesktop(context)
-                                              ? 3
-                                              : ResponsiveHelper.isTab(context)
-                                                  ? 2
-                                                  : 1,
-                                          mainAxisSpacing:
-                                              Dimensions.paddingSizeSmall,
-                                          crossAxisSpacing:
-                                              Dimensions.paddingSizeSmall,
-                                          childAspectRatio:
-                                              ResponsiveHelper.isMobile(context)
-                                                  ? 3
-                                                  : 3,
-                                        ),
-                                        itemCount:
-                                            couponController.couponList!.length,
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        padding: const EdgeInsets.all(
-                                            Dimensions.paddingSizeLarge),
-                                        itemBuilder: (context, index) {
-                                          return InkWell(
-                                            onTap: () {
-                                              Clipboard.setData(ClipboardData(
-                                                  text: couponController
-                                                      .couponList![index]
-                                                      .code!));
-                                              if (!ResponsiveHelper.isDesktop(
-                                                  context)) {
-                                                showCustomSnackBar(
-                                                    'coupon_code_copied'.tr,
-                                                    isError: false);
-                                              }
-                                            },
-                                            child: CouponCardWidget(
-                                                coupon: couponController
-                                                    .couponList![index],
-                                                index: index),
-                                          );
-                                        },
-                                      )),
-                                ))
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: Dimensions.paddingSizeDefault,
+                                        vertical: Dimensions.paddingSizeDefault,
+                                      ),
+                                      child: ResponsiveHelper.isDesktop(context)
+                                          ? GridView.builder(
+                                              gridDelegate:
+                                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount: 3,
+                                                mainAxisSpacing: Dimensions.paddingSizeDefault,
+                                                crossAxisSpacing: Dimensions.paddingSizeDefault,
+                                                childAspectRatio: 2.6,
+                                              ),
+                                              itemCount: couponController.couponList!.length,
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              itemBuilder: (context, index) {
+                                                return CouponCardWidget(
+                                                  coupon: couponController.couponList![index],
+                                                  index: index,
+                                                );
+                                              },
+                                            )
+                                          : ListView.separated(
+                                              itemCount: couponController.couponList!.length,
+                                              shrinkWrap: true,
+                                              physics: const NeverScrollableScrollPhysics(),
+                                              separatorBuilder: (context, index) =>
+                                                  const SizedBox(height: Dimensions.paddingSizeDefault),
+                                              itemBuilder: (context, index) {
+                                                final coupon = couponController.couponList![index];
+                                                return InkWell(
+                                                  onTap: () {
+                                                    Clipboard.setData(
+                                                        ClipboardData(text: coupon.code ?? ''));
+                                                    showCustomSnackBar(
+                                                        'coupon_code_copied'.tr,
+                                                        isError: false);
+                                                  },
+                                                  borderRadius: BorderRadius.circular(
+                                                      Dimensions.radiusLarge),
+                                                  child: CouponCardWidget(
+                                                    coupon: coupon,
+                                                    index: index,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),

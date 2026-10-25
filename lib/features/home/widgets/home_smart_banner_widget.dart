@@ -82,6 +82,13 @@ class _PromoBannerCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -98,23 +105,26 @@ class _PromoBannerCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    subtitle,
-                    style: robotoRegular.copyWith(
-                      color: Theme.of(context).disabledColor,
-                      fontSize: Dimensions.fontSizeSmall,
+                  if (subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      style: robotoRegular.copyWith(
+                        color: Theme.of(context).disabledColor,
+                        fontSize: Dimensions.fontSizeSmall,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                 ],
               ),
             ),
-            const SizedBox(width: Dimensions.paddingSizeSmall),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-              child: CustomImage(image: imageUrl, height: 32, width: 32, fit: BoxFit.cover),
-            ),
+            if (imageUrl.isNotEmpty) ...[
+              const SizedBox(width: Dimensions.paddingSizeSmall),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                child: CustomImage(image: imageUrl, height: 32, width: 32, fit: BoxFit.cover),
+              ),
+            ],
           ],
         ),
       ),
@@ -132,15 +142,21 @@ class _PromoBannerShimmer extends StatelessWidget {
       duration: const Duration(seconds: 2),
       child: Column(
         children: [
-          _shimmerCard(context, baseColor),
+          _ShimmerCard(color: baseColor),
           const SizedBox(height: Dimensions.paddingSizeSmall),
-          _shimmerCard(context, baseColor),
+          _ShimmerCard(color: baseColor),
         ],
       ),
     );
   }
+}
 
-  Widget _shimmerCard(BuildContext context, Color color) {
+class _ShimmerCard extends StatelessWidget {
+  final Color color;
+  const _ShimmerCard({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 70,

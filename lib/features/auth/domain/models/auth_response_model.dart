@@ -22,9 +22,9 @@ class AuthResponseModel {
 
   AuthResponseModel.fromJson(Map<String, dynamic> json) {
     token = json['token'];
-    isPhoneVerified = json['is_phone_verified'] == 1;
-    isEmailVerified = json['is_email_verified'] == 1;
-    isPersonalInfo = json['is_personal_info'] == 1;
+    isPhoneVerified = json['is_phone_verified'] == 1 || json['is_phone_verified'] == true || json['is_phone_verified'] == '1';
+    isEmailVerified = json['is_email_verified'] == 1 || json['is_email_verified'] == true || json['is_email_verified'] == '1';
+    isPersonalInfo = json['is_personal_info'] == 1 || json['is_personal_info'] == true || json['is_personal_info'] == '1';
     isExistUser = json['is_exist_user'] != null ? IsExistUser.fromJson(json['is_exist_user']) : null;
     loginType = json['login_type'];
     email = json['email'];

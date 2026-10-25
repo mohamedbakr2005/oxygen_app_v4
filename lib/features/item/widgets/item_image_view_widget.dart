@@ -2,13 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
-import 'package:Oxygen_Mart/common/widgets/discount_tag.dart';
-import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/item/widgets/item_media_dialog.dart';
-import 'package:Oxygen_Mart/helper/auth_helper.dart';
+import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
@@ -30,135 +27,158 @@ class ItemImageViewWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<String> mediaList = _getMediaList(item!, isCampaign: isCampaign);
-
-    double? discount = Get.find<ItemController>().item!.discount;
-    String? discountType = Get.find<ItemController>().item!.discountType;
-
     return GetBuilder<ItemController>(builder: (itemController) {
+      final Item? currentItem = item ?? itemController.item;
+      final List<String> mediaList = currentItem != null ? _getMediaList(currentItem, isCampaign: isCampaign) : [];
+
+      final double? discount = currentItem?.discount ?? itemController.item?.discount;
+      final String? discountType = currentItem?.discountType ?? itemController.item?.discountType;
       final bool isDesktop = ResponsiveHelper.isDesktop(context);
       final int currentIndex = mediaList.isNotEmpty && itemController.imageSliderIndex < mediaList.length ? itemController.imageSliderIndex : 0;
       final String? currentMedia = mediaList.isNotEmpty ? mediaList[currentIndex] : null;
       final bool letYoutubeHandleTap = isDesktop && currentMedia != null && _isYoutubeUrl(currentMedia);
 
       return InkWell(
-        onTap: isCampaign || letYoutubeHandleTap ? null : () {
+        onTap: isCampaign || letYoutubeHandleTap || currentItem == null ? null : () {
           if(!isCampaign) {
             if(isDesktop) {
-              Get.dialog(ItemMediaDialog(item: item!, isCampaign: isCampaign));
+              Get.dialog(ItemMediaDialog(item: currentItem, isCampaign: isCampaign));
             } else {
               if (currentMedia != null && !_isVideoMedia(currentMedia)) {
                 Navigator.of(context).pushNamed(
-                  RouteHelper.getItemImagesRoute(item!),
-                  arguments: ItemImageViewWidget(item: item, isCampaign: isCampaign),
+                  RouteHelper.getItemImagesRoute(currentItem),
+                  arguments: ItemImageViewWidget(item: currentItem, isCampaign: isCampaign),
                 );
               }
             }
           }
         },
         child: Stack(children: [
-          SizedBox(
-            height: ResponsiveHelper.isDesktop(context)? 350 : MediaQuery.of(context).size.width * 0.7,
+          Container(
+            height: ResponsiveHelper.isDesktop(context) ? 350 : MediaQuery.of(context).size.width * 0.75,
+            color: Theme.of(context).cardColor,
             child: mediaList.isNotEmpty ? PageView.builder(
               controller: _controller,
               itemCount: mediaList.length,
               itemBuilder: (context, index) {
                 final String mediaUrl = mediaList[index];
                 return ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
                   child: _isVideoMedia(mediaUrl) ? _ItemMediaVideoView(
                     mediaUrl: mediaUrl,
-                    thumbnailUrl: _thumbnailUrl(item!, mediaUrl, mediaList),
+                    thumbnailUrl: currentItem != null ? _thumbnailUrl(currentItem, mediaUrl, mediaList) : '',
                     isDesktop: ResponsiveHelper.isDesktop(context),
-                    onFullscreenTap: _isYoutubeUrl(mediaUrl) ? null : () {
+                    onFullscreenTap: _isYoutubeUrl(mediaUrl) || currentItem == null ? null : () {
                       if (ResponsiveHelper.isDesktop(context)) {
-                        Get.dialog(ItemMediaDialog(item: item!, isCampaign: isCampaign));
+                        Get.dialog(ItemMediaDialog(item: currentItem, isCampaign: isCampaign));
                       } else if (ResponsiveHelper.isMobile(context)) {
                         Get.toNamed(
-                          RouteHelper.getItemImagesRoute(item!),
-                          arguments: ItemImageViewWidget(item: item, isCampaign: isCampaign),
+                          RouteHelper.getItemImagesRoute(currentItem),
+                          arguments: ItemImageViewWidget(item: currentItem, isCampaign: isCampaign),
                         );
                       }
                     },
-
-                    // onFullscreenTap: _isYoutubeUrl(mediaUrl) ? null : () => Get.dialog(ItemMediaDialog(item: item!, isCampaign: isCampaign)),
-                  ) : CustomImage(image: mediaUrl, height: 200, width: MediaQuery.of(context).size.width),
+                  ) : Padding(
+                    padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+                    child: Center(
+                      child: CustomImage(
+                        image: mediaUrl,
+                        fit: BoxFit.contain,
+                        height: double.infinity,
+                        width: double.infinity,
+                      ),
+                    ),
+                  ),
                 );
               },
               onPageChanged: (index) {
                 itemController.setImageSliderIndex(index);
               },
             ) : ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: CustomImage(image: '', height: 200, width: MediaQuery.of(context).size.width),
+              borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
+              child: const Padding(
+                padding: EdgeInsets.all(Dimensions.paddingSizeDefault),
+                child: Center(
+                  child: CustomImage(
+                    image: '',
+                    fit: BoxFit.contain,
+                    height: double.infinity,
+                    width: double.infinity,
+                  ),
+                ),
+              ),
             ),
           ),
 
-          DiscountTag(discount: discount, discountType: discountType, fromTop: 20),
+          if ((discount ?? 0) > 0)
+            Positioned(
+              bottom: 12,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDE8E8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '-${discountType == 'percent' ? '${discount?.toInt() ?? 0}%' : PriceConverter.convertPrice(discount)}',
+                  style: robotoBold.copyWith(
+                    fontSize: Dimensions.fontSizeSmall,
+                    color: const Color(0xFFE02424),
+                  ),
+                ),
+              ),
+            ),
 
           mediaList.length > 1 ? Positioned(
             left: 10,
-            top: (ResponsiveHelper.isDesktop(context)? 350 : MediaQuery.of(context).size.width * 0.7) / 2 - 15,
+            top: (ResponsiveHelper.isDesktop(context) ? 350 : MediaQuery.of(context).size.width * 0.75) / 2 - 15,
             child: InkWell(
               onTap: () {
                 final int newIndex = itemController.imageSliderIndex == 0 ? mediaList.length - 1 : itemController.imageSliderIndex - 1;
                 _controller.animateToPage(newIndex, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                 itemController.setImageSliderIndex(newIndex);
               },
-              child: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 16),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4),
+                  ],
+                ),
+                child: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black54, size: 16),
+              ),
             ),
           ) : const SizedBox(),
 
           mediaList.length > 1 ? Positioned(
-            right: 5,
-            top: (ResponsiveHelper.isDesktop(context)? 350 : MediaQuery.of(context).size.width * 0.7) / 2 - 15,
+            right: 10,
+            top: (ResponsiveHelper.isDesktop(context) ? 350 : MediaQuery.of(context).size.width * 0.75) / 2 - 15,
             child: InkWell(
               onTap: () {
                 final int newIndex = itemController.imageSliderIndex == mediaList.length - 1 ? 0 : itemController.imageSliderIndex + 1;
                 _controller.animateToPage(newIndex, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
                 itemController.setImageSliderIndex(newIndex);
               },
-              child: const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 16),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor.withOpacity(0.8),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 4),
+                  ],
+                ),
+                child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.black54, size: 16),
+              ),
             ),
           ) : const SizedBox(),
 
-          Positioned(
-            right: 10, top: 10,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Theme.of(context).disabledColor.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: GetBuilder<FavouriteController>(builder: (favouriteController) {
-                return InkWell(
-                  onTap: () {
-                    if(AuthHelper.isLoggedIn()){
-                      if(favouriteController.wishItemIdList.contains(item!.id)) {
-                        favouriteController.removeFromFavouriteList(item!.id, false);
-                      }else {
-                        favouriteController.addToFavouriteList(item, null, false);
-                      }
-                    }else {
-                      showCustomSnackBar('you_are_not_logged_in'.tr);
-                    }
-                  },
-                  child: Icon(
-                    favouriteController.wishItemIdList.contains(item!.id) ? Icons.favorite : Icons.favorite_border, size: 25,
-                    color: favouriteController.wishItemIdList.contains(item!.id) ? Theme.of(context).primaryColor : Theme.of(context).disabledColor,
-                  ),
-                );
-              }),
-            ),
-          ),
-
-          mediaList.isNotEmpty ? Positioned(
-            left: 0, right: 0, bottom: 0,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
-              child: _indicators(context, itemController, mediaList.cast<String?>()),
-            ),
+          mediaList.isNotEmpty && mediaList.length > 1 ? Positioned(
+            left: 0, right: 0, bottom: 8,
+            child: _indicators(context, itemController, mediaList.cast<String?>()),
           ) : const SizedBox.shrink(),
 
         ]),

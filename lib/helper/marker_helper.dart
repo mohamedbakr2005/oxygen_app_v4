@@ -15,7 +15,7 @@ class MarkerHelper{
     try {
       if(GetPlatform.isWeb) {
         //return BitmapDescriptor.fromAssetImage(const ImageConfiguration(devicePixelRatio: 2.5, size: Size(50, 50), ), imagePath);
-        return BitmapDescriptor.asset(const ImageConfiguration(devicePixelRatio: 2.5, size: Size(50, 50), ), imagePath);
+        return await BitmapDescriptor.asset(const ImageConfiguration(devicePixelRatio: 2.5, size: Size(50, 50), ), imagePath);
       }
       final ByteData byteDataFromImage = await rootBundle.load(imagePath).timeout(const Duration(seconds: 8));
       final ui.Codec codec = await ui

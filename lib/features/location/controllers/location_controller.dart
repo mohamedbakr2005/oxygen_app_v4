@@ -1,62 +1,54 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
-import 'package:Oxygen_Mart/common/models/module_model.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_loader.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
-import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
-import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
-import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
+import 'package:Oxygen_Mart/common/widgets/no_internet_screen.dart';
+import 'package:Oxygen_Mart/common/widgets/zone_warning_dialog.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
-import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
-import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
-import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
-import 'package:Oxygen_Mart/features/location/domain/models/prediction_model.dart';
-import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
-import 'package:Oxygen_Mart/features/location/domain/services/location_service_interface.dart';
+import 'package:Oxygen_Mart/features/category/controllers/category_controller.dart';
+import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/location/screens/pick_map_screen.dart';
-import 'package:Oxygen_Mart/features/location/widgets/module_dialog_widget.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
+import 'package:Oxygen_Mart/features/ride_share_module/ride_location/controllers/search_location_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
+import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/location/domain/models/prediction_model.dart';
+import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
+import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
+import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
+import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
+import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
+import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
+import 'package:Oxygen_Mart/features/location/domain/services/location_service_interface.dart';
+import 'package:Oxygen_Mart/features/location/widgets/module_dialog_widget.dart';
+import 'package:Oxygen_Mart/features/rental_module/rental_cart_screen/controllers/taxi_cart_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_loader.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/helper/taxi_helper.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class LocationController extends GetxController implements GetxService {
   final LocationServiceInterface locationServiceInterface;
 
   LocationController({required this.locationServiceInterface});
 
-  Position _position = Position(
-      longitude: 0,
-      latitude: 0,
-      timestamp: DateTime.now(),
-      accuracy: 1,
-      altitude: 1,
-      heading: 1,
-      speed: 1,
-      speedAccuracy: 1,
-      altitudeAccuracy: 1,
-      headingAccuracy: 1);
+  Position _position = Position(longitude: 0, latitude: 0, timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1);
   Position get position => _position;
 
-  Position _pickPosition = Position(
-      longitude: 0,
-      latitude: 0,
-      timestamp: DateTime.now(),
-      accuracy: 1,
-      altitude: 1,
-      heading: 1,
-      speed: 1,
-      speedAccuracy: 1,
-      altitudeAccuracy: 1,
-      headingAccuracy: 1);
+  Position _pickPosition = Position(longitude: 0, latitude: 0, timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1);
   Position get pickPosition => _pickPosition;
 
   bool _loading = false;
@@ -95,16 +87,31 @@ class LocationController extends GetxController implements GetxService {
   GoogleMapController? _mapController;
   GoogleMapController? get mapController => _mapController;
 
-  List<PredictionModel> _predictionList = [];
+  final List<PredictionModel> _predictionList = [];
   List<PredictionModel> get predictionList => _predictionList;
 
-  void hideSuggestedLocation() {
-    _showLocationSuggestion = !_showLocationSuggestion;
+  String  countryDialCode = CountryCode.fromCountryCode(Get.find<SplashController>().configModel?.country ?? "BD").dialCode!;
+
+  bool _isCameraMoving = false;
+  bool get isCameraMoving => _isCameraMoving;
+
+  void updateCameraMovingStatus(bool status){
+    _isCameraMoving = status;
+    update();
+  }
+
+  void showSuggestedLocation(bool status){
+    _showLocationSuggestion = status;
+  }
+
+  void hideSuggestedLocation({bool notify = true}) {
+    _showLocationSuggestion = false;
+    if (notify) update();
   }
 
   void setAddressTypeIndex(int index, {bool isUpdate = true}) {
     _addressTypeIndex = index;
-    if (isUpdate) {
+    if(isUpdate) {
       update();
     }
   }
@@ -122,31 +129,18 @@ class LocationController extends GetxController implements GetxService {
     update();
   }
 
-  void setUpdateAddress(AddressModel address) {
+  void setUpdateAddress(AddressModel address){
     _position = Position(
-      latitude: double.parse(address.latitude!),
-      longitude: double.parse(address.longitude!),
+      latitude: double.tryParse(address.latitude ?? '') ?? 0.0,
+      longitude: double.tryParse(address.longitude ?? '') ?? 0.0,
       timestamp: DateTime.now(),
-      altitude: 1,
-      heading: 1,
-      speed: 1,
-      speedAccuracy: 1,
-      floor: 1,
-      accuracy: 1,
-      altitudeAccuracy: 1,
-      headingAccuracy: 1,
+      altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, floor: 1, accuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1,
     );
     _address = address.address;
     _addressTypeIndex = _addressTypeList.indexOf(address.addressType);
-    FirebaseAnalytics.instance.logEvent(
-      name: 'edit_delivery_address',
-      parameters: {
-        'latitude': address.latitude.toString(),
-        'longitude': address.longitude.toString(),
-        'address_type': address.addressType.toString(),
-        'full_address': address.address.toString(),
-      },
-    );
+    if (address.zoneId != null) {
+      _zoneID = address.zoneId!;
+    }
   }
 
   void setPickData() {
@@ -158,46 +152,28 @@ class LocationController extends GetxController implements GetxService {
     _mapController = mapController;
   }
 
-  Future<AddressModel> getCurrentLocation(bool fromAddress,
-      {GoogleMapController? mapController,
-      LatLng? defaultLatLng,
-      bool notify = true}) async {
+  Future<AddressModel> getCurrentLocation(bool fromAddress, {GoogleMapController? mapController, LatLng? defaultLatLng, bool notify = true}) async {
     _loading = true;
-    if (notify) {
+    if(notify) {
       update();
     }
     AddressModel addressModel;
-    Position myPosition = await locationServiceInterface.getPosition(
-        defaultLatLng,
-        LatLng(
-          double.parse(
-              Get.find<SplashController>().configModel!.defaultLocation!.lat ??
-                  '0'),
-          double.parse(
-              Get.find<SplashController>().configModel!.defaultLocation!.lng ??
-                  '0'),
-        ));
+    Position myPosition = await locationServiceInterface.getPosition(defaultLatLng, LatLng(
+      double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lat ?? '0'),
+      double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lng ?? '0'),
+    ));
     fromAddress ? _position = myPosition : _pickPosition = myPosition;
 
     locationServiceInterface.handleMapAnimation(mapController, myPosition);
-    String addressFromGeocode = await getAddressFromGeocode(
-        LatLng(myPosition.latitude, myPosition.longitude));
-    fromAddress
-        ? _address = addressFromGeocode
-        : _pickAddress = addressFromGeocode;
-    ZoneResponseModel responseModel = await getZone(
-        myPosition.latitude.toString(), myPosition.longitude.toString(), true);
+    String addressFromGeocode = await getAddressFromGeocode(LatLng(myPosition.latitude, myPosition.longitude));
+    fromAddress ? _address = addressFromGeocode : _pickAddress = addressFromGeocode;
+    ZoneResponseModel responseModel = await getZone(myPosition.latitude.toString(), myPosition.longitude.toString(), true);
     _buttonDisabled = !responseModel.isSuccess;
 
     addressModel = AddressModel(
-      latitude: myPosition.latitude.toString(),
-      longitude: myPosition.longitude.toString(),
-      addressType: 'others',
-      zoneId: responseModel.isSuccess ? responseModel.zoneIds[0] : 0,
-      zoneIds: responseModel.zoneIds,
-      address: addressFromGeocode,
-      zoneData: responseModel.zoneData,
-      areaIds: responseModel.areaIds,
+      latitude: myPosition.latitude.toString(), longitude: myPosition.longitude.toString(), addressType: 'my_location',
+      zoneId: responseModel.isSuccess ? responseModel.zoneIds[0] : 0, zoneIds: responseModel.zoneIds,
+      address: addressFromGeocode, zoneData: responseModel.zoneData, areaIds: responseModel.areaIds,
     );
     _loading = false;
     update();
@@ -206,30 +182,34 @@ class LocationController extends GetxController implements GetxService {
 
   Future<String> getAddressFromGeocode(LatLng latLng) async {
     return await locationServiceInterface.getAddressFromGeocode(latLng);
+
   }
 
-  Future<ZoneResponseModel> getZone(String? lat, String? lng, bool markerLoad,
-      {bool updateInAddress = false, bool handleError = false}) async {
-    if (markerLoad) {
+  Future<ZoneResponseModel> getZone(String? lat, String? lng, bool markerLoad, {bool updateInAddress = false, bool handleError = false}) async {
+    if(markerLoad) {
       _loading = true;
-    } else {
+    }else {
       _isLoading = true;
     }
-    if (!updateInAddress) {
+    if(!updateInAddress){
       update();
     }
-    ZoneResponseModel responseModel = await locationServiceInterface
-        .getZone(lat, lng, handleError: handleError);
+    ZoneResponseModel responseModel = await locationServiceInterface.getZone(lat, lng, handleError: handleError);
     _inZone = responseModel.isSuccess;
-    _zoneID = responseModel.zoneIds.isNotEmpty ? responseModel.zoneIds[0] : 0;
-    if (updateInAddress && responseModel.isSuccess) {
-      AddressModel address = AddressHelper.getUserAddressFromSharedPref()!;
-      address.zoneData = responseModel.zoneData;
-      AddressHelper.saveUserAddressInSharedPref(address);
-    }
-    if (markerLoad) {
+    print('====in zone: $_inZone');
+
+      _zoneID = responseModel.zoneIds.isNotEmpty ? responseModel.zoneIds[0] : 0;
+      if(updateInAddress && responseModel.isSuccess) {
+        AddressModel? address = AddressHelper.getUserAddressFromSharedPref();
+        if(address != null) {
+          address.zoneData = responseModel.zoneData;
+          AddressHelper.saveUserAddressInSharedPref(address);
+        }
+      }
+
+    if(markerLoad) {
       _loading = false;
-    } else {
+    }else {
       _isLoading = false;
     }
     update();
@@ -237,93 +217,91 @@ class LocationController extends GetxController implements GetxService {
   }
 
   Future<void> syncZoneData() async {
-    ZoneResponseModel response = await getZone(
-        AddressHelper.getUserAddressFromSharedPref()!.latitude,
-        AddressHelper.getUserAddressFromSharedPref()!.longitude,
-        false,
-        updateInAddress: true);
-    if (response.zoneIds.isEmpty) {
-      await AddressHelper.saveUserAddressInSharedPref(AddressModel());
-      Get.toNamed(RouteHelper.getAccessLocationRoute(RouteHelper.splash));
+    bool hasInternet = await checkInternet();
+    if (!hasInternet) {
+      return;
+    }
+
+    ZoneResponseModel response = await getZone(AddressHelper.getUserAddressFromSharedPref()?.latitude??'0', AddressHelper.getUserAddressFromSharedPref()?.longitude??'0', false, updateInAddress: true);
+
+    if(response.zoneIds.isEmpty) {
+      print('====zone ids is empty==================');
+      // await AddressHelper.saveUserAddressInSharedPref(AddressModel());
+      // Get.toNamed(RouteHelper.getAccessLocationRoute(RouteHelper.splash));
     } else {
-      AddressModel address = AddressHelper.getUserAddressFromSharedPref()!;
-      address.zoneId = response.zoneIds[0];
-      address.zoneIds = [];
-      address.zoneIds!.addAll(response.zoneIds);
-      address.zoneData = [];
-      address.zoneData!.addAll(response.zoneData);
-      address.areaIds = [];
-      address.areaIds!.addAll(response.areaIds);
-      await AddressHelper.saveUserAddressInSharedPref(address);
+      AddressModel? address = AddressHelper.getUserAddressFromSharedPref();
+      if(address != null) {
+        address.zoneId = response.zoneIds[0];
+        address.zoneIds = [];
+        address.zoneIds!.addAll(response.zoneIds);
+        address.zoneData = [];
+        address.zoneData!.addAll(response.zoneData);
+        address.areaIds = [];
+        address.areaIds!.addAll(response.areaIds);
+        await AddressHelper.saveUserAddressInSharedPref(address);
+      }
     }
     update();
   }
 
   void updatePosition(CameraPosition? position, bool fromAddress) async {
-    if (_updateAddAddressData) {
+    if(_updateAddAddressData) {
       _loading = true;
       update();
 
       if (fromAddress) {
         _position = Position(
-          latitude: position!.target.latitude,
-          longitude: position.target.longitude,
-          timestamp: DateTime.now(),
-          heading: 1,
-          accuracy: 1,
-          altitude: 1,
-          speedAccuracy: 1,
-          speed: 1,
-          altitudeAccuracy: 1,
-          headingAccuracy: 1,
+          latitude: position!.target.latitude, longitude: position.target.longitude, timestamp: DateTime.now(),
+          heading: 1, accuracy: 1, altitude: 1, speedAccuracy: 1, speed: 1, altitudeAccuracy: 1, headingAccuracy: 1,
         );
       } else {
         _pickPosition = Position(
-          latitude: position!.target.latitude,
-          longitude: position.target.longitude,
-          timestamp: DateTime.now(),
-          heading: 1,
-          accuracy: 1,
-          altitude: 1,
-          speedAccuracy: 1,
-          speed: 1,
-          altitudeAccuracy: 1,
-          headingAccuracy: 1,
+          latitude: position!.target.latitude, longitude: position.target.longitude, timestamp: DateTime.now(),
+          heading: 1, accuracy: 1, altitude: 1, speedAccuracy: 1, speed: 1, altitudeAccuracy: 1, headingAccuracy: 1,
         );
       }
-      ZoneResponseModel responseModel = await getZone(
-          position.target.latitude.toString(),
-          position.target.longitude.toString(),
-          true);
+      ZoneResponseModel responseModel = await getZone(position.target.latitude.toString(), position.target.longitude.toString(), true);
       _buttonDisabled = !responseModel.isSuccess;
       if (_changeAddress) {
-        String addressFromGeocode = await getAddressFromGeocode(
-            LatLng(position.target.latitude, position.target.longitude));
-        fromAddress
-            ? _address = addressFromGeocode
-            : _pickAddress = addressFromGeocode;
+        String addressFromGeocode = await getAddressFromGeocode(LatLng(position.target.latitude, position.target.longitude));
+        fromAddress ? _address = addressFromGeocode : _pickAddress = addressFromGeocode;
       } else {
         _changeAddress = true;
       }
 
       _loading = false;
       update();
-    } else {
+    }else {
       _updateAddAddressData = true;
     }
   }
 
-  void saveAddressAndNavigate(AddressModel? address, bool fromSignUp,
-      String? route, bool canRoute, bool isDesktop) {
+  void saveAddressAndNavigate(AddressModel? address, bool fromSignUp, String? route, bool canRoute, bool isDesktop) {
     _prepareZoneData(address!, fromSignUp, route, canRoute, isDesktop);
   }
 
-  void _prepareZoneData(AddressModel address, bool fromSignUp, String? route,
-      bool canRoute, bool isDesktop) {
+  void _prepareZoneData(AddressModel address, bool fromSignUp, String? route, bool canRoute, bool isDesktop) async {
+
+    bool hasInternet = await checkInternet();
+    if (!hasInternet) {
+      return;
+    }
+
     getZone(address.latitude, address.longitude, false).then((response) async {
       if (response.isSuccess) {
         Get.find<CartController>().getAllCarts();
-        address.zoneId = response.zoneIds[0];
+
+        if(Get.find<SplashController>().moduleList != null) {
+          for (var module in Get.find<SplashController>().moduleList!) {
+            if(module.moduleType == AppConstants.ride) {
+              ZoneResponseModel rideZoneModel = await Get.find<SearchLocationController>().getRideZone(address.latitude ?? '', address.longitude ?? '');
+              address.zoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
+              address.rideZoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
+              break;
+            }
+          }
+        }
+
         address.zoneIds = [];
         address.zoneIds!.addAll(response.zoneIds);
         address.zoneData = [];
@@ -337,7 +315,7 @@ class LocationController extends GetxController implements GetxService {
         } else {
           Get.back();
           showCustomSnackBar(response.message);
-          if (route == 'splash') {
+          if(route == 'splash') {
             Get.toNamed(RouteHelper.getPickMapRoute(route, false));
           }
         }
@@ -345,38 +323,83 @@ class LocationController extends GetxController implements GetxService {
     });
   }
 
-  void autoNavigate(AddressModel? address, bool fromSignUp, String? route,
-      bool canRoute, bool isDesktop) async {
-    if (isDesktop &&
-        Get.find<SplashController>().module ==
-            null /* && Get.find<SplashController>().configModel!.module == null*/) {
+  void autoNavigate(AddressModel? address, bool fromSignUp, String? route, bool canRoute, bool isDesktop) async {
+    if (isDesktop && Get.find<SplashController>().module == null/* && Get.find<SplashController>().configModel!.module == null*/) {
       List<int>? zoneIds = address!.zoneIds;
-      Map<String, String> header =
-          locationServiceInterface.prepareHeader(zoneIds);
+      Map<String, String> header = locationServiceInterface.prepareHeader(zoneIds);
       await Get.find<SplashController>().getModules(headers: header);
       if (Get.isDialogOpen!) {
         Get.back();
       }
       Get.dialog(ModuleDialogWidget(callback: () {
-        _saveDataAndFirebaseConfig(
-            address, fromSignUp, route, canRoute, isDesktop);
-      }),
-          barrierDismissible: false,
-          barrierColor: Colors.black.withOpacity(0.7));
+        _saveDataAndFirebaseConfig(address, fromSignUp, route, canRoute, isDesktop);
+      }), barrierDismissible: false, barrierColor: Colors.black.withValues(alpha: 0.7));
     } else {
-      _saveDataAndFirebaseConfig(
-          address!, fromSignUp, route, canRoute, isDesktop);
+      _saveDataAndFirebaseConfig(address!, fromSignUp, route, canRoute, isDesktop);
     }
   }
 
-  void _saveDataAndFirebaseConfig(AddressModel address, bool fromSignUp,
-      String? route, bool canRoute, bool isDesktop) async {
+  void _saveDataAndFirebaseConfig(AddressModel address, bool fromSignUp, String? route, bool canRoute, bool isDesktop) async {
     locationServiceInterface.configureFirebaseMessaging(address);
+
+    await _handleTaxiModuleCart(address);
+
     await AddressHelper.saveUserAddressInSharedPref(address);
-    if (AuthHelper.isLoggedIn()) {
-      if (Get.find<SplashController>().module != null) {
+
+    print('======here calling for zone check and config data: ${address.zoneIds} // ${Get.find<StoreController>().store?.zoneId} // ${Get.currentRoute.startsWith(RouteHelper.store)} // ${Get.find<SplashController>().module?.id} //');
+    print('======here calling for zone check and config data: ${Get.currentRoute.startsWith(RouteHelper.initial)}  // ${Get.find<SplashController>().module?.id} //');
+
+    if(Get.currentRoute.startsWith(RouteHelper.initial) && Get.find<SplashController>().module != null) {
+      print('===aaaaaaaa=${Get.find<SplashController>().moduleList?.length}');
+      List<int> moduleIds = [];
+      await Get.find<SplashController>().getModules();
+      await Future.delayed(const Duration(milliseconds: 1000), () {
+        Get.find<SplashController>().moduleList?.forEach((module) {
+          print('======module info: ${module.id} // ${module.moduleType}');
+          moduleIds.add(module.id!);
+        });
+      });
+
+      if(!moduleIds.contains(Get.find<SplashController>().module!.id)) {
+        print('-------------Module is not available for this location');
+        Get.dialog(ZoneWarningDialog(
+          title: 'sorry_this_module_is_not_available_in_your_location'.tr,
+          description: 'please_select_another_delivery_location_so_we_can_check_whether_the_store_delivers_to_your_area'.tr,
+        ));
+        return;
+      }
+    }
+
+    // await _checkZoneFromAddress(address);
+    if(Get.find<StoreController>().store != null && Get.currentRoute.startsWith(RouteHelper.store)
+        && Get.find<StoreController>().store!.zoneId != null && address.zoneIds != null
+        && !address.zoneIds!.contains(Get.find<StoreController>().store!.zoneId)) {
+      print('======not in same zone==================');
+      Get.back();
+      Get.dialog(ZoneWarningDialog(
+        title: 'sorry_this_store_is_not_available_in_your_location'.tr,
+        description: 'please_select_another_delivery_location_so_we_can_check_whether_the_store_delivers_to_your_area'.tr,
+      ));
+      showCustomSnackBar('store_not_available_in_this_location'.tr);
+      return;
+    }else if(Get.find<ItemController>().item != null && Get.currentRoute.startsWith(RouteHelper.itemDetails)
+        && Get.find<ItemController>().item!.storeDetails != null && Get.find<ItemController>().item!.storeDetails!.zoneId != null && address.zoneIds != null
+        && !address.zoneIds!.contains(Get.find<ItemController>().item!.storeDetails!.zoneId!)) {
+      print('======not in same zone==================');
+      Get.back();
+      Get.dialog(ZoneWarningDialog(
+        title: 'sorry_this_store_is_not_available_in_your_location'.tr,
+        description: 'please_select_another_delivery_location_so_we_can_check_whether_the_store_delivers_to_your_area'.tr,
+      ));
+      showCustomSnackBar('store_not_available_in_this_location'.tr);
+      return;
+    }
+
+    if(AuthHelper.isLoggedIn()) {
+      if(Get.find<SplashController>().module != null && Get.find<SplashController>().module!.moduleType.toString() != AppConstants.ride) {
         await Get.find<FavouriteController>().getFavouriteList();
       } else {
+        print('======config data call from location controller');
         Get.find<SplashController>().getConfigData();
       }
       Get.find<AuthController>().updateZone();
@@ -384,82 +407,100 @@ class LocationController extends GetxController implements GetxService {
     HomeScreen.loadData(true);
     Get.find<CheckoutController>().clearPrevData();
 
-    if (ResponsiveHelper.isDesktop(Get.context) &&
-        AuthHelper.isLoggedIn() &&
-        Get.find<SplashController>().module != null) {
-      if (Get.find<ProfileController>().userInfoModel == null) {
+    if(ResponsiveHelper.isDesktop(Get.context) && AuthHelper.isLoggedIn() && Get.find<SplashController>().module != null) {
+      if(Get.find<ProfileController>().userInfoModel == null) {
         Get.dialog(const CustomLoaderWidget(), barrierDismissible: false);
         await Get.find<ProfileController>().getUserInfo();
         Get.back();
       }
-      if (!Get.find<ProfileController>()
-              .userInfoModel!
-              .selectedModuleForInterest!
-              .contains(Get.find<SplashController>().module!.id) &&
-          (Get.find<SplashController>().module!.moduleType == 'food' ||
-              Get.find<SplashController>().module!.moduleType == 'grocery' ||
-              Get.find<SplashController>().module!.moduleType == 'ecommerce')) {
-        await Get.toNamed(RouteHelper.getInterestRoute());
+      if(!Get.find<ProfileController>().userInfoModel!.selectedModuleForInterest!.contains(Get.find<SplashController>().module!.id)
+          && (Get.find<SplashController>().module!.moduleType == 'food' || Get.find<SplashController>().module!.moduleType == 'grocery' || Get.find<SplashController>().module!.moduleType == 'ecommerce')
+      ) {
+        await Get.find<CategoryController>().getCategoryList(true, allCategory: false).then((_) async {
+          if(Get.find<CategoryController>().categoryList != null && Get.find<CategoryController>().categoryList!.isNotEmpty){
+            await Get.toNamed(RouteHelper.getInterestRoute());
+          }else{
+            Get.offAllNamed(RouteHelper.getInitialRoute());
+          }
+        });
       } else {
         locationServiceInterface.handleRoute(fromSignUp, route, canRoute);
       }
-      FirebaseAnalytics.instance.logEvent(
-        name: 'set_delivery_address',
-        parameters: {
-          'latitude': address.latitude.toString(),
-          'longitude': address.longitude.toString(),
-          'address_type': address.addressType.toString(),
-          'full_address': address.address.toString(),
-        },
-      );
     } else {
       locationServiceInterface.handleRoute(fromSignUp, route, canRoute);
     }
   }
 
-  Future<AddressModel> setLocation(String? placeID, String? address,
-      GoogleMapController? mapController) async {
+  Future<void> _handleTaxiModuleCart(AddressModel address) async{
+    if(TaxiHelper.haveTaxiModule() && address.zoneIds != null && Get.find<TaxiCartController>().cartList.isNotEmpty) {
+      List<int>? providerZones = Get.find<TaxiCartController>().cartList[0].provider!.pickupZoneId??[];
+
+      if(!_hasIntersection(providerZones, address.zoneIds!)) {
+        showCustomSnackBar('your_cart_has_been_cleared_as_the_selected_zone_does_not_support_the_previous_pickup_point'.tr, showDuration: 10);
+        Get.find<TaxiCartController>().clearTaxiCart();
+      }
+    }
+  }
+
+  bool _hasIntersection(List<int> list1, List<int> list2) {
+    return list1.toSet().intersection(list2.toSet()).isNotEmpty;
+  }
+
+  // Future<void> _checkZoneFromAddress(AddressModel address) async{
+  //   if(Get.find<StoreController>().store_new != null && Get.currentRoute.startsWith(RouteHelper.store_new)
+  //       && Get.find<StoreController>().store_new!.zoneId != null && address.zoneIds != null
+  //       && !address.zoneIds!.contains(Get.find<StoreController>().store_new!.zoneId)) {
+  //     print('======not in same zone==================');
+  //     Get.back();
+  //     Get.dialog(ConfirmationDialog(icon: Images.warning, description: 'store_not_available_in_this_location'.tr, onYesPressed: () {
+  //       Get.offAllNamed(RouteHelper.getInitialRoute());
+  //     }));
+  //     showCustomSnackBar('store_not_available_in_this_location'.tr);
+  //     return;
+  //   }
+  // }
+
+  Future<AddressModel> setLocation(String? placeID, String? address, GoogleMapController? mapController) async {
     _loading = true;
     update();
 
     LatLng latLng = await locationServiceInterface.getLatLng(placeID);
 
     _pickPosition = Position(
-      latitude: latLng.latitude,
-      longitude: latLng.longitude,
-      timestamp: DateTime.now(),
-      accuracy: 1,
-      altitude: 1,
-      heading: 1,
-      speed: 1,
-      speedAccuracy: 1,
-      altitudeAccuracy: 1,
-      headingAccuracy: 1,
+      latitude: latLng.latitude, longitude: latLng.longitude,
+      timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1,
     );
 
     _pickAddress = address;
     _changeAddress = false;
 
-    if (mapController != null) {
-      mapController.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: latLng, zoom: 17)));
+    if(mapController != null) {
+      mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(target: latLng, zoom: 17)));
     }
     _loading = false;
     update();
     return AddressModel(
-      latitude: _pickPosition.latitude.toString(),
-      longitude: _pickPosition.longitude.toString(),
-      addressType: 'others',
-      address: _pickAddress,
+      latitude: _pickPosition.latitude.toString(), longitude: _pickPosition.longitude.toString(),
+      addressType: 'my_location', address: _pickAddress,
     );
   }
 
-  Future<List<PredictionModel>> searchLocation(
-      BuildContext context, String text) async {
-    if (text.isNotEmpty) {
-      _predictionList = await locationServiceInterface.searchLocation(text);
-    }
-    return _predictionList;
+  Timer? _debounce;
+  Future<List<PredictionModel>> searchLocation(BuildContext context, String query) async {
+    if (query.isEmpty) return [];
+
+    _debounce?.cancel();
+    final completer = Completer<List<PredictionModel>>();
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final result = await locationServiceInterface.searchLocation(query);
+        completer.complete(result);
+      } catch (e) {
+        completer.completeError(e);
+      }
+    });
+
+    return completer.future;
   }
 
   void setPlaceMark(String address) {
@@ -473,79 +514,54 @@ class LocationController extends GetxController implements GetxService {
   Future<bool> checkLocationActive() async {
     bool isActiveLocation = await Geolocator.isLocationServiceEnabled();
 
-    if (isActiveLocation) {
-      Position myPosition = await locationServiceInterface.getPosition(
-          null,
-          LatLng(
-            double.parse(Get.find<SplashController>()
-                    .configModel!
-                    .defaultLocation!
-                    .lat ??
-                '0'),
-            double.parse(Get.find<SplashController>()
-                    .configModel!
-                    .defaultLocation!
-                    .lng ??
-                '0'),
-          ));
+    if(isActiveLocation) {
+      Position myPosition = await locationServiceInterface.getPosition(null, LatLng(
+        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lat ?? '0'),
+        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lng ?? '0'),
+      ));
 
       double distance = Geolocator.distanceBetween(
-            double.parse(
-                AddressHelper.getUserAddressFromSharedPref()!.latitude!),
-            double.parse(
-                AddressHelper.getUserAddressFromSharedPref()!.longitude!),
-            myPosition.latitude,
-            myPosition.longitude,
-          ) /
-          1000;
+        double.parse(AddressHelper.getUserAddressFromSharedPref()!.latitude!), double.parse(AddressHelper.getUserAddressFromSharedPref()!.longitude!), myPosition.latitude, myPosition.longitude,
+      ) / 1000;
 
       if (kDebugMode) {
         print('======== distance is : $distance');
       }
-      if (distance > 1) {
+      if(distance > 1){
         return true;
-      } else {
+      }else{
         return false;
       }
-    } else {
+    }else{
       return false;
     }
   }
 
-  Future<void> navigateToLocationScreen(String page,
-      {bool offNamed = false, bool offAll = false}) async {
+  Future<void> navigateToLocationScreen(String page, {bool offNamed = false, bool offAll = false, bool canRoute = false}) async {
     bool fromSignup = page == RouteHelper.signUp;
     bool fromHome = page == 'home';
 
-    if (!fromHome && AddressHelper.getUserAddressFromSharedPref() != null) {
+    if(!fromHome && AddressHelper.getUserAddressFromSharedPref() != null) {
       Get.dialog(const CustomLoaderWidget(), barrierDismissible: false);
-      autoNavigate(AddressHelper.getUserAddressFromSharedPref(), fromSignup,
-          null, false, ResponsiveHelper.isDesktop(Get.context));
-    } else if (AuthHelper.isLoggedIn()) {
+      autoNavigate(AddressHelper.getUserAddressFromSharedPref(), fromSignup, null, false, ResponsiveHelper.isDesktop(Get.context));
+    }else if(AuthHelper.isLoggedIn() && AddressHelper.getUserAddressFromSharedPref() != null) {
       Get.dialog(const CustomLoaderWidget(), barrierDismissible: false);
       await Get.find<AddressController>().getAddressList();
       Get.back();
-      locationServiceInterface.authorizeNavigation(
-          page, Get.find<AddressController>().addressList, mapController,
-          offNamed: offNamed, offAll: offAll);
-    } else {
+      locationServiceInterface.authorizeNavigation(page, Get.find<AddressController>().addressList, mapController, offNamed: offNamed, offAll: offAll);
+    }else {
       // locationServiceInterface.defaultNavigation(page, mapController);
-      if (ResponsiveHelper.isDesktop(Get.context)) {
-        showGeneralDialog(
-            context: Get.context!,
-            pageBuilder: (_, __, ___) {
-              return SizedBox(
-                height: Get.context!.height * 0.75,
-                width: 300,
-                child: PickMapScreen(
-                  fromSignUp: (page == RouteHelper.signUp),
-                  canRoute: false,
-                  fromAddAddress: false,
-                  route: null,
-                  googleMapController: mapController,
-                ),
-              );
-            });
+      if(ResponsiveHelper.isDesktop(Get.context)) {
+        showGeneralDialog(context: Get.context!, pageBuilder: (context, anim1, anim2) {
+          return SizedBox(
+            height: Get.context!.height * 0.75, width: 300,
+            child: PickMapScreen(
+              fromSignUp: (page == RouteHelper.signUp),
+              canRoute: canRoute, fromAddAddress: false, route: null,
+              googleMapController: mapController,
+            ),
+          );
+        });
       } else {
         _checkPermission(page);
       }
@@ -553,38 +569,29 @@ class LocationController extends GetxController implements GetxService {
   }
 
   void _checkPermission(String page) async {
+
+    bool hasInternet = await checkInternet();
+    if (!hasInternet) {
+      return;
+    }
+
     LocationPermission permission = await Geolocator.checkPermission();
 
-    if (permission == LocationPermission.denied) {
+    if(permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      FirebaseAnalytics.instance.logEvent(
-        name: 'deny_location',
-        parameters: {
-          'source_page': page,
-        },
-      );
+    if(permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       Get.toNamed(RouteHelper.getPickMapRoute(page, false));
     } else {
-      if (page == 'home') {
+      if(page == 'home'){
         Get.toNamed(RouteHelper.getPickMapRoute(page, false));
-      } else if (await _locationCheck()) {
+      } else if(await _locationCheck()) {
         Get.dialog(const CustomLoaderWidget(), barrierDismissible: false);
-        await Get.find<LocationController>()
-            .getCurrentLocation(false)
-            .then((value) {
+        await Get.find<LocationController>().getCurrentLocation(false).then((value) {
           if (value.latitude != null) {
             _onPickAddressButtonPressed(Get.find<LocationController>(), page);
           }
         });
-        FirebaseAnalytics.instance.logEvent(
-          name: 'allow_location',
-          parameters: {
-            'source_page': page,
-          },
-        );
       } else {
         Get.toNamed(RouteHelper.getPickMapRoute(page, false));
       }
@@ -600,18 +607,14 @@ class LocationController extends GetxController implements GetxService {
     return serviceEnabled;
   }
 
-  void _onPickAddressButtonPressed(
-      LocationController locationController, String page) {
-    if (locationController.pickPosition.latitude != 0 &&
-        locationController.pickAddress!.isNotEmpty) {
+  void _onPickAddressButtonPressed(LocationController locationController, String page) {
+    if(locationController.pickPosition.latitude != 0 && locationController.pickAddress!.isNotEmpty) {
       AddressModel address = AddressModel(
         latitude: locationController.pickPosition.latitude.toString(),
         longitude: locationController.pickPosition.longitude.toString(),
-        addressType: 'others',
-        address: locationController.pickAddress,
+        addressType: 'my_location', address: locationController.pickAddress,
       );
-      locationController.saveAddressAndNavigate(
-          address, false, page, false, ResponsiveHelper.isDesktop(Get.context));
+      locationController.saveAddressAndNavigate(address, false, page, false, ResponsiveHelper.isDesktop(Get.context));
     } else {
       showCustomSnackBar('pick_an_address'.tr);
     }
@@ -619,47 +622,69 @@ class LocationController extends GetxController implements GetxService {
 
   Future<void> setStoreAddressToUserAddress(LatLng storeAddress) async {
     Position storePosition = Position(
-      latitude: storeAddress.latitude,
-      longitude: storeAddress.longitude,
-      timestamp: DateTime.now(),
-      accuracy: 1,
-      altitude: 1,
-      heading: 1,
-      speed: 1,
-      speedAccuracy: 1,
-      altitudeAccuracy: 1,
-      headingAccuracy: 1,
+      latitude: storeAddress.latitude, longitude: storeAddress.longitude,
+      timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1,
     );
-    String addressFromGeocode = await getAddressFromGeocode(
-        LatLng(storeAddress.latitude, storeAddress.longitude));
-    ZoneResponseModel responseModel = await getZone(
-        storePosition.latitude.toString(),
-        storePosition.longitude.toString(),
-        true);
+    String addressFromGeocode = await getAddressFromGeocode(LatLng(storeAddress.latitude, storeAddress.longitude));
+    ZoneResponseModel responseModel = await getZone(storePosition.latitude.toString(), storePosition.longitude.toString(), true);
     _buttonDisabled = !responseModel.isSuccess;
     AddressModel addressModel = AddressModel(
-      latitude: storePosition.latitude.toString(),
-      longitude: storePosition.longitude.toString(),
-      addressType: 'others',
-      zoneId: responseModel.isSuccess ? responseModel.zoneIds[0] : 0,
-      zoneIds: responseModel.zoneIds,
-      address: addressFromGeocode,
-      zoneData: responseModel.zoneData,
-      areaIds: responseModel.areaIds,
+      latitude: storePosition.latitude.toString(), longitude: storePosition.longitude.toString(), addressType: 'my_location',
+      zoneId: responseModel.isSuccess ? responseModel.zoneIds[0] : 0, zoneIds: responseModel.zoneIds,
+      address: addressFromGeocode, zoneData: responseModel.zoneData, areaIds: responseModel.areaIds,
     );
     await AddressHelper.saveUserAddressInSharedPref(addressModel);
 
     await Get.find<SplashController>().getModules();
     List<ModuleModel>? modules = Get.find<SplashController>().moduleList;
-    for (ModuleModel m in modules!) {
-      if (m.id == Get.find<StoreController>().store!.moduleId) {
+    for(ModuleModel m in modules!){
+      if(m.id == Get.find<StoreController>().store!.moduleId) {
         Get.find<SplashController>().setModule(m);
       }
     }
+
+  }
+
+  Future<bool> checkInternet() async {
+    if(kIsWeb) {
+      return true;
+    }
+    final List<ConnectivityResult> connectivityResult = await (Connectivity().checkConnectivity());
+    bool isConnected = connectivityResult.contains(ConnectivityResult.wifi) || connectivityResult.contains(ConnectivityResult.mobile);
+    if(!isConnected && !Platform.isIOS) {
+      Get.offAll(()=> const NoInternetScreen());
+      return false;
+    }
+    return true;
+  }
+
+  AddressModel? getUserAddress() {
+    AddressModel? addressModelUser;
+    try {
+      addressModelUser = AddressModel.fromJson(jsonDecode(locationServiceInterface.getUserAddress()!));
+      //_selectedAddress = addressModelUser;
+    }catch(e){
+      return addressModelUser;
+    }
+    return addressModelUser;
+  }
+
+  // Locally cached delivery addresses (max 10, newest first) used by the
+  // pick-location "Recent" tab. Populated when an order is placed from checkout.
+  // Persistence/serialization is handled by the service + repository layer.
+  List<AddressModel> _recentAddresses = [];
+  List<AddressModel> get recentAddresses => _recentAddresses;
+
+  void loadRecentAddresses() {
+    _recentAddresses = locationServiceInterface.getRecentDeliveryAddresses();
   }
 
   Future<void> addRecentAddress(AddressModel address) async {
-    // Patched from logic migration
+    if (address.latitude == null || address.longitude == null || (address.address?.isEmpty ?? true)) {
+      return;
+    }
+    _recentAddresses = await locationServiceInterface.addRecentDeliveryAddress(address);
+    update();
   }
-}
 
+}

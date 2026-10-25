@@ -19,6 +19,7 @@ import 'package:Oxygen_Mart/features/review/domain/models/review_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/recommended_product_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_banner_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_category_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/services/store_service_interface.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
@@ -53,68 +54,6 @@ class StoreController extends GetxController implements GetxService {
 
   Store? _store;
   Store? get store => _store;
-
-  int? _activeStoreId;
-  int? get activeStoreId => _activeStoreId ?? _store?.id ?? _storeModel?.stores?.firstOrNull?.id;
-
-  void setActiveStoreId(int? id) {
-    _activeStoreId = id;
-    update();
-  }
-
-  int? getActiveStoreId() {
-    return _activeStoreId ?? _store?.id ?? _storeModel?.stores?.firstOrNull?.id ?? _featuredStoreList?.firstOrNull?.id ?? _popularStoreList?.firstOrNull?.id;
-  }
-
-  Future<int?> resolveAndSetActiveStoreForModule(int? moduleId) async {
-    if (moduleId == null) return null;
-
-    if (_store != null && _store!.moduleId == moduleId && _store!.id != null) {
-      _activeStoreId = _store!.id;
-      return _activeStoreId;
-    }
-
-    if (_storeModel?.stores != null && _storeModel!.stores!.isNotEmpty) {
-      final matchingStore = _storeModel!.stores!.firstWhereOrNull((s) => s.moduleId == moduleId);
-      if (matchingStore != null && matchingStore.id != null) {
-        _activeStoreId = matchingStore.id;
-        return _activeStoreId;
-      }
-      if (_storeModel!.stores!.first.id != null) {
-        _activeStoreId = _storeModel!.stores!.first.id;
-        return _activeStoreId;
-      }
-    }
-
-    if (_featuredStoreList != null && _featuredStoreList!.isNotEmpty) {
-      final matchingStore = _featuredStoreList!.firstWhereOrNull((s) => s.moduleId == moduleId);
-      if (matchingStore != null && matchingStore.id != null) {
-        _activeStoreId = matchingStore.id;
-        return _activeStoreId;
-      }
-    }
-
-    if (_popularStoreList != null && _popularStoreList!.isNotEmpty) {
-      final matchingStore = _popularStoreList!.firstWhereOrNull((s) => s.moduleId == moduleId);
-      if (matchingStore != null && matchingStore.id != null) {
-        _activeStoreId = matchingStore.id;
-        return _activeStoreId;
-      }
-    }
-
-    try {
-      StoreModel? storeModel = await storeServiceInterface.getStoreList(
-        1, 'all', 'all', source: DataSourceEnum.client,
-      );
-      if (storeModel != null && storeModel.stores != null && storeModel.stores!.isNotEmpty) {
-        _storeModel = storeModel;
-        _activeStoreId = storeModel.stores!.first.id;
-        return _activeStoreId;
-      }
-    } catch (_) {}
-
-    return _activeStoreId;
-  }
 
   ItemModel? _storeItemModel;
   ItemModel? get storeItemModel => _storeItemModel;
@@ -172,6 +111,51 @@ class StoreController extends GetxController implements GetxService {
 
   List<Store>? _recommendedStoreList;
   List<Store>? get recommendedStoreList => _recommendedStoreList;
+
+  StoreCategoryItemModel? _storeCategoryItemsModel;
+  StoreCategoryItemModel? get storeCategoryItemsModel => _storeCategoryItemsModel;
+
+  StoreModel? _quickDeliveryStoreList;
+  StoreModel? get quickDeliveryStoreList => _quickDeliveryStoreList;
+
+  static const int _quickDeliveryPageSize = 10;
+  int _quickDeliveryPage = 1;
+  int get quickDeliveryPage => _quickDeliveryPage;
+
+  bool _isQuickDeliveryPaginating = false;
+  bool get isQuickDeliveryPaginating => _isQuickDeliveryPaginating;
+
+  StoreModel? _expressDeliveryStoreList;
+  StoreModel? get expressDeliveryStoreList => _expressDeliveryStoreList;
+
+  bool _isExpressDeliveryPaginating = false;
+  bool get isExpressDeliveryPaginating => _isExpressDeliveryPaginating;
+
+  String _expressDeliverySearchName = '';
+  String get expressDeliverySearchName => _expressDeliverySearchName;
+
+  StoreModel? _nearbyStoreList;
+  StoreModel? get nearbyStoreList => _nearbyStoreList;
+
+  static const int _nearbyPageSize = 10;
+  int _nearbyPage = 1;
+  int get nearbyPage => _nearbyPage;
+
+  bool _isNearbyPaginating = false;
+  bool get isNearbyPaginating => _isNearbyPaginating;
+
+  String _nearbySearchName = '';
+  String get nearbySearchName => _nearbySearchName;
+
+  StoreModel? _topRatedStoreList;
+  StoreModel? get topRatedStoreList => _topRatedStoreList;
+
+  static const int _topRatedPageSize = 12;
+  bool _isTopRatedPaginating = false;
+  bool get isTopRatedPaginating => _isTopRatedPaginating;
+
+  String _topRatedSearchName = '';
+  String get topRatedSearchName => _topRatedSearchName;
 
   // List<Store>? _topOfferStoreList;
   // List<Store>? get topOfferStoreList => _topOfferStoreList;
@@ -276,31 +260,12 @@ class StoreController extends GetxController implements GetxService {
     }
     StoreModel? storeModel;
     if (source == DataSourceEnum.local && offset == 1) {
-      // Fetch local cache and server in parallel.
-      // Wait up to 400ms for the server — if it responds first, skip the stale cache.
-      final localFuture = storeServiceInterface.getStoreList(
+      storeModel = await storeServiceInterface.getStoreList(
           offset, _filterType, _storeType,
           source: DataSourceEnum.local);
-      final clientFuture = storeServiceInterface.getStoreList(
-          offset, _filterType, _storeType,
-          source: DataSourceEnum.client);
-
-      final localResult = await Future.any([
-        localFuture,
-        Future.delayed(const Duration(milliseconds: 400)).then((_) => null),
-      ]);
-
       if (requestId != _storeRequestId) return;
-
-      // Show local cache only if server hasn't responded yet
-      if (_storeModel == null && localResult != null) {
-        _prepareStoreModel(localResult, offset);
-      }
-
-      // Always apply server response when it arrives
-      final serverResult = await clientFuture;
-      if (requestId != _storeRequestId) return;
-      _prepareStoreModel(serverResult, offset);
+      _prepareStoreModel(storeModel, offset);
+      getStoreList(offset, false, source: DataSourceEnum.client);
     } else {
       storeModel = await storeServiceInterface.getStoreList(
           offset, _filterType, _storeType,
@@ -347,12 +312,10 @@ class StoreController extends GetxController implements GetxService {
     _searchText = '';
     _isSearching = false;
     _recommendedItemModel = null;
-    Future.delayed(Duration.zero, () => update());
   }
 
   void clearStoreData() {
     _storeRequestId++;
-    _activeStoreId = null;
     _storeModel = null;
     _popularStoreList = null;
     _latestStoreList = null;
@@ -367,6 +330,7 @@ class StoreController extends GetxController implements GetxService {
     _categoryList = null;
     _storeItemModel = null;
     _storeSearchItemModel = null;
+    _store = null;
     update();
   }
 
@@ -395,16 +359,8 @@ class StoreController extends GetxController implements GetxService {
         getPopularStoreList(false, type, notify,
             dataSource: DataSourceEnum.client, fromRecall: true);
       } else {
-        var results = await Future.wait([
-          storeServiceInterface.getPopularStoreList(type,
-              source: DataSourceEnum.client),
-          if (reload)
-            Future.delayed(const Duration(seconds: 3))
-          else
-            Future.value(null),
-        ]);
-        popularStoreList = results[0] as List<Store>?;
-
+        popularStoreList = await storeServiceInterface.getPopularStoreList(type,
+            source: DataSourceEnum.client);
         if (requestId != _storeRequestId) return;
         if (popularStoreList != null) {
           _popularStoreList = [];
@@ -440,16 +396,8 @@ class StoreController extends GetxController implements GetxService {
         getLatestStoreList(false, type, notify,
             fromRecall: true, dataSource: DataSourceEnum.client);
       } else {
-        var results = await Future.wait([
-          storeServiceInterface.getLatestStoreList(type,
-              source: DataSourceEnum.client),
-          if (reload)
-            Future.delayed(const Duration(seconds: 3))
-          else
-            Future.value(null),
-        ]);
-        latestStoreList = results[0] as List<Store>?;
-
+        latestStoreList = await storeServiceInterface.getLatestStoreList(type,
+            source: DataSourceEnum.client);
         if (requestId != _storeRequestId) return;
         if (latestStoreList != null) {
           _latestStoreList = [];
@@ -459,7 +407,6 @@ class StoreController extends GetxController implements GetxService {
       }
     }
   }
-
 
   Future<void> getFeaturedStoreList(
       {bool reload = false,
@@ -480,16 +427,8 @@ class StoreController extends GetxController implements GetxService {
       _prepareFeaturedStore(stores);
       getFeaturedStoreList(reload: false, dataSource: DataSourceEnum.client);
     } else {
-      var results = await Future.wait([
-        storeServiceInterface.getFeaturedStoreList(
-            source: DataSourceEnum.client),
-        if (reload)
-          Future.delayed(const Duration(seconds: 3))
-        else
-          Future.value(null),
-      ]);
-      stores = results[0] as List<Store>?;
-
+      stores = await storeServiceInterface.getFeaturedStoreList(
+          source: DataSourceEnum.client);
       if (requestId != _storeRequestId) return;
       _prepareFeaturedStore(stores);
     }
@@ -559,8 +498,9 @@ class StoreController extends GetxController implements GetxService {
     if (Get.find<CategoryController>().categoryList != null && _store != null) {
       _categoryList = [];
       _categoryList!.add(CategoryModel(id: 0, name: 'all'.tr));
+      final bool hasSpecificCategories = _store!.categoryIds != null && _store!.categoryIds!.isNotEmpty;
       for (var category in Get.find<CategoryController>().categoryList!) {
-        if (_store!.categoryIds!.contains(category.id)) {
+        if (!hasSpecificCategories || _store!.categoryIds!.contains(category.id)) {
           _categoryList!.add(category);
         }
       }
@@ -577,32 +517,25 @@ class StoreController extends GetxController implements GetxService {
 
 
   Future<Store?> getStoreDetails(Store store, bool fromModule,
-      {bool fromCart = false, String slug = ''}) async {
+      {bool fromCart = false, String slug = '', bool calculateDistance = true}) async {
     _categoryIndex = 0;
     if (store.name != null) {
       _store = store;
     } else {
       _isLoading = true;
       _store = null;
-      var results = await Future.wait([
-        storeServiceInterface.getStoreDetails(
-            store.id.toString(),
-            fromCart,
-            slug,
-            Get.find<LocalizationController>().locale.languageCode,
-            ModuleHelper.getModule(),
-            ModuleHelper.getCacheModule()?.id,
-            ModuleHelper.getModule()?.id),
-        if (fromModule)
-          Future.delayed(const Duration(seconds: 3))
-        else
-          Future.value(null),
-      ]);
-      Store? storeDetails = results[0] as Store?;
+      Store? storeDetails = await storeServiceInterface.getStoreDetails(
+          store.id.toString(),
+          fromCart,
+          slug,
+          Get.find<LocalizationController>().locale.languageCode,
+          ModuleHelper.getModule(),
+          ModuleHelper.getCacheModule()?.id,
+          ModuleHelper.getModule()?.id);
       if (storeDetails != null) {
         _store = storeDetails;
         Get.find<CheckoutController>().initializeTimeSlot(_store!);
-        if (!fromCart && slug.isEmpty) {
+        if (!fromCart && slug.isEmpty && calculateDistance) {
           Get.find<CheckoutController>().getDistanceInKM(
             LatLng(
               double.parse(
@@ -850,5 +783,188 @@ class StoreController extends GetxController implements GetxService {
           '${AppConstants.webHostedUrl}${filteringUrl(store!.slug ?? '')}';
       Share.share(shareUrl);
     }
+  }
+
+  Future<void> getStoreCategoryItems(int storeId, {bool notify = true}) async {
+    _storeCategoryItemsModel = null;
+    if (notify) update();
+    _storeCategoryItemsModel = await storeServiceInterface.getStoreCategoryItems(storeId);
+    update();
+  }
+
+  void clearStoreCategoryItems() {
+    _storeCategoryItemsModel = null;
+    _recommendedItemModel = null;
+  }
+
+  Future<void> getQuickDeliveryStoreList({bool reload = false, int? moduleId}) async {
+    if (reload) {
+      _quickDeliveryStoreList = null;
+      _quickDeliveryPage = 1;
+    }
+    final StoreModel? response = await storeServiceInterface.getQuickDeliveryStores(
+      offset: 1, limit: _quickDeliveryPageSize, moduleId: moduleId,
+    );
+    if (response != null) {
+      _quickDeliveryStoreList = response;
+      _quickDeliveryPage = 1;
+      update();
+    }
+  }
+
+  Future<void> loadMoreQuickDeliveryStores({int? moduleId}) async {
+    final StoreModel? current = _quickDeliveryStoreList;
+    if (current == null || _isQuickDeliveryPaginating) return;
+
+    final int loaded = current.stores?.length ?? 0;
+    final int total = current.totalSize ?? 0;
+    if (loaded >= total) return;
+
+    _isQuickDeliveryPaginating = true;
+    update();
+
+    final int nextOffset = (loaded ~/ _quickDeliveryPageSize) + 1;
+    final StoreModel? response = await storeServiceInterface.getQuickDeliveryStores(
+      offset: nextOffset, limit: _quickDeliveryPageSize, moduleId: moduleId,
+    );
+    if (response?.stores != null) {
+      current.stores!.addAll(response!.stores!);
+      current.offset = response.offset;
+      current.totalSize = response.totalSize;
+      _quickDeliveryPage = nextOffset;
+    }
+    _isQuickDeliveryPaginating = false;
+    update();
+  }
+
+  Future<void> getExpressDeliveryStoreList({bool reload = false, int? moduleId, String? name}) async {
+    if (name != null) _expressDeliverySearchName = name;
+    if (reload) {
+      _expressDeliveryStoreList = null;
+      update();
+    }
+    final StoreModel? response = await storeServiceInterface.getQuickDeliveryStores(
+      offset: 1, limit: _quickDeliveryPageSize, moduleId: moduleId, name: _expressDeliverySearchName,
+    );
+    if (response != null) {
+      _expressDeliveryStoreList = response;
+      update();
+    }
+  }
+
+  Future<void> loadMoreExpressDeliveryStores({int? moduleId}) async {
+    final StoreModel? current = _expressDeliveryStoreList;
+    if (current == null || _isExpressDeliveryPaginating) return;
+
+    final int loaded = current.stores?.length ?? 0;
+    final int total = current.totalSize ?? 0;
+    if (loaded >= total) return;
+
+    _isExpressDeliveryPaginating = true;
+    update();
+
+    final int nextOffset = (loaded ~/ _quickDeliveryPageSize) + 1;
+    final StoreModel? response = await storeServiceInterface.getQuickDeliveryStores(
+      offset: nextOffset, limit: _quickDeliveryPageSize, moduleId: moduleId, name: _expressDeliverySearchName,
+    );
+    if (response?.stores != null) {
+      current.stores!.addAll(response!.stores!);
+      current.offset = response.offset;
+      current.totalSize = response.totalSize;
+    }
+    _isExpressDeliveryPaginating = false;
+    update();
+  }
+
+  void clearExpressDeliveryStoreList() {
+    _expressDeliveryStoreList = null;
+    _expressDeliverySearchName = '';
+  }
+
+  Future<void> getNearbyStoreList({bool reload = false, int? moduleId, String? name}) async {
+    if (name != null) _nearbySearchName = name;
+    if (reload) {
+      _nearbyStoreList = null;
+      _nearbyPage = 1;
+      update();
+    }
+    final StoreModel? response = await storeServiceInterface.getNearbyStores(
+      offset: 1, limit: _nearbyPageSize, moduleId: moduleId, name: _nearbySearchName,
+    );
+    if (response != null) {
+      _nearbyStoreList = response;
+      _nearbyPage = 1;
+      update();
+    }
+  }
+
+  Future<void> loadMoreNearbyStores({int? moduleId}) async {
+    final StoreModel? current = _nearbyStoreList;
+    if (current == null || _isNearbyPaginating) return;
+
+    final int loaded = current.stores?.length ?? 0;
+    final int total = current.totalSize ?? 0;
+    if (loaded >= total) return;
+
+    _isNearbyPaginating = true;
+    update();
+
+    final int nextOffset = (loaded ~/ _nearbyPageSize) + 1;
+    final StoreModel? response = await storeServiceInterface.getNearbyStores(
+      offset: nextOffset, limit: _nearbyPageSize, moduleId: moduleId, name: _nearbySearchName,
+    );
+    if (response?.stores != null) {
+      current.stores!.addAll(response!.stores!);
+      current.offset = response.offset;
+      current.totalSize = response.totalSize;
+      _nearbyPage = nextOffset;
+    }
+    _isNearbyPaginating = false;
+    update();
+  }
+
+  Future<void> getTopRatedStoreList({bool reload = false, DataSourceEnum source = DataSourceEnum.local, String? name}) async {
+    if (name != null) _topRatedSearchName = name;
+    if (reload) {
+      _topRatedStoreList = null;
+      update();
+    }
+    final bool searching = _topRatedSearchName.isNotEmpty;
+    final DataSourceEnum effectiveSource = searching ? DataSourceEnum.client : source;
+    final StoreModel? response = await storeServiceInterface.getStoreList(1, 'all', 'top_rated', source: effectiveSource);
+    if (response != null) {
+      _topRatedStoreList = response;
+      update();
+    }
+    if (!searching && source == DataSourceEnum.local) {
+      getTopRatedStoreList(reload: false, source: DataSourceEnum.client);
+    }
+  }
+
+  Future<void> loadMoreTopRatedStores() async {
+    final StoreModel? current = _topRatedStoreList;
+    if (current == null || _isTopRatedPaginating) return;
+
+    final int loaded = current.stores?.length ?? 0;
+    final int total = current.totalSize ?? 0;
+    if (loaded >= total) return;
+
+    _isTopRatedPaginating = true;
+    update();
+
+    final int nextOffset = (loaded ~/ _topRatedPageSize) + 1;
+    final StoreModel? response = await storeServiceInterface.getStoreList(nextOffset, 'all', 'top_rated', source: DataSourceEnum.client);
+    if (response?.stores != null) {
+      current.stores!.addAll(response!.stores!);
+      current.offset = response.offset;
+      current.totalSize = response.totalSize;
+    }
+    _isTopRatedPaginating = false;
+    update();
+  }
+
+  void clearTopRatedStoreList() {
+    _topRatedStoreList = null;
+    _topRatedSearchName = '';
   }
 }

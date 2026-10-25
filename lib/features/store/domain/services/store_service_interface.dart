@@ -6,6 +6,7 @@ import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/recommended_product_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_banner_model.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_category_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 
 abstract class StoreServiceInterface {
@@ -43,4 +44,7 @@ abstract class StoreServiceInterface {
       {required DataSourceEnum source});
   List<Modules> moduleList();
   String filterRestaurantLinkUrl(String slug, Store store);
+  Future<StoreModel?> getQuickDeliveryStores({int offset, int limit, int? moduleId, String name});
+  Future<StoreModel?> getNearbyStores({int offset, int limit, int? moduleId, String name});
+  Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId);
 }

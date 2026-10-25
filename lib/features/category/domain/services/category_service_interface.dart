@@ -7,9 +7,11 @@ import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 abstract class CategoryServiceInterface {
   Future<List<CategoryModel>?> getCategoryList(bool allCategory,
       {DataSourceEnum? source});
-  Future<List<CategoryModel>?> getSubCategoryList(String? parentID);
+  Future<List<CategoryModel>?> getSubCategoryList(String? parentID,
+      {DataSourceEnum? source});
   Future<ItemModel?> getCategoryItemList(
-      String? categoryID, int offset, String type);
+      String? categoryID, int offset, String type,
+      {DataSourceEnum? source});
   Future<StoreModel?> getCategoryStoreList(
       String? categoryID, int offset, String type);
   Future<Response> getSearchData(

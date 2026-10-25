@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:Oxygen_Mart/common/widgets/address_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_loader.dart';
 import 'package:Oxygen_Mart/common/widgets/title_widget.dart';
-import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
-import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
-import 'package:Oxygen_Mart/features/home/widgets/popular_store_view.dart';
-import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
+import 'package:Oxygen_Mart/features/dashboard/widgets/banner_slider.dart';
+import 'package:Oxygen_Mart/features/home/widgets/home_smart_banner_widget.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
-import 'package:Oxygen_Mart/helper/address_helper.dart';
-import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
@@ -103,6 +97,9 @@ class ModuleView extends StatelessWidget {
             : AddressShimmer(isEnabled: AuthHelper.isLoggedIn() && locationController.addressList == null);
       }), */
       // const PopularStoreView(isPopular: false, isFeatured: true),
+      const HomeSmartBannerWidget(),
+      // const SizedBox(height: Dimensions.paddingSizeLarge),
+      // const BannerSliderWidget(isFeatured: true),
       const SizedBox(height: 120),
     ]);
   }

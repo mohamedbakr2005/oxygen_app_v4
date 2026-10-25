@@ -58,8 +58,25 @@ class CategoryController extends GetxController implements GetxService {
   int _offset = 1;
   int get offset => _offset;
 
+  String? _currentCategoryId;
+  String? get currentCategoryId => _currentCategoryId;
+
   void clearCategoryList() {
     _categoryList = null;
+    _subCategoryList = null;
+    _categoryItemList = null;
+    _categoryStoreList = null;
+  }
+
+  void clearCategoryData() {
+    _currentCategoryId = null;
+    _subCategoryList = null;
+    _categoryItemList = null;
+    _categoryStoreList = null;
+    _searchItemList = [];
+    _searchStoreList = [];
+    _isSearching = false;
+    _isLoading = false;
   }
 
   Future<void> getCategoryList(bool reload,
@@ -102,37 +119,90 @@ class CategoryController extends GetxController implements GetxService {
     update();
   }
 
-  void getSubCategoryList(String? categoryID) async {
+  Future<void> loadCategoryData(String? categoryID, {bool reload = false, bool notify = true}) async {
     _subCategoryIndex = 0;
-    _subCategoryList = null;
-    _categoryItemList = null;
-    List<CategoryModel>? subCategoryList =
-        await categoryServiceInterface.getSubCategoryList(categoryID);
-    if (subCategoryList != null) {
-      _subCategoryList = [];
-      if (subCategoryList.length > 1) {
-        _subCategoryList!.add(CategoryModel(id: int.parse(categoryID!), name: 'all'.tr));
-      }
-      _subCategoryList!.addAll(subCategoryList);
-      getCategoryItemList(categoryID, 1, 'all', false);
+    final bool isDifferentCategory = _currentCategoryId != categoryID;
+    _currentCategoryId = categoryID;
 
-      String categoryName = 'Unknown';
-      if (_categoryList != null && categoryID != null) {
-        try {
-          categoryName = _categoryList!.firstWhere((element) => element.id.toString() == categoryID).name ?? 'Unknown';
-        } catch (_) {}
+    if (reload || isDifferentCategory) {
+      _subCategoryList = null;
+      _categoryItemList = null;
+      _categoryStoreList = null;
+      _isSearching = false;
+      _isLoading = true;
+      if (notify) {
+        update();
       }
+    }
+
+    // Step 1: Load from local SQLite cache for this specific category
+    final localSubFuture = categoryServiceInterface.getSubCategoryList(categoryID, source: DataSourceEnum.local);
+    final localItemFuture = categoryServiceInterface.getCategoryItemList(categoryID, 1, 'all', source: DataSourceEnum.local);
+
+    final localResults = await Future.wait([localSubFuture, localItemFuture]);
+    final List<CategoryModel>? localSub = localResults[0] as List<CategoryModel>?;
+    final ItemModel? localItem = localResults[1] as ItemModel?;
+
+    if (_currentCategoryId == categoryID) {
+      if (localSub != null && localSub.isNotEmpty) {
+        _subCategoryList = [
+          CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
+          ...localSub,
+        ];
+      }
+      if (localItem != null && localItem.items != null && localItem.items!.isNotEmpty) {
+        _categoryItemList = localItem.items;
+        _pageSize = localItem.totalSize;
+      }
+      if (_subCategoryList != null || _categoryItemList != null) {
+        update();
+      }
+    }
+
+    // Step 2: Fetch fresh data from network in parallel
+    final clientSubFuture = categoryServiceInterface.getSubCategoryList(categoryID, source: DataSourceEnum.client);
+    final clientItemFuture = categoryServiceInterface.getCategoryItemList(categoryID, 1, 'all', source: DataSourceEnum.client);
+
+    final results = await Future.wait([clientSubFuture, clientItemFuture]);
+    final List<CategoryModel>? clientSub = results[0] as List<CategoryModel>?;
+    final ItemModel? clientItem = results[1] as ItemModel?;
+
+    if (_currentCategoryId == categoryID) {
+      if (clientSub != null) {
+        _subCategoryList = [
+          CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
+          ...clientSub,
+        ];
+      }
+      if (clientItem != null && clientItem.items != null) {
+        _categoryItemList = clientItem.items;
+        _pageSize = clientItem.totalSize;
+      }
+      _isLoading = false;
+      update();
+    }
+
+    String categoryName = 'Unknown';
+    if (_categoryList != null) {
       try {
-        Get.find<MetaAnalyticsService>().viewCategory(
-          categoryId: categoryID ?? 'unknown',
-          categoryName: categoryName,
-        );
+        categoryName = _categoryList!.firstWhere((element) => element.id.toString() == categoryID).name ?? 'Unknown';
       } catch (_) {}
     }
+    try {
+      Get.find<MetaAnalyticsService>().viewCategory(
+        categoryId: categoryID ?? '',
+        categoryName: categoryName,
+      );
+    } catch (_) {}
+  }
+
+  void getSubCategoryList(String? categoryID) async {
+    await loadCategoryData(categoryID);
   }
 
   void setSubCategoryIndex(int index, String? categoryID) {
     _subCategoryIndex = index;
+    update(['sub_category']);
     if (_isStore) {
       getCategoryStoreList(
           _subCategoryIndex == 0 ? categoryID : _subCategoryList![index].id.toString(),
@@ -145,7 +215,8 @@ class CategoryController extends GetxController implements GetxService {
   }
 
   void getCategoryItemList(String? categoryID, int offset, String type, bool notify) async {
-    _offset = offset;
+    if (offset > 1) return;
+    _offset = 1;
     if (offset == 1) {
       if (_type == type) {
         _isSearching = false;
@@ -156,12 +227,9 @@ class CategoryController extends GetxController implements GetxService {
       }
       _categoryItemList = null;
     }
-    ItemModel? categoryItem = await categoryServiceInterface.getCategoryItemList(categoryID, offset, type);
+    ItemModel? categoryItem = await categoryServiceInterface.getCategoryItemList(categoryID, 1, type, source: DataSourceEnum.client);
     if (categoryItem != null) {
-      if (offset == 1) {
-        _categoryItemList = [];
-      }
-      _categoryItemList!.addAll(categoryItem.items!);
+      _categoryItemList = categoryItem.items ?? [];
       _pageSize = categoryItem.totalSize;
       _isLoading = false;
     }

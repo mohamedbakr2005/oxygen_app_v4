@@ -1,9 +1,5 @@
 import 'dart:io';
 
-import 'package:dotted_border/dotted_border.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_tool_tip_widget.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/prescription_view_dialog_widget.dart';
@@ -12,16 +8,19 @@ import 'package:Oxygen_Mart/features/store/widgets/camera_button_sheet_widget.da
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 
 class PrescriptionImagePickerWidget extends StatelessWidget {
   final CheckoutController checkoutController;
   final int? storeId;
   final bool isPrescriptionRequired;
-  const PrescriptionImagePickerWidget(
-      {super.key,
-      required this.checkoutController,
-      this.storeId,
-      required this.isPrescriptionRequired});
+
+  const PrescriptionImagePickerWidget({super.key,
+    required this.checkoutController, this.storeId, required this.isPrescriptionRequired,
+  });
 
   @override
   Widget build(BuildContext context) {

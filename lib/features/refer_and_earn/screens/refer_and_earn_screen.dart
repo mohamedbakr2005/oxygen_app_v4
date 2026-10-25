@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_app_bar.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
@@ -34,7 +36,6 @@ class _ReferAndEarnScreenState extends State<ReferAndEarnScreen> {
   @override
   void initState() {
     super.initState();
-
     _initCall();
   }
 
@@ -45,20 +46,36 @@ class _ReferAndEarnScreenState extends State<ReferAndEarnScreen> {
     }
   }
 
+  void _shareCode(String refCode) {
+    final splash = Get.find<SplashController>().configModel;
+    final String shareText = splash?.appUrlAndroid != null
+        ? '${AppConstants.appName} ${'referral_code'.tr}: $refCode\n${'download_app_from_this_link'.tr}: ${splash?.appUrlAndroid}'
+        : '${AppConstants.appName} ${'referral_code'.tr}: $refCode';
+    Share.share(shareText);
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isLoggedIn = AuthHelper.isLoggedIn();
+    final bool isDark = Get.find<ThemeController>().darkTheme;
+    final Color primaryColor = Theme.of(context).primaryColor;
+    final Color cardBg = Theme.of(context).cardColor;
+
     return Scaffold(
       endDrawer: const MenuDrawer(),
       endDrawerEnableOpenDragGesture: false,
       appBar: CustomAppBar(title: 'refer_and_earn'.tr),
       body: ExpandableBottomSheet(
+        key: key,
         background: isLoggedIn
             ? SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: EdgeInsets.symmetric(
-                    horizontal: ResponsiveHelper.isDesktop(context)
-                        ? 0
-                        : Dimensions.paddingSizeLarge),
+                  horizontal: ResponsiveHelper.isDesktop(context)
+                      ? 0
+                      : Dimensions.paddingSizeDefault,
+                  vertical: Dimensions.paddingSizeSmall,
+                ),
                 child: Column(
                   children: [
                     WebScreenTitleWidget(title: 'refer_and_earn'.tr),
@@ -67,268 +84,279 @@ class _ReferAndEarnScreenState extends State<ReferAndEarnScreen> {
                         child: SizedBox(
                           width: Dimensions.webMaxWidth,
                           child: GetBuilder<ProfileController>(
-                              builder: (profileController) {
-                            return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
+                            builder: (profileController) {
+                              final String refCode = profileController
+                                      .userInfoModel?.refCode ??
+                                  '';
+                              final double exchangeRate =
+                                  Get.find<SplashController>()
+                                          .configModel
+                                          ?.refEarningExchangeRate
+                                          ?.toDouble() ??
+                                      0.0;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Image.asset(
-                                    Images.referImage,
-                                    width: 500,
-                                    height: ResponsiveHelper.isDesktop(context)
-                                        ? 250
-                                        : 150,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  const SizedBox(
-                                      height: Dimensions.paddingSizeExtraLarge),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : Text('earn_money_on_every_referral'.tr,
-                                          style: robotoRegular.copyWith(
-                                              color: Theme.of(context)
-                                                  .primaryColor,
-                                              fontSize:
-                                                  Dimensions.fontSizeSmall)),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : const SizedBox(
-                                          height:
-                                              Dimensions.paddingSizeExtraSmall),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
+                                  // Hero Card Container
+                                  Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: Dimensions.paddingSizeSmall),
+                                    padding: const EdgeInsets.all(
+                                        Dimensions.paddingSizeLarge),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: isDark
+                                            ? [
+                                                const Color(0xFF134E36),
+                                                const Color(0xFF0D3323),
+                                              ]
+                                            : [
+                                                primaryColor,
+                                                primaryColor.withValues(alpha: 0.85),
+                                              ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: primaryColor.withValues(alpha: 0.25),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        // Reward Rate Pill
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(30),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(alpha: 0.35),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.card_giftcard_rounded,
+                                                  color: Colors.white, size: 16),
+                                              const SizedBox(width: 6),
                                               Text(
-                                                '${'one_referral'.tr}= ',
+                                                '${'one_referral'.tr} = ${PriceConverter.convertPrice(exchangeRate)}',
                                                 style: robotoBold.copyWith(
-                                                    fontSize: Dimensions
-                                                        .fontSizeDefault),
-                                              ),
-                                              Text(
-                                                PriceConverter.convertPrice(
-                                                    Get.find<SplashController>()
-                                                                .configModel !=
-                                                            null
-                                                        ? Get.find<
-                                                                SplashController>()
-                                                            .configModel!
-                                                            .refEarningExchangeRate!
-                                                            .toDouble()
-                                                        : 0.0),
-                                                style: robotoBold.copyWith(
-                                                    fontSize: Dimensions
-                                                        .fontSizeDefault),
-                                                // textDirection:
-                                                //     TextDirection.ltr,
-                                              ),
-                                            ]),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : const SizedBox(height: 40),
-                                  Text('invite_friends_and_business'.tr,
-                                      style: robotoBold.copyWith(
-                                          fontSize:
-                                              Dimensions.fontSizeOverLarge),
-                                      textAlign: TextAlign.center),
-                                  const SizedBox(
-                                      height: Dimensions.paddingSizeSmall),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                              Text(
-                                                '${'one_referral'.tr}= ',
-                                                style: robotoMedium.copyWith(
-                                                    fontSize: Dimensions
-                                                        .fontSizeSmall),
-                                              ),
-                                              Text(
-                                                PriceConverter.convertPrice(
-                                                    Get.find<SplashController>()
-                                                                .configModel !=
-                                                            null
-                                                        ? Get.find<
-                                                                SplashController>()
-                                                            .configModel!
-                                                            .refEarningExchangeRate!
-                                                            .toDouble()
-                                                        : 0.0),
-                                                style: robotoMedium.copyWith(
-                                                    fontSize: Dimensions
-                                                        .fontSizeSmall),
-                                                // textDirection:
-                                                //     TextDirection.ltr,
-                                              ),
-                                            ])
-                                      : const SizedBox(),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox(height: 40)
-                                      : const SizedBox(),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : Text(
-                                          'copy_your_code_share_it_with_your_friends'
-                                              .tr,
-                                          style: robotoRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeSmall),
-                                          textAlign: TextAlign.center),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : const SizedBox(
-                                          height:
-                                              Dimensions.paddingSizeExtraLarge),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? Align(
-                                          alignment: Alignment.topLeft,
-                                          child: Text('your_personal_code'.tr,
-                                              style: robotoRegular.copyWith(
-                                                  fontSize:
-                                                      Dimensions.fontSizeSmall),
-                                              textAlign: TextAlign.center),
-                                        )
-                                      : const SizedBox(),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const SizedBox()
-                                      : Text('your_personal_code'.tr,
-                                          style: robotoRegular.copyWith(
-                                              fontSize:
-                                                  Dimensions.fontSizeSmall,
-                                              color:
-                                                  Theme.of(context).hintColor),
-                                          textAlign: TextAlign.center),
-                                  const SizedBox(
-                                      height: Dimensions.paddingSizeSmall),
-                                  DottedBorder(
-                                    color: Theme.of(context).primaryColor,
-                                    strokeWidth: 1,
-                                    strokeCap: StrokeCap.butt,
-                                    dashPattern: const [8, 5],
-                                    padding: const EdgeInsets.all(0),
-                                    borderType: BorderType.RRect,
-                                    radius: Radius.circular(
-                                        ResponsiveHelper.isDesktop(context)
-                                            ? Dimensions.radiusDefault
-                                            : 50),
-                                    child: SizedBox(
-                                      height: 50,
-                                      child: (profileController.userInfoModel !=
-                                              null)
-                                          ? Row(children: [
-                                              Expanded(
-                                                child: Padding(
-                                                  padding: const EdgeInsets
-                                                      .only(
-                                                      left: Dimensions
-                                                          .paddingSizeLarge,
-                                                      right: Dimensions
-                                                          .paddingSizeLarge),
-                                                  child: Text(
-                                                    profileController
-                                                                .userInfoModel !=
-                                                            null
-                                                        ? profileController
-                                                                .userInfoModel!
-                                                                .refCode ??
-                                                            ''
-                                                        : '',
-                                                    style: robotoMedium.copyWith(
-                                                        fontSize: Dimensions
-                                                            .fontSizeExtraLarge),
-                                                  ),
+                                                  color: Colors.white,
+                                                  fontSize: Dimensions.fontSizeSmall,
                                                 ),
                                               ),
-                                              InkWell(
-                                                onTap: () {
-                                                  if (profileController
-                                                      .userInfoModel!
-                                                      .refCode!
-                                                      .isNotEmpty) {
-                                                    Clipboard.setData(ClipboardData(
-                                                        text:
-                                                            '${profileController.userInfoModel != null ? profileController.userInfoModel!.refCode : ''}'));
-                                                    showCustomSnackBar(
-                                                        'referral_code_copied'
-                                                            .tr,
-                                                        isError: false);
-                                                  }
-                                                },
-                                                child: Container(
-                                                  alignment: Alignment.center,
-                                                  decoration: BoxDecoration(
-                                                      color: Theme.of(context)
-                                                          .primaryColor,
-                                                      borderRadius: BorderRadius
-                                                          .circular(ResponsiveHelper
-                                                                  .isDesktop(
-                                                                      context)
-                                                              ? Dimensions
-                                                                  .radiusDefault
-                                                              : 50)),
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: Dimensions
-                                                          .paddingSizeExtraLarge),
-                                                  margin: const EdgeInsets.all(
-                                                      Dimensions
-                                                          .paddingSizeExtraSmall),
-                                                  child: Text('copy'.tr,
-                                                      style: robotoMedium.copyWith(
-                                                          color:
-                                                              Theme.of(context)
-                                                                  .cardColor,
-                                                          fontSize: Dimensions
-                                                              .fontSizeDefault)),
-                                                ),
-                                              ),
-                                            ])
-                                          : const CircularProgressIndicator(),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Illustration
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Image.asset(
+                                            Images.referImage,
+                                            width: ResponsiveHelper.isDesktop(context)
+                                                ? 300
+                                                : 140,
+                                            height: ResponsiveHelper.isDesktop(context)
+                                                ? 180
+                                                : 110,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 14),
+
+                                        // Title & Subtitle
+                                        Text(
+                                          'invite_friends_and_business'.tr,
+                                          style: robotoBold.copyWith(
+                                            fontSize: Dimensions.fontSizeExtraLarge,
+                                            color: Colors.white,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'earn_money_on_every_referral'.tr,
+                                          style: robotoRegular.copyWith(
+                                            fontSize: Dimensions.fontSizeSmall,
+                                            color: Colors.white.withValues(alpha: 0.9),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(
-                                      height: Dimensions.paddingSizeLarge),
-                                  Wrap(children: [
-                                    InkWell(
-                                      onTap: () {
-                                        Share.share(
-                                          Get.find<SplashController>()
-                                                      .configModel
-                                                      ?.appUrlAndroid !=
-                                                  null
-                                              ? '${AppConstants.appName} ${'referral_code'.tr}: ${profileController.userInfoModel!.refCode} \n${'download_app_from_this_link'.tr}: ${Get.find<SplashController>().configModel?.appUrlAndroid}'
-                                              : '${AppConstants.appName} ${'referral_code'.tr}: ${profileController.userInfoModel!.refCode}',
-                                        );
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Theme.of(context).cardColor,
-                                          boxShadow: [
-                                            BoxShadow(
-                                                color: Theme.of(context)
-                                                    .primaryColor
-                                                    .withOpacity(0.2),
-                                                blurRadius: 5)
-                                          ],
-                                        ),
-                                        padding: const EdgeInsets.all(7),
-                                        child: const Icon(Icons.share),
+
+                                  const SizedBox(height: Dimensions.paddingSizeSmall),
+
+                                  // Personal Code Box
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(
+                                        Dimensions.paddingSizeDefault),
+                                    decoration: BoxDecoration(
+                                      color: cardBg,
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                        color: primaryColor.withValues(alpha: 0.15),
+                                        width: 1,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: isDark
+                                              ? Colors.black.withValues(alpha: 0.2)
+                                              : primaryColor.withValues(alpha: 0.05),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'your_personal_code'.tr,
+                                          style: robotoMedium.copyWith(
+                                            fontSize: Dimensions.fontSizeSmall,
+                                            color: Theme.of(context).hintColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        DottedBorder(
+                                          color: primaryColor.withValues(alpha: 0.5),
+                                          strokeWidth: 1.5,
+                                          strokeCap: StrokeCap.butt,
+                                          dashPattern: const [8, 5],
+                                          padding: const EdgeInsets.all(4),
+                                          borderType: BorderType.RRect,
+                                          radius: const Radius.circular(14),
+                                          child: Container(
+                                            height: 52,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: Dimensions.paddingSizeDefault),
+                                            decoration: BoxDecoration(
+                                              color: primaryColor.withValues(alpha: 0.04),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: (profileController.userInfoModel != null)
+                                                ? Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: SelectableText(
+                                                          refCode,
+                                                          style: robotoBold.copyWith(
+                                                            fontSize: Dimensions.fontSizeExtraLarge,
+                                                            letterSpacing: 2,
+                                                            color: primaryColor,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      InkWell(
+                                                        onTap: () {
+                                                          if (refCode.isNotEmpty) {
+                                                            Clipboard.setData(
+                                                                ClipboardData(text: refCode));
+                                                            showCustomSnackBar(
+                                                                'referral_code_copied'.tr,
+                                                                isError: false);
+                                                          }
+                                                        },
+                                                        borderRadius: BorderRadius.circular(10),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(
+                                                              horizontal: 14, vertical: 8),
+                                                          decoration: BoxDecoration(
+                                                            color: primaryColor,
+                                                            borderRadius:
+                                                                BorderRadius.circular(10),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: primaryColor.withValues(alpha: 0.3),
+                                                                blurRadius: 6,
+                                                                offset: const Offset(0, 2),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              const Icon(Icons.copy_rounded,
+                                                                  color: Colors.white, size: 14),
+                                                              const SizedBox(width: 4),
+                                                              Text(
+                                                                'copy'.tr,
+                                                                style: robotoBold.copyWith(
+                                                                  color: Colors.white,
+                                                                  fontSize: Dimensions.fontSizeSmall,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : const Center(
+                                                    child: SizedBox(
+                                                      height: 20,
+                                                      width: 20,
+                                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                                    ),
+                                                  ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: Dimensions.paddingSizeDefault),
+
+                                  // Primary Share Button
+                                  CustomButton(
+                                    buttonText: 'share'.tr,
+                                    icon: Icons.share_rounded,
+                                    onPressed: () {
+                                      if (refCode.isNotEmpty) {
+                                        _shareCode(refCode);
+                                      }
+                                    },
+                                    radius: 14,
+                                    height: 50,
+                                  ),
+
+                                  const SizedBox(height: Dimensions.paddingSizeExtraLarge),
+
+                                  // How It Works inline (for desktop & mobile view)
+                                  if (ResponsiveHelper.isDesktop(context))
+                                    const Padding(
+                                      padding: EdgeInsets.only(
+                                          top: Dimensions.paddingSizeExtraLarge),
+                                      child: BottomSheetViewWidget(),
                                     )
-                                  ]),
-                                  ResponsiveHelper.isDesktop(context)
-                                      ? const Padding(
-                                          padding: EdgeInsets.only(
-                                              top: Dimensions
-                                                  .paddingSizeExtraLarge),
-                                          child: BottomSheetViewWidget(),
-                                        )
-                                      : const SizedBox(),
-                                ]);
-                          }),
+                                  else
+                                    const BottomSheetViewWidget(),
+
+                                  const SizedBox(height: 40),
+                                ],
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
@@ -339,70 +367,8 @@ class _ReferAndEarnScreenState extends State<ReferAndEarnScreen> {
                 _initCall();
                 setState(() {});
               }),
-        key: key,
-        persistentHeader: ResponsiveHelper.isDesktop(context)
-            ? null
-            : InkWell(
-                onTap: () {
-                  if (key.currentState?.expansionStatus ==
-                      ExpansionStatus.expanded) {
-                    setState(() {
-                      key.currentState!.contract();
-                    });
-                  } else {
-                    setState(() {
-                      key.currentState!.expand();
-                    });
-                  }
-                },
-                child: Container(
-                  constraints: const BoxConstraints.expand(height: 60),
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.only(
-                        topLeft:
-                            Radius.circular(Dimensions.paddingSizeExtraLarge),
-                        topRight:
-                            Radius.circular(Dimensions.paddingSizeExtraLarge)),
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
-                    border: Border(
-                      top: BorderSide(
-                          color: Theme.of(context).primaryColor, width: 0.3),
-                    ),
-                  ),
-                  child: Column(children: [
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.only(
-                            top: Dimensions.paddingSizeDefault),
-                        height: 3,
-                        width: 40,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
-                          borderRadius: BorderRadius.circular(
-                              Dimensions.paddingSizeExtraSmall),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                          left: Dimensions.paddingSizeDefault,
-                          top: Dimensions.paddingSizeSmall,
-                          right: Dimensions.paddingSizeDefault),
-                      child: Row(children: [
-                        const Icon(Icons.error_outline, size: 16),
-                        const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                        Text('how_it_works'.tr,
-                            style: robotoMedium.copyWith(
-                                fontSize: Dimensions.fontSizeDefault),
-                            textAlign: TextAlign.center),
-                      ]),
-                    ),
-                  ]),
-                ),
-              ),
-        expandableContent: ResponsiveHelper.isDesktop(context) || !isLoggedIn
-            ? const SizedBox()
-            : const BottomSheetViewWidget(),
+        persistentHeader: null,
+        expandableContent: const SizedBox(),
       ),
     );
   }

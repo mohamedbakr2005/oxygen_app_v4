@@ -1,136 +1,89 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
-import 'package:Oxygen_Mart/helper/validate_check.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class GuestCreateAccount extends StatelessWidget {
-  final TextEditingController guestPasswordController;
-  final TextEditingController guestConfirmPasswordController;
-  final FocusNode guestPasswordNode;
-  final FocusNode guestConfirmPasswordNode;
+  final TextEditingController? guestPasswordController;
+  final TextEditingController? guestConfirmPasswordController;
+  final FocusNode? guestPasswordNode;
+  final FocusNode? guestConfirmPasswordNode;
   final bool fromParcel;
-  const GuestCreateAccount(
-      {super.key,
-      required this.guestPasswordController,
-      required this.guestConfirmPasswordController,
-      required this.guestPasswordNode,
-      required this.guestConfirmPasswordNode,
-      this.fromParcel = false});
+
+  const GuestCreateAccount({
+    super.key,
+    this.guestPasswordController,
+    this.guestConfirmPasswordController,
+    this.guestPasswordNode,
+    this.guestConfirmPasswordNode,
+    this.fromParcel = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    bool isDesktop = ResponsiveHelper.isDesktop(context);
+    final theme = Theme.of(context);
 
     return GetBuilder<CheckoutController>(builder: (checkoutController) {
       return Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
-          boxShadow: fromParcel
-              ? [
-                  const BoxShadow(
-                      color: Colors.black12, blurRadius: 5, spreadRadius: 1)
-                ]
-              : [
-                  BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.05),
-                      blurRadius: 10)
-                ],
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: theme.disabledColor.withValues(alpha: 0.15),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         padding: const EdgeInsets.symmetric(
-            horizontal: Dimensions.paddingSizeLarge,
-            vertical: Dimensions.paddingSizeLarge),
-        child: Column(children: [
-          Row(children: [
-            SizedBox(
-              height: 24,
-              width: 24,
-              child: Checkbox(
-                value: checkoutController.isCreateAccount,
-                onChanged: (bool? value) =>
-                    checkoutController.toggleCreateAccount(),
-                activeColor: Theme.of(context).primaryColor,
+          horizontal: Dimensions.paddingSizeLarge,
+          vertical: Dimensions.paddingSizeDefault,
+        ),
+        child: InkWell(
+          onTap: () => checkoutController.toggleCreateAccount(),
+          borderRadius: BorderRadius.circular(12),
+          child: Row(
+            children: [
+              Container(
+                height: 22,
+                width: 22,
+                decoration: BoxDecoration(
+                  color: checkoutController.isCreateAccount
+                      ? theme.primaryColor
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: checkoutController.isCreateAccount
+                        ? theme.primaryColor
+                        : theme.disabledColor.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: checkoutController.isCreateAccount
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : null,
               ),
-            ),
-            const SizedBox(width: Dimensions.paddingSizeSmall),
-            Text('create_account_with_existing_info'.tr, style: robotoMedium),
-          ]),
-          SizedBox(
-              height: checkoutController.isCreateAccount
-                  ? Dimensions.paddingSizeLarge
-                  : 0),
-          Visibility(
-            visible: checkoutController.isCreateAccount,
-            child: isDesktop
-                ? Row(children: [
-                    Expanded(
-                      child: CustomTextField(
-                        labelText: 'password'.tr,
-                        titleText: '8_character'.tr,
-                        controller: guestPasswordController,
-                        focusNode: guestPasswordNode,
-                        nextFocus: guestConfirmPasswordNode,
-                        inputType: TextInputType.visiblePassword,
-                        prefixIcon: Icons.lock,
-                        isPassword: true,
-                        required: true,
-                        validator: (value) =>
-                            ValidateCheck.validateEmptyText(value, null),
-                      ),
-                    ),
-                    const SizedBox(width: Dimensions.paddingSizeDefault),
-                    Expanded(
-                      child: CustomTextField(
-                        labelText: 'confirm_password'.tr,
-                        titleText: '8_character'.tr,
-                        controller: guestConfirmPasswordController,
-                        focusNode: guestConfirmPasswordNode,
-                        inputAction: TextInputAction.done,
-                        inputType: TextInputType.visiblePassword,
-                        prefixIcon: Icons.lock,
-                        isPassword: true,
-                        required: true,
-                        validator: (value) =>
-                            ValidateCheck.validateEmptyText(value, null),
-                      ),
-                    ),
-                  ])
-                : Column(children: [
-                    CustomTextField(
-                      labelText: 'password'.tr,
-                      titleText: '8_character'.tr,
-                      controller: guestPasswordController,
-                      focusNode: guestPasswordNode,
-                      nextFocus: guestConfirmPasswordNode,
-                      inputType: TextInputType.visiblePassword,
-                      prefixIcon: Icons.lock,
-                      isPassword: true,
-                      required: true,
-                      validator: (value) =>
-                          ValidateCheck.validateEmptyText(value, null),
-                    ),
-                    const SizedBox(height: Dimensions.paddingSizeExtremeLarge),
-                    CustomTextField(
-                      labelText: 'confirm_password'.tr,
-                      titleText: '8_character'.tr,
-                      controller: guestConfirmPasswordController,
-                      focusNode: guestConfirmPasswordNode,
-                      inputAction: TextInputAction.done,
-                      inputType: TextInputType.visiblePassword,
-                      prefixIcon: Icons.lock,
-                      isPassword: true,
-                      required: true,
-                      validator: (value) =>
-                          ValidateCheck.validateEmptyText(value, null),
-                    ),
-                  ]),
+              const SizedBox(width: Dimensions.paddingSizeSmall),
+              Expanded(
+                child: Text(
+                  'create_account_with_existing_info'.tr,
+                  style: robotoBold.copyWith(
+                    fontSize: Dimensions.fontSizeDefault,
+                    color: theme.textTheme.bodyLarge?.color,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ]),
+        ),
       );
     });
   }
 }
+

@@ -60,7 +60,9 @@ class BottomCartWidget extends StatelessWidget {
               buttonText: 'view_cart'.tr,
               width: 130,
               height: 45,
-              onPressed: () => Get.toNamed(RouteHelper.getCartRoute()))
+              onPressed: () => Get.toNamed(RouteHelper.getCartRoute(
+                storeId: cartController.cartList.isNotEmpty ? cartController.cartList[0].item?.storeId : null,
+              )))
         ]),
       );
     });

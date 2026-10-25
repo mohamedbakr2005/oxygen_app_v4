@@ -14,58 +14,83 @@ class LoyaltyHistoryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<LoyaltyController>(builder: (loyaltyController) {
-      return Column(children: [
-        Padding(
-          padding: EdgeInsets.only(
+      int count = loyaltyController.transactionList?.length ?? 0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
               top: ResponsiveHelper.isDesktop(context)
                   ? Dimensions.paddingSizeExtraSmall
-                  : Dimensions.paddingSizeExtraLarge),
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text(
-              'point_history'.tr,
-              style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge),
+                  : Dimensions.paddingSizeLarge,
+              bottom: Dimensions.paddingSizeDefault,
             ),
-            const SizedBox(),
-          ]),
-        ),
-        loyaltyController.transactionList != null
-            ? loyaltyController.transactionList!.isNotEmpty
-                ? GridView.builder(
-                    key: UniqueKey(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisSpacing: 50,
-                      mainAxisSpacing: ResponsiveHelper.isDesktop(context)
-                          ? Dimensions.paddingSizeSmall
-                          : 0.01,
-                      childAspectRatio:
-                          ResponsiveHelper.isDesktop(context) ? 7 : 4.45,
-                      crossAxisCount:
-                          ResponsiveHelper.isMobile(context) ? 1 : 1,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'point_history'.tr,
+                      style: robotoBold.copyWith(
+                        fontSize: Dimensions.fontSizeLarge + 2,
+                        color: Theme.of(context).textTheme.bodyLarge!.color,
+                      ),
                     ),
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: loyaltyController.transactionList!.length,
-                    padding: EdgeInsets.only(
-                        top: ResponsiveHelper.isDesktop(context) ? 28 : 25),
-                    itemBuilder: (context, index) {
-                      return HistoryItemWidget(
+                    if (count > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color:
+                              Theme.of(context).primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: robotoBold.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          loyaltyController.transactionList != null
+              ? loyaltyController.transactionList!.isNotEmpty
+                  ? ListView.separated(
+                      key: UniqueKey(),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: loyaltyController.transactionList!.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return HistoryItemWidget(
                           index: index,
                           fromWallet: false,
-                          data: loyaltyController.transactionList);
-                    },
-                  )
-                : NoDataScreen(text: 'no_data_found'.tr)
-            : WalletShimmer(loyaltyController: loyaltyController),
-        loyaltyController.isLoading
-            ? const Center(
-                child: Padding(
-                padding: EdgeInsets.all(Dimensions.paddingSizeSmall),
+                          data: loyaltyController.transactionList,
+                        );
+                      },
+                    )
+                  : NoDataScreen(text: 'no_data_found'.tr)
+              : WalletShimmer(loyaltyController: loyaltyController),
+          if (loyaltyController.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(Dimensions.paddingSizeLarge),
                 child: CircularProgressIndicator(),
-              ))
-            : const SizedBox(),
-        const SizedBox(height: 50),
-      ]);
+              ),
+            ),
+          const SizedBox(height: 80),
+        ],
+      );
     });
   }
 }
@@ -76,75 +101,80 @@ class WalletShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
+    return ListView.separated(
       key: UniqueKey(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisSpacing: 50,
-        mainAxisSpacing: ResponsiveHelper.isDesktop(context)
-            ? Dimensions.paddingSizeLarge
-            : 0.01,
-        childAspectRatio: ResponsiveHelper.isDesktop(context) ? 5 : 3.8,
-        crossAxisCount: ResponsiveHelper.isMobile(context) ? 1 : 1,
-      ),
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      itemCount: 10,
-      padding:
-          EdgeInsets.only(top: ResponsiveHelper.isDesktop(context) ? 28 : 25),
+      itemCount: 5,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        return Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
-          child: Shimmer.fromColors(
-            period: const Duration(milliseconds: 2000),
-            baseColor: Colors.grey,
-            highlightColor: Colors.white,
-            enabled: loyaltyController.transactionList == null,
-            child: Column(
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 14,
+                        width: 130,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 11,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                              height: 10,
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(height: 10),
-                          Container(
-                              height: 10,
-                              width: 70,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                        ]),
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                              height: 10,
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(height: 10),
-                          Container(
-                              height: 10,
-                              width: 70,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                        ]),
+                    Container(
+                      height: 14,
+                      width: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 18,
+                      width: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
                   ],
                 ),
-                Padding(
-                    padding:
-                        const EdgeInsets.only(top: Dimensions.paddingSizeLarge),
-                    child: Divider(color: Theme.of(context).disabledColor)),
               ],
             ),
           ),

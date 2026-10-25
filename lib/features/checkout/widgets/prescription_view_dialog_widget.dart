@@ -1,8 +1,8 @@
 import 'dart:io';
 
+import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:Oxygen_Mart/util/dimensions.dart';
 
 class PrescriptionViewDialogWidget extends StatelessWidget {
   final String filePath;
@@ -51,8 +51,7 @@ class PrescriptionViewDialogWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
                 child: Image.file(
                   File(filePath),
-                  fit: BoxFit
-                      .cover, /*width: context.width, height: context.height * 0.8,*/
+                  fit: BoxFit.cover,
                 ),
               ),
       ),

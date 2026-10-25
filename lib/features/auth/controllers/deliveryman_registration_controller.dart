@@ -1,23 +1,22 @@
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/location/domain/models/zone_data_model.dart';
+import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/delivery_man_body.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/delivery_man_vehicles_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/services/deliveryman_registration_service_interface.dart';
-import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
-import 'package:Oxygen_Mart/features/location/domain/models/zone_data_model.dart';
-import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 
-class DeliverymanRegistrationController extends GetxController
-    implements GetxService {
-  final DeliverymanRegistrationServiceInterface
-      deliverymanRegistrationServiceInterface;
+enum DMRegistrationSteps { stepOne, stepTwo }
 
-  DeliverymanRegistrationController(
-      {required this.deliverymanRegistrationServiceInterface});
+class DeliverymanRegistrationController extends GetxController implements GetxService {
+  final DeliverymanRegistrationServiceInterface deliverymanRegistrationServiceInterface;
+
+  DeliverymanRegistrationController({required this.deliverymanRegistrationServiceInterface});
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -31,8 +30,8 @@ class DeliverymanRegistrationController extends GetxController
   List<XFile> _pickedIdentities = [];
   List<XFile> get pickedIdentities => _pickedIdentities;
 
-  double _dmStatus = 0.4;
-  double get dmStatus => _dmStatus;
+  DMRegistrationSteps _dmStatus = DMRegistrationSteps.stepOne;
+  DMRegistrationSteps get dmStatus => _dmStatus;
 
   bool _lengthCheck = false;
   bool get lengthCheck => _lengthCheck;
@@ -76,11 +75,7 @@ class DeliverymanRegistrationController extends GetxController
   List<int?>? _vehicleIds;
   List<int?>? get vehicleIds => _vehicleIds;
 
-  final List<String?> _dmTypeList = [
-    'select_delivery_type',
-    'freelancer',
-    'salary_based'
-  ];
+  final List<String?> _dmTypeList = ['select_delivery_type', 'freelancer', 'salary_based'];
   List<String?> get dmTypeList => _dmTypeList;
 
   int? _vehicleIndex = 0;
@@ -89,16 +84,16 @@ class DeliverymanRegistrationController extends GetxController
   bool _acceptTerms = true;
   bool get acceptTerms => _acceptTerms;
 
-  void showHidePass({bool isUpdate = true}) {
-    _showPassView = !_showPassView;
-    if (isUpdate) {
+  void showHidePass({bool isUpdate = true}){
+    _showPassView = ! _showPassView;
+    if(isUpdate) {
       update();
     }
   }
 
   Future<void> setZoneIndex(int? index, {bool canUpdate = true}) async {
     _selectedZoneIndex = index;
-    if (canUpdate) {
+    if(canUpdate){
       await getModules(zoneList![selectedZoneIndex!].id);
       update();
     }
@@ -106,7 +101,7 @@ class DeliverymanRegistrationController extends GetxController
 
   void setVehicleIndex(int? index, bool notify) {
     _vehicleIndex = index;
-    if (notify) {
+    if(notify) {
       update();
     }
   }
@@ -117,17 +112,15 @@ class DeliverymanRegistrationController extends GetxController
   }
 
   void pickDmImage(bool isLogo, bool isRemove) async {
-    if (isRemove) {
+    if(isRemove) {
       _pickedImage = null;
       _pickedIdentities = [];
-    } else {
+    }else {
       if (isLogo) {
-        _pickedImage =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
+        _pickedImage = await ImagePicker().pickImage(source: ImageSource.gallery);
       } else {
-        XFile? xFile =
-            await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (xFile != null) {
+        XFile? xFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+        if(xFile != null) {
           _pickedIdentities.add(xFile);
         }
       }
@@ -135,14 +128,14 @@ class DeliverymanRegistrationController extends GetxController
     }
   }
 
-  void removeDmImage() {
+  void removeDmImage(){
     _pickedImage = null;
     update();
   }
 
-  void dmStatusChange(double value, {bool isUpdate = true}) {
+  void dmStatusChange(DMRegistrationSteps value, {bool isUpdate = true}){
     _dmStatus = value;
-    if (isUpdate) {
+    if(isUpdate) {
       update();
     }
   }
@@ -154,43 +147,43 @@ class DeliverymanRegistrationController extends GetxController
     _lowercaseCheck = false;
     _spatialCheck = false;
 
-    if (pass.length > 7) {
+    if(pass.length > 7){
       _lengthCheck = true;
     }
-    if (pass.contains(RegExp(r'[a-z]'))) {
+    if(pass.contains(RegExp(r'[a-z]'))) {
       _lowercaseCheck = true;
     }
-    if (pass.contains(RegExp(r'[A-Z]'))) {
+    if(pass.contains(RegExp(r'[A-Z]'))){
       _uppercaseCheck = true;
     }
-    if (pass.contains(RegExp(r'[ .!@#$&*~^%]'))) {
+    if(pass.contains(RegExp(r'[ .!@#$&*~^%]'))){
       _spatialCheck = true;
     }
-    if (pass.contains(RegExp(r'[\d+]'))) {
+    if(pass.contains(RegExp(r'[\d+]'))){
       _numberCheck = true;
     }
-    if (isUpdate) {
+    if(isUpdate) {
       update();
     }
   }
 
   void setIdentityTypeIndex(String? identityType, bool notify) {
     int index0 = 0;
-    for (int index = 0; index < _identityTypeList.length; index++) {
-      if (_identityTypeList[index] == identityType) {
+    for(int index=0; index<_identityTypeList.length; index++) {
+      if(_identityTypeList[index] == identityType) {
         index0 = index;
         break;
       }
     }
     _identityTypeIndex = index0;
-    if (notify) {
+    if(notify) {
       update();
     }
   }
 
   void setDMTypeIndex(int dmType, bool notify) {
     _dmTypeIndex = dmType;
-    if (notify) {
+    if(notify) {
       update();
     }
   }
@@ -198,18 +191,13 @@ class DeliverymanRegistrationController extends GetxController
   Future<void> getZoneList() async {
     _selectedZoneIndex = -1;
     _zoneIds = null;
-    List<ZoneDataModel>? zones =
-        await deliverymanRegistrationServiceInterface.getZoneList();
+    List<ZoneDataModel>? zones = await deliverymanRegistrationServiceInterface.getZoneList();
     if (zones != null) {
       _zoneList = [];
       _zoneList!.addAll(zones);
       _setLocation(LatLng(
-        double.parse(
-            Get.find<SplashController>().configModel!.defaultLocation!.lat ??
-                '0'),
-        double.parse(
-            Get.find<SplashController>().configModel!.defaultLocation!.lng ??
-                '0'),
+        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lat ?? '0'),
+        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lng ?? '0'),
       ));
       await getModules(_zoneList![0].id);
     }
@@ -218,23 +206,19 @@ class DeliverymanRegistrationController extends GetxController
 
   void _setLocation(LatLng location) async {
     ZoneResponseModel response = await Get.find<LocationController>().getZone(
-      location.latitude.toString(),
-      location.longitude.toString(),
-      false,
+      location.latitude.toString(), location.longitude.toString(), false,
     );
-    if (response.isSuccess && response.zoneIds.isNotEmpty) {
+    if(response.isSuccess && response.zoneIds.isNotEmpty) {
       _zoneIds = response.zoneIds;
-      _selectedZoneIndex = deliverymanRegistrationServiceInterface
-          .prepareSelectedZoneIndex(_zoneIds, _zoneList);
-    } else {
+      _selectedZoneIndex = deliverymanRegistrationServiceInterface.prepareSelectedZoneIndex(_zoneIds, _zoneList);
+    }else {
       _zoneIds = null;
     }
     update();
   }
 
   Future<void> getModules(int? zoneId) async {
-    List<ModuleModel>? modules =
-        await deliverymanRegistrationServiceInterface.getModules(zoneId);
+    List<ModuleModel>? modules = await deliverymanRegistrationServiceInterface.getModules(zoneId);
     if (modules != null) {
       _moduleList = [];
       _moduleList!.addAll(modules);
@@ -248,13 +232,11 @@ class DeliverymanRegistrationController extends GetxController
   }
 
   Future<void> getVehicleList() async {
-    List<DeliveryManVehicleModel>? vehicleList =
-        await deliverymanRegistrationServiceInterface.getVehicleList();
+    List<DeliveryManVehicleModel>? vehicleList = await deliverymanRegistrationServiceInterface.getVehicleList();
     if (vehicleList != null) {
       _vehicles = [];
       _vehicles!.addAll(vehicleList);
-      _vehicleIds = deliverymanRegistrationServiceInterface
-          .prepareVehicleIds(vehicleList);
+      _vehicleIds = deliverymanRegistrationServiceInterface.prepareVehicleIds(vehicleList);
     }
     update();
   }
@@ -262,15 +244,13 @@ class DeliverymanRegistrationController extends GetxController
   Future<void> registerDeliveryMan(DeliveryManBody deliveryManBody) async {
     _isLoading = true;
     update();
-    List<MultipartBody> multiParts = deliverymanRegistrationServiceInterface
-        .prepareMultipart(_pickedImage, _pickedIdentities);
-    await deliverymanRegistrationServiceInterface.registerDeliveryMan(
-        deliveryManBody, multiParts);
+    List<MultipartBody> multiParts = deliverymanRegistrationServiceInterface.prepareMultipart(_pickedImage, _pickedIdentities);
+    await deliverymanRegistrationServiceInterface.registerDeliveryMan(deliveryManBody, multiParts);
     _isLoading = false;
     update();
   }
 
-  void resetDeliveryRegistration() {
+  void resetDeliveryRegistration(){
     _identityTypeIndex = 0;
     _dmTypeIndex = 0;
     _selectedZoneIndex = -1;
@@ -278,4 +258,5 @@ class DeliverymanRegistrationController extends GetxController
     _pickedIdentities = [];
     update();
   }
+
 }

@@ -17,17 +17,18 @@ class DeliveryOptionButtonWidget extends StatefulWidget {
   final String deliveryChargeForView;
   final double badWeatherCharge;
   final double extraChargeForToolTip;
-  const DeliveryOptionButtonWidget(
-      {super.key,
-      required this.value,
-      required this.title,
-      required this.charge,
-      required this.isFree,
-      this.fromWeb = false,
-      required this.total,
-      required this.deliveryChargeForView,
-      required this.badWeatherCharge,
-      required this.extraChargeForToolTip});
+  const DeliveryOptionButtonWidget({
+    super.key,
+    required this.value,
+    required this.title,
+    required this.charge,
+    required this.isFree,
+    this.fromWeb = false,
+    required this.total,
+    required this.deliveryChargeForView,
+    required this.badWeatherCharge,
+    required this.extraChargeForToolTip,
+  });
 
   @override
   State<DeliveryOptionButtonWidget> createState() =>
@@ -55,6 +56,8 @@ class _DeliveryOptionButtonWidgetState
     return GetBuilder<CheckoutController>(
       builder: (checkoutController) {
         bool select = checkoutController.orderType == widget.value;
+        final theme = Theme.of(context);
+        final isDelivery = widget.value == 'delivery';
 
         return InkWell(
           onTap: () {
@@ -78,69 +81,120 @@ class _DeliveryOptionButtonWidgetState
               }
             }
           },
-          child: Container(
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
               color: select
-                  ? widget.fromWeb
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Theme.of(context).cardColor
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(Dimensions.radiusSmall),
+                  ? theme.primaryColor.withValues(alpha: 0.08)
+                  : theme.cardColor,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
+                color: select
+                    ? theme.primaryColor
+                    : theme.disabledColor.withValues(alpha: 0.2),
+                width: select ? 1.8 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
                   color: select
-                      ? Theme.of(context).primaryColor
-                      : Colors.transparent),
+                      ? theme.primaryColor.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.03),
+                  blurRadius: select ? 10 : 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             padding: const EdgeInsets.symmetric(
-                horizontal: Dimensions.paddingSizeSmall,
-                vertical: Dimensions.paddingSizeExtraSmall),
+              horizontal: Dimensions.paddingSizeDefault,
+              vertical: Dimensions.paddingSizeSmall + 2,
+            ),
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Radio(
-                  value: widget.value,
-                  groupValue: checkoutController.orderType,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  onChanged: (String? value) {
-                    checkoutController.setOrderType(value);
-                  },
-                  activeColor: Theme.of(context).primaryColor,
-                  visualDensity:
-                      const VisualDensity(horizontal: -3, vertical: -3),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: select
+                        ? theme.primaryColor.withValues(alpha: 0.15)
+                        : theme.disabledColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isDelivery
+                        ? Icons.local_shipping_rounded
+                        : Icons.storefront_rounded,
+                    size: 20,
+                    color: select ? theme.primaryColor : theme.hintColor,
+                  ),
                 ),
                 const SizedBox(width: Dimensions.paddingSizeSmall),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(widget.title,
-                      style: robotoMedium.copyWith(
-                          color: select
-                              ? Theme.of(context).primaryColor
-                              : Theme.of(context).textTheme.bodyMedium!.color)),
-                  Row(children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                        widget.value == 'delivery'
-                            ? '${'charge'.tr}: +${widget.deliveryChargeForView}'
-                            : 'free'.tr,
-                        style: robotoRegular.copyWith(
-                            fontSize: Dimensions.fontSizeSmall,
-                            color:
-                                Theme.of(context).textTheme.bodyMedium!.color)),
-                    const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                    widget.deliveryChargeForView !=
+                      widget.title,
+                      style: robotoBold.copyWith(
+                        fontSize: Dimensions.fontSizeDefault,
+                        color: select
+                            ? theme.primaryColor
+                            : theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isDelivery
+                              ? '${'charge'.tr}: +${widget.deliveryChargeForView}'
+                              : 'free'.tr,
+                          style: robotoMedium.copyWith(
+                            fontSize: Dimensions.fontSizeExtraSmall + 1,
+                            color: !isDelivery
+                                ? Colors.green.shade600
+                                : theme.hintColor,
+                          ),
+                        ),
+                        if (widget.deliveryChargeForView !=
                                 PriceConverter.convertPrice(0) &&
-                            widget.value == 'delivery' &&
+                            isDelivery &&
                             checkoutController.extraCharge != null &&
                             (widget.deliveryChargeForView != '0') &&
-                            widget.extraChargeForToolTip > 0
-                        ? CustomToolTip(
+                            widget.extraChargeForToolTip > 0) ...[
+                          const SizedBox(width: Dimensions.paddingSizeExtraSmall),
+                          CustomToolTip(
                             message:
                                 '${'this_charge_include_extra_vehicle_charge'.tr} ${PriceConverter.convertPrice(widget.extraChargeForToolTip)} ${widget.badWeatherCharge > 0 ? '${'and_bad_weather_charge'.tr} ${PriceConverter.convertPrice(widget.badWeatherCharge)}' : ''}',
                             preferredDirection: AxisDirection.right,
-                            child: const Icon(Icons.info,
+                            child: const Icon(Icons.info_outline,
                                 color: Colors.blue, size: 14),
-                          )
-                        : const SizedBox(),
-                  ]),
-                ]),
-                const SizedBox(width: Dimensions.paddingSizeSmall),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(width: Dimensions.paddingSizeDefault),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  height: 20,
+                  width: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: select ? theme.primaryColor : Colors.transparent,
+                    border: Border.all(
+                      color: select
+                          ? theme.primaryColor
+                          : theme.disabledColor.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: select
+                      ? const Icon(Icons.check, size: 13, color: Colors.white)
+                      : null,
+                ),
               ],
             ),
           ),

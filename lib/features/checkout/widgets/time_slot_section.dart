@@ -1,6 +1,3 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:Oxygen_Mart/common/models/config_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
@@ -9,6 +6,9 @@ import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 
 class TimeSlotSection extends StatelessWidget {
   final int? storeId;
@@ -18,6 +18,7 @@ class TimeSlotSection extends StatelessWidget {
   final bool tomorrowClosed;
   final bool todayClosed;
   final Module? module;
+
   const TimeSlotSection({
     super.key,
     this.storeId,
@@ -32,118 +33,183 @@ class TimeSlotSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool isGuestLoggedIn = AuthHelper.isGuestLoggedIn();
-    return Column(children: [
-      !isGuestLoggedIn &&
-              storeId == null &&
-              checkoutController.store!.scheduleOrder! &&
-              cartList!.isNotEmpty &&
-              cartList![0]!.item!.availableDateStarts == null
-          ? Container(
+    final theme = Theme.of(context);
+
+    bool shouldShow = !isGuestLoggedIn &&
+        storeId == null &&
+        checkoutController.store != null &&
+        (checkoutController.store!.scheduleOrder ?? false) &&
+        cartList != null &&
+        cartList!.isNotEmpty &&
+        cartList![0]!.item!.availableDateStarts == null;
+
+    if (!shouldShow) return const SizedBox();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.disabledColor.withValues(alpha: 0.15),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Dimensions.paddingSizeLarge,
+        vertical: Dimensions.paddingSizeDefault,
+      ),
+      margin: const EdgeInsets.only(bottom: Dimensions.paddingSizeSmall),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.schedule_rounded,
+                  size: 18,
+                  color: theme.primaryColor,
+                ),
+              ),
+              const SizedBox(width: Dimensions.paddingSizeSmall),
+              Text(
+                'preference_time'.tr,
+                style: robotoBold.copyWith(
+                  fontSize: Dimensions.fontSizeDefault,
+                  color: theme.textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(width: Dimensions.paddingSizeExtraSmall),
+              JustTheTooltip(
+                backgroundColor: Colors.black87,
+                controller: tooltipController2,
+                preferredDirection: AxisDirection.right,
+                tailLength: 14,
+                tailBaseWidth: 20,
+                content: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'schedule_time_tool_tip'.tr,
+                    style: robotoRegular.copyWith(color: Colors.white),
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () => tooltipController2.showTooltip(),
+                  child: Icon(
+                    Icons.info_outline_rounded,
+                    size: 16,
+                    color: theme.hintColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Dimensions.paddingSizeDefault),
+
+          InkWell(
+            onTap: () {
+              if (ResponsiveHelper.isDesktop(context)) {
+                showDialog(
+                  context: context,
+                  builder: (con) => Dialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: TimeSlotBottomSheet(
+                      tomorrowClosed: tomorrowClosed,
+                      todayClosed: todayClosed,
+                      module: module,
+                    ),
+                  ),
+                );
+              } else {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (con) => TimeSlotBottomSheet(
+                    tomorrowClosed: tomorrowClosed,
+                    todayClosed: todayClosed,
+                    module: module,
+                  ),
+                );
+              }
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                      color: Theme.of(context).primaryColor.withOpacity(0.05),
-                      blurRadius: 10)
-                ],
+                color: theme.primaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.primaryColor.withValues(alpha: 0.2),
+                  width: 1,
+                ),
               ),
               padding: const EdgeInsets.symmetric(
-                  horizontal: Dimensions.paddingSizeLarge,
-                  vertical: Dimensions.paddingSizeSmall),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Text('preference_time'.tr, style: robotoMedium),
-                      const SizedBox(width: Dimensions.paddingSizeExtraSmall),
-                      JustTheTooltip(
-                        backgroundColor: Colors.black87,
-                        controller: tooltipController2,
-                        preferredDirection: AxisDirection.right,
-                        tailLength: 14,
-                        tailBaseWidth: 20,
-                        content: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text('schedule_time_tool_tip'.tr,
-                              style:
-                                  robotoRegular.copyWith(color: Colors.white)),
-                        ),
-                        child: InkWell(
-                          onTap: () => tooltipController2.showTooltip(),
-                          child: const Icon(Icons.info_outline),
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: Dimensions.paddingSizeSmall),
-                    InkWell(
-                      onTap: () {
-                        if (ResponsiveHelper.isDesktop(context)) {
-                          showDialog(
-                              context: context,
-                              builder: (con) => Dialog(
-                                    child: TimeSlotBottomSheet(
-                                      tomorrowClosed: tomorrowClosed,
-                                      todayClosed: todayClosed,
-                                      module: module,
-                                    ),
-                                  ));
-                        } else {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (con) => TimeSlotBottomSheet(
-                              tomorrowClosed: tomorrowClosed,
-                              todayClosed: todayClosed,
-                              module: module,
+                horizontal: Dimensions.paddingSizeDefault,
+                vertical: Dimensions.paddingSizeSmall + 2,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 20,
+                    color: theme.primaryColor,
+                  ),
+                  const SizedBox(width: Dimensions.paddingSizeSmall),
+                  Expanded(
+                    child: ((checkoutController.selectedDateSlot == 0 &&
+                                todayClosed) ||
+                            (checkoutController.selectedDateSlot == 1 &&
+                                tomorrowClosed))
+                        ? Text(
+                            module!.showRestaurantText!
+                                ? 'restaurant_is_closed'.tr
+                                : 'store_is_closed'.tr,
+                            style: robotoMedium.copyWith(
+                              color: theme.colorScheme.error,
                             ),
-                          );
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                            border: Border.all(
-                                color: Theme.of(context).primaryColor,
-                                width: 0.3),
-                            borderRadius: BorderRadius.circular(
-                                Dimensions.radiusDefault)),
-                        height: 50,
-                        child: Row(children: [
-                          const SizedBox(width: Dimensions.paddingSizeLarge),
-                          Expanded(
-                            child: ((checkoutController.selectedDateSlot == 0 &&
-                                        todayClosed) ||
-                                    (checkoutController.selectedDateSlot == 1 &&
-                                        tomorrowClosed))
-                                ? Center(
-                                    child: Text(module!.showRestaurantText!
-                                        ? 'restaurant_is_closed'.tr
-                                        : 'store_is_closed'.tr))
-                                : Text(
-                                    checkoutController.preferableTime.isNotEmpty
-                                        ? checkoutController.preferableTime
-                                        : 'instance'.tr),
+                          )
+                        : Text(
+                            checkoutController.preferableTime.isNotEmpty
+                                ? checkoutController.preferableTime
+                                : 'instance'.tr,
+                            style: robotoBold.copyWith(
+                              fontSize: Dimensions.fontSizeDefault,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
                           ),
-                          const Icon(Icons.arrow_drop_down, size: 28),
-                          Icon(Icons.access_time_filled_outlined,
-                              color: Theme.of(context).primaryColor),
-                          const SizedBox(
-                              width: Dimensions.paddingSizeExtraSmall),
-                        ]),
-                      ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: Dimensions.paddingSizeLarge),
-                  ]),
-            )
-          : const SizedBox(),
-      SizedBox(
-          height: !isGuestLoggedIn &&
-                  storeId == null &&
-                  checkoutController.store!.scheduleOrder! &&
-                  cartList!.isNotEmpty &&
-                  cartList![0]!.item!.availableDateStarts == null
-              ? Dimensions.paddingSizeSmall
-              : 0),
-    ]);
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1323,5 +1323,9 @@
   "Completed ": "Abgeschlossen",
   "open_now": "Jetzt geöffnet",
   "New": "Neu",
-  "oxgenMart": "Oxygen Mart"
+  "oxgenMart": "Oxygen Mart",
+  "redirecting_to_verification": "Weiterleitung zur Verifizierung...",
+  "sending_otp_code": "Bestätigungscode wird gesendet...",
+  "could_not_send_otp_please_retry": "Bestätigungscode konnte nicht gesendet werden, bitte erneut versuchen",
+  "resend_code": "Code erneut senden"
 }

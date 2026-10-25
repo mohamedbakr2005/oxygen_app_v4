@@ -10,6 +10,7 @@ import 'package:Oxygen_Mart/features/auth/domain/models/auth_response_model.dart
 import 'package:Oxygen_Mart/features/auth/domain/models/social_log_in_body.dart';
 import 'package:Oxygen_Mart/features/auth/screens/new_user_setup_screen.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
+import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
@@ -136,21 +137,30 @@ class ExistingUserBottomSheet extends StatelessWidget {
     );
   }
 
-  void _responseHandle(ResponseModel response) {
+  Future<void> _responseHandle(ResponseModel response) async {
     Get.back();
-    if(response.isSuccess && response.authResponseModel!.requiresProfileCompletion) {
-      if(ResponsiveHelper.isDesktop(Get.context)) {
-        Get.back();
-        Get.dialog(NewUserSetupScreen(name: userModel.name??'', loginType: loginType, phone: number, email: email, backFromThis: backFromThis));
+    if(response.isSuccess) {
+      await Get.find<ProfileController>().getUserInfo(reload: true);
+      final userInfo = Get.find<ProfileController>().userInfoModel;
+      final bool hasNoPhone = (number == null || number!.isEmpty) && (userInfo?.phone == null || userInfo!.phone!.isEmpty);
+      final bool needsSetup = response.authResponseModel?.requiresProfileCompletion == true ||
+          response.authResponseModel?.isPersonalInfo == false ||
+          response.authResponseModel?.isPhoneVerified == false ||
+          hasNoPhone;
+
+      if(needsSetup) {
+        if(ResponsiveHelper.isDesktop(Get.context)) {
+          Get.back();
+          Get.dialog(NewUserSetupScreen(name: userInfo?.fName ?? userModel.name ?? '', loginType: loginType, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
+        } else {
+          Get.toNamed(RouteHelper.getNewUserSetupScreen(name: userInfo?.fName ?? userModel.name ?? '', loginType: loginType, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
+        }
       } else {
-        Get.toNamed(RouteHelper.getNewUserSetupScreen(name: userModel.name??'', loginType: loginType, phone: number, email: email, backFromThis: backFromThis));
-      }
-    } else if(response.isSuccess && response.authResponseModel!.isPersonalInfo!) {
-      // Get.offAllNamed(RouteHelper.getInitialRoute());
-      if(backFromThis && AddressHelper.getUserAddressFromSharedPref() != null) {
-        Get.back();
-      } else {
-        Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
+        if(backFromThis && AddressHelper.getUserAddressFromSharedPref() != null) {
+          Get.back();
+        } else {
+          Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
+        }
       }
     } else {
       Future.delayed(const Duration(milliseconds: 600), () {

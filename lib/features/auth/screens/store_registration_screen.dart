@@ -132,7 +132,7 @@ class _StoreRegistrationScreenState extends State<StoreRegistrationScreen>
             if (ResponsiveHelper.isDesktop(Get.context)) {
               Get.back();
             } else {
-              Get.off(() => const DashboardScreen(pageIndex: 3));
+              Get.off(() => const DashboardScreen(pageIndex: 4));
             }
           },
         ),

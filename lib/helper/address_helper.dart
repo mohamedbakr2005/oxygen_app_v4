@@ -9,18 +9,25 @@ import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class AddressHelper {
-  static Future<bool> saveUserAddressInSharedPref(AddressModel address) async {
+  static Future<bool> saveUserAddressInSharedPref(AddressModel address, {bool isInRideModule = false}) async {
     SharedPreferences sharedPreferences = Get.find<SharedPreferences>();
     String userAddress = jsonEncode(address.toJson());
+    bool isRide = false;
+    try {
+      isRide = Get.find<SplashController>().module != null && (Get.find<SplashController>().module!.moduleType.toString() == AppConstants.ride);
+      isInRideModule = isRide;
+    } catch (_) {}
+
     Get.find<ApiClient>().updateHeader(
       sharedPreferences.getString(AppConstants.token),
       address.zoneIds,
       [],
       sharedPreferences.getString(AppConstants.languageCode),
-      Get.find<SplashController>().module?.id ??
-          Get.find<SplashController>().cacheModule?.id,
+      Get.find<SplashController>().module?.id?.toString(),
       address.latitude,
       address.longitude,
+      isInRideModule ? address.rideZoneId : address.zoneId,
+      fromModule: isInRideModule,
     );
     return await sharedPreferences.setString(
         AppConstants.userAddress, userAddress);

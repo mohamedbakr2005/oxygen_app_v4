@@ -50,17 +50,17 @@ class CouponController extends GetxController implements GetxService {
   //------------------------
   // Coupon List (Protected Against Spam)
   //------------------------
-  Future<void> getCouponList({bool reload = false}) async {
+  Future<void> getCouponList({bool reload = false, int? customerId, int? storeId, int? zoneId}) async {
     final splash = Get.find<SplashController>();
 
     if (splash.isRefreshing) return; //⛔ أثناء Refresh
     if (_isFetchingCoupons) return; //⛔ Prevent parallel
-    if (_couponListLoaded && !reload) return; //⛔ Already loaded
+    if (_couponListLoaded && !reload && customerId == null && storeId == null && zoneId == null) return; //⛔ Already loaded
 
     _isFetchingCoupons = true;
 
     try {
-      final list = await couponServiceInterface.getCouponList();
+      final list = await couponServiceInterface.getCouponList(customerId: customerId, storeId: storeId, zoneId: zoneId);
       if (list != null) {
         _couponList = [...list];
         _couponListLoaded = true;

@@ -1,9 +1,6 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
-import 'package:Oxygen_Mart/common/widgets/cart_snackbar.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:Oxygen_Mart/common/widgets/confirmation_dialog.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
@@ -11,10 +8,12 @@ import 'package:Oxygen_Mart/common/widgets/item_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
+import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/basic_medicine_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/common_condition_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/services/item_service_interface.dart';
+import 'package:Oxygen_Mart/features/category/domain/services/category_service_interface.dart';
 import 'package:Oxygen_Mart/features/item/screens/item_details_screen.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/date_converter.dart';
@@ -24,8 +23,6 @@ import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:Oxygen_Mart/util/images.dart';
-
-import '../../../helper/appsFly.dart';
 
 class ItemController extends GetxController implements GetxService {
   final ItemServiceInterface itemServiceInterface;
@@ -43,11 +40,23 @@ class ItemController extends GetxController implements GetxService {
   List<Item>? _discountedItemList;
   List<Item>? get discountedItemList => _discountedItemList;
 
+  List<Item>? _relatedItemList;
+  List<Item>? get relatedItemList => _relatedItemList;
+
   List<Categories>? _reviewedCategoriesList;
   List<Categories>? get reviewedCategoriesList => _reviewedCategoriesList;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  bool _isDetailsLoading = false;
+  bool get isDetailsLoading => _isDetailsLoading;
+
+  bool _detailsError = false;
+  bool get detailsError => _detailsError;
+
+  bool _isDirectlyAdding = false;
+  bool get isDirectlyAdding => _isDirectlyAdding;
 
   List<int>? _variationIndex;
   List<int>? get variationIndex => _variationIndex;
@@ -150,6 +159,7 @@ class ItemController extends GetxController implements GetxService {
     _discountedItemList = null;
     _featuredCategoriesItem = null;
     _recommendedItemList = null;
+    _relatedItemList = null;
   }
 
   Future<void> getPopularItemList(bool reload, String type, bool notify,
@@ -409,37 +419,174 @@ class ItemController extends GetxController implements GetxService {
     update();
   }
 
-  Future<void> getProductDetails(Item item) async {
-    _item = null;
+  String? _extractCategoryId(Item? item) {
+    if (item == null) return null;
+    if (item.categoryIds != null && item.categoryIds!.isNotEmpty) {
+      final mainCat = item.categoryIds!.firstWhereOrNull((c) => c.position == 1 && c.id != null && c.id != 0);
+      if (mainCat != null && mainCat.id != null && mainCat.id != 0) {
+        return mainCat.id.toString();
+      }
+      final anyCat = item.categoryIds!.firstWhereOrNull((c) => c.id != null && c.id != 0);
+      if (anyCat != null && anyCat.id != null && anyCat.id != 0) {
+        return anyCat.id.toString();
+      }
+    }
+    if (item.categoryId != null && item.categoryId != 0) {
+      return item.categoryId.toString();
+    }
+    return null;
+  }
+
+  Future<void> getProductDetails(Item item, {bool notify = false}) async {
+    _isDetailsLoading = true;
+    _detailsError = false;
+    _item = item;
+    _relatedItemList = null;
+
+    final String? initialCatId = _extractCategoryId(item);
     if (item.name != null) {
-      _item = item;
+      initData(_item, null);
+      if (notify) update();
+      if (initialCatId != null) {
+        getRelatedItemList(initialCatId, item.id, notify: notify);
+      } else {
+        _loadFallbackRelatedItems(item.id, notify: notify);
+      }
     } else {
       _item = null;
-      _item = await itemServiceInterface.getItemDetails(item.id);
+      if (notify) update();
     }
-    initData(_item, null);
-    setExistInCart(
-      _item,
-      _selectedVariations, /*notify: !ResponsiveHelper.isDesktop(Get.context)*/
-    );
-    
-    if (_item != null) {
-      Get.find<MetaAnalyticsService>().viewContent(
-        contentId: _item!.id?.toString() ?? 'unknown',
-        contentName: _item!.name ?? 'unknown',
-        currency: 'EGP',
-        value: _item!.price ?? 0.0,
-        category: _item!.categoryIds != null && _item!.categoryIds!.isNotEmpty ? (_item!.categoryIds!.first.id ?? 'unknown').toString() : 'unknown',
-        contentIds: [_item!.id?.toString() ?? 'unknown'],
-        contents: [
-          {
-            'id': _item!.id?.toString() ?? 'unknown',
-            'quantity': 1,
-            'item_price': _item!.price ?? 0.0,
+
+    Item? fullItem;
+    try {
+      fullItem = await itemServiceInterface.getItemDetails(item.id);
+    } catch (e) {
+      print('getItemDetails error: $e');
+    }
+
+    if (fullItem != null) {
+      _item = fullItem;
+      _detailsError = false;
+      initData(_item, null);
+      setExistInCart(_item, _selectedVariations, notify: true);
+
+      // Synchronize active module if item belongs to a specific module
+      if (fullItem.moduleId != null && Get.isRegistered<SplashController>()) {
+        final splashCtrl = Get.find<SplashController>();
+        if (splashCtrl.module == null || splashCtrl.module?.id != fullItem.moduleId) {
+          if (splashCtrl.moduleList == null || splashCtrl.moduleList!.isEmpty) {
+            await splashCtrl.getModules();
           }
-        ],
-      );
+          if (splashCtrl.moduleList != null) {
+            for (final m in splashCtrl.moduleList!) {
+              if (m.id == fullItem.moduleId) {
+                await splashCtrl.switchModuleByModel(m);
+                HomeScreen.loadData(true, fromModule: true);
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      final String? fullCatId = _extractCategoryId(_item!) ?? initialCatId;
+      if (fullCatId != null) {
+        getRelatedItemList(fullCatId, _item!.id, notify: true);
+      } else {
+        await _loadFallbackRelatedItems(_item?.id, notify: true);
+      }
+
+      try {
+        Get.find<MetaAnalyticsService>().viewContent(
+          contentId: _item!.id?.toString() ?? 'unknown',
+          contentName: _item!.name ?? 'unknown',
+          currency: 'EGP',
+          value: _item!.price ?? 0.0,
+          category: fullCatId ?? 'unknown',
+          contentIds: [_item!.id?.toString() ?? 'unknown'],
+          contents: [
+            {
+              'id': _item!.id?.toString() ?? 'unknown',
+              'quantity': 1,
+              'item_price': _item!.price ?? 0.0,
+            }
+          ],
+        );
+      } catch (_) {}
+    } else if (_item == null) {
+      _detailsError = true;
+      showCustomSnackBar('item_not_found'.tr);
+      _relatedItemList ??= [];
+    } else if (_relatedItemList == null) {
+      await _loadFallbackRelatedItems(_item?.id, notify: true);
     }
+    _isDetailsLoading = false;
+    update();
+  }
+
+  Future<void> getRelatedItemList(String? categoryId, int? currentItemId, {bool notify = true}) async {
+    if (categoryId == null || categoryId.isEmpty || categoryId == '0' || categoryId == 'null') {
+      await _loadFallbackRelatedItems(currentItemId, notify: notify);
+      return;
+    }
+
+    if (_relatedItemList == null && notify) {
+      update();
+    }
+
+    try {
+      final localItem = await Get.find<CategoryServiceInterface>().getCategoryItemList(
+        categoryId, 1, 'all', source: DataSourceEnum.local,
+      );
+      if (localItem != null && localItem.items != null && localItem.items!.isNotEmpty) {
+        final filtered = localItem.items!.where((it) => it.id != currentItemId).take(10).toList();
+        if (filtered.isNotEmpty) {
+          _relatedItemList = filtered;
+          if (notify) update();
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final categoryItem = await Get.find<CategoryServiceInterface>().getCategoryItemList(
+        categoryId, 1, 'all', source: DataSourceEnum.client,
+      );
+      if (categoryItem != null && categoryItem.items != null && categoryItem.items!.isNotEmpty) {
+        final filtered = categoryItem.items!
+            .where((it) => it.id != currentItemId)
+            .take(10)
+            .toList();
+        if (filtered.isNotEmpty) {
+          _relatedItemList = filtered;
+        } else if (_relatedItemList == null || _relatedItemList!.isEmpty) {
+          await _loadFallbackRelatedItems(currentItemId, notify: false);
+        }
+      } else if (_relatedItemList == null || _relatedItemList!.isEmpty) {
+        await _loadFallbackRelatedItems(currentItemId, notify: false);
+      }
+    } catch (e) {
+      print('getRelatedItemList error: $e');
+      if (_relatedItemList == null || _relatedItemList!.isEmpty) {
+        await _loadFallbackRelatedItems(currentItemId, notify: false);
+      }
+    }
+
+    _relatedItemList ??= [];
+    update();
+  }
+
+  Future<void> _loadFallbackRelatedItems(int? currentItemId, {bool notify = true}) async {
+    try {
+      final List<Item>? popularItems = await itemServiceInterface.getPopularItemList('all', DataSourceEnum.client);
+      if (popularItems != null && popularItems.isNotEmpty) {
+        _relatedItemList = popularItems.where((it) => it.id != currentItemId).take(10).toList();
+      } else {
+        _relatedItemList = [];
+      }
+    } catch (_) {
+      _relatedItemList = [];
+    }
+    if (notify) update();
   }
 
   void showBottomLoader() {
@@ -453,38 +600,49 @@ class ItemController extends GetxController implements GetxService {
     _addOnActiveList = [];
     _selectedVariations = [];
     _collapseVariation = [];
-    if (cart != null) {
-      _quantity = cart.quantity;
-      _addOnActiveList.addAll(itemServiceInterface
-          .initializeCartAddonActiveList(cart.addOnIds, item!.addOns));
-      _addOnQtyList.addAll(itemServiceInterface.initializeCartAddonsQtyList(
-          cart.addOnIds, item.addOns));
+    _quantity = 1;
+    if (item == null) return;
+    try {
+      final String? moduleType = item.moduleType ??
+          ModuleHelper.getModule()?.moduleType ??
+          ModuleHelper.getCacheModule()?.moduleType;
+      final bool newVariation = ModuleHelper.getModuleConfig(moduleType).newVariation ?? false;
 
-      if (ModuleHelper.getModuleConfig(item.moduleType).newVariation!) {
-        _selectedVariations.addAll(cart.foodVariations!);
-        _collapseVariation.addAll(
-            itemServiceInterface.collapseVariation(item.foodVariations!));
-      } else {
-        _variationIndex = itemServiceInterface.initializeCartVariationIndexes(
-            cart.variation, item.choiceOptions);
-      }
-    } else {
-      if (ModuleHelper.getModuleConfig(item!.moduleType).newVariation!) {
-        _selectedVariations.addAll(itemServiceInterface
-            .initializeSelectedVariation(item.foodVariations));
-        _collapseVariation.addAll(itemServiceInterface
-            .initializeCollapseVariation(item.foodVariations));
-      } else {
-        _variationIndex =
-            itemServiceInterface.initializeVariationIndexes(item.choiceOptions);
-      }
-      _quantity = 1;
-      _addOnActiveList
-          .addAll(itemServiceInterface.initializeAddonActiveList(item.addOns));
-      _addOnQtyList
-          .addAll(itemServiceInterface.initializeAddonQtyList(item.addOns));
+      if (cart != null) {
+        _quantity = cart.quantity;
+        _addOnActiveList.addAll(itemServiceInterface
+            .initializeCartAddonActiveList(cart.addOnIds, item.addOns));
+        _addOnQtyList.addAll(itemServiceInterface.initializeCartAddonsQtyList(
+            cart.addOnIds, item.addOns));
 
-      setExistInCart(item, _selectedVariations, notify: true);
+        if (newVariation) {
+          _selectedVariations.addAll(cart.foodVariations ?? []);
+          _collapseVariation.addAll(
+              itemServiceInterface.collapseVariation(item.foodVariations ?? []));
+        } else {
+          _variationIndex = itemServiceInterface.initializeCartVariationIndexes(
+              cart.variation, item.choiceOptions);
+        }
+      } else {
+        if (newVariation) {
+          _selectedVariations.addAll(itemServiceInterface
+              .initializeSelectedVariation(item.foodVariations));
+          _collapseVariation.addAll(itemServiceInterface
+              .initializeCollapseVariation(item.foodVariations));
+        } else {
+          _variationIndex =
+              itemServiceInterface.initializeVariationIndexes(item.choiceOptions);
+        }
+        _quantity = 1;
+        _addOnActiveList
+            .addAll(itemServiceInterface.initializeAddonActiveList(item.addOns));
+        _addOnQtyList
+            .addAll(itemServiceInterface.initializeAddonQtyList(item.addOns));
+
+        setExistInCart(item, _selectedVariations, notify: false);
+      }
+    } catch (e) {
+      print('initData error: $e');
     }
   }
 
@@ -494,37 +652,44 @@ class ItemController extends GetxController implements GetxService {
 
   Future<int> setExistInCart(Item? item, List<List<bool?>>? selectedVariations,
       {bool notify = false}) async {
-    String variationType = await itemServiceInterface.prepareVariationType(
-        item!.choiceOptions, _variationIndex);
+    if (item == null || item.id == null) return -1;
+    try {
+      String variationType = await itemServiceInterface.prepareVariationType(
+          item.choiceOptions, _variationIndex);
 
-    if (ModuleHelper.getModuleConfig(ModuleHelper.getModule() != null
-            ? ModuleHelper.getModule()!.moduleType
-            : ModuleHelper.getCacheModule()!.moduleType)
-        .newVariation!) {
-      _cartIndex = await itemServiceInterface.isExistInCartForBottomSheet(
-          Get.find<CartController>().cartList,
-          item.id,
-          null,
-          selectedVariations);
-    } else {
-      _cartIndex = Get.find<CartController>()
-          .isExistInCart(item.id, variationType, false, null);
-    }
+      final String? currentModuleType = item.moduleType ??
+          ModuleHelper.getModule()?.moduleType ??
+          ModuleHelper.getCacheModule()?.moduleType;
+      final bool newVariation = ModuleHelper.getModuleConfig(currentModuleType).newVariation ?? false;
 
-    if (_cartIndex != -1) {
-      _quantity = Get.find<CartController>().cartList[_cartIndex].quantity;
-      _addOnActiveList = itemServiceInterface.initializeCartAddonActiveList(
-          Get.find<CartController>().cartList[_cartIndex].addOnIds,
-          item.addOns);
-      _addOnQtyList = itemServiceInterface.initializeCartAddonsQtyList(
-          Get.find<CartController>().cartList[_cartIndex].addOnIds,
-          item.addOns);
-    } else {
+      if (newVariation) {
+        _cartIndex = await itemServiceInterface.isExistInCartForBottomSheet(
+            Get.find<CartController>().cartList,
+            item.id,
+            null,
+            selectedVariations);
+      } else {
+        _cartIndex = Get.find<CartController>()
+            .isExistInCart(item.id, variationType, false, null);
+      }
+
+      if (_cartIndex != -1 && _cartIndex < Get.find<CartController>().cartList.length) {
+        _quantity = Get.find<CartController>().cartList[_cartIndex].quantity;
+        _addOnActiveList = itemServiceInterface.initializeCartAddonActiveList(
+            Get.find<CartController>().cartList[_cartIndex].addOnIds,
+            item.addOns);
+        _addOnQtyList = itemServiceInterface.initializeCartAddonsQtyList(
+            Get.find<CartController>().cartList[_cartIndex].addOnIds,
+            item.addOns);
+      } else {
+        _quantity = 1;
+      }
+    } catch (e) {
+      print('setExistInCart error: $e');
+      _cartIndex = -1;
       _quantity = 1;
     }
-    if (notify) {
-      update();
-    }
+    if (notify) update();
     return _cartIndex;
   }
 
@@ -660,115 +825,132 @@ class ItemController extends GetxController implements GetxService {
     }
   }
 
-  void itemDirectlyAddToCart(Item? item, BuildContext context,
-      {bool inStore = false, bool isCampaign = false}) {
-    if (((item!.foodVariations != null && item.foodVariations!.isEmpty) &&
-            item.moduleType == AppConstants.food) ||
-        (item.variations != null &&
-            item.variations!.isEmpty &&
-            item.moduleType != AppConstants.food)) {
-      double price = item.price!;
-      double discount = item.discount!;
-      double discountPrice = PriceConverter.convertWithDiscount(
-          price, discount, item.discountType)!;
+  Future<void> itemDirectlyAddToCart(Item? item, BuildContext context,
+      {bool inStore = false, bool isCampaign = false}) async {
+    if (_isDirectlyAdding) return;
+    _isDirectlyAdding = true;
+    update();
 
-      CartModel cartModel = CartModel(
-        null,
-        price,
-        discount,
-        [],
-        [],
-        (price - discountPrice),
-        1,
-        [],
-        [],
-        isCampaign,
-        item.stock,
-        item,
-        item.quantityLimit,
-      );
+    try {
+      if (((item!.foodVariations != null && item.foodVariations!.isEmpty) &&
+              item.moduleType == AppConstants.food) ||
+          (item.variations != null &&
+              item.variations!.isEmpty &&
+              item.moduleType != AppConstants.food)) {
+        double price = item.price!;
+        double discount = item.discount!;
+        double discountPrice = PriceConverter.convertWithDiscount(
+            price, discount, item.discountType)!;
 
-      OnlineCart onlineCart = OnlineCart(
-        null,
-        isCampaign ? null : item.id,
-        isCampaign ? item.id : null,
-        price.toString(),
-        '',
-        null,
-        ModuleHelper.getModuleConfig(item.moduleType).newVariation! ? [] : null,
-        1,
-        [],
-        [],
-        [],
-        'Item',
-        storeId: item.storeId,
-      );
-      if (Get.find<SplashController>()
+        CartModel cartModel = CartModel(
+          null,
+          price,
+          discount,
+          [],
+          [],
+          (price - discountPrice),
+          1,
+          [],
+          [],
+          isCampaign,
+          item.stock,
+          item,
+          item.quantityLimit,
+        );
+
+        OnlineCart onlineCart = OnlineCart(
+          null,
+          isCampaign ? null : item.id,
+          isCampaign ? item.id : null,
+          price.toString(),
+          '',
+          null,
+          ModuleHelper.getModuleConfig(item.moduleType).newVariation! ? [] : null,
+          1,
+          [],
+          [],
+          [],
+          'Item',
+          storeId: item.storeId,
+        );
+        if (Get.find<SplashController>()
+                .configModel!
+                .moduleConfig!
+                .module!
+                .stock! &&
+            item.stock! <= 0) {
+          showCustomSnackBar('out_of_stock'.tr);
+        } else if (Get.find<CartController>().existAnotherStoreItem(
+            cartModel.item!.storeId,
+            ModuleHelper.getModule() != null
+                ? ModuleHelper.getModule()?.id
+                : ModuleHelper.getCacheModule()?.id)) {
+          Get.dialog(
+              ConfirmationDialog(
+                icon: Images.warning,
+                title: 'are_you_sure_to_reset'.tr,
+                description: Get.find<SplashController>()
+                        .configModel!
+                        .moduleConfig!
+                        .module!
+                        .showRestaurantText!
+                    ? 'if_you_continue'.tr
+                    : 'if_you_continue_without_another_store'.tr,
+                onYesPressed: () {
+                  Get.find<CartController>()
+                      .clearCartOnline()
+                      .then((success) async {
+                    if (success) {
+                      bool addSuccess = await Get.find<CartController>()
+                          .addToCartOnline(onlineCart, storeId: item.storeId);
+                      Get.back();
+                      showCustomSnackBar(addSuccess
+                          ? 'item_added_to_cart'.tr
+                          : 'failed_to_add_to_cart'.tr,
+                          isError: !addSuccess,
+                          actionLabel: addSuccess ? 'view_cart'.tr : null,
+                          onAction: addSuccess ? () => Get.toNamed(RouteHelper.getCartRoute(storeId: item.storeId)) : null);
+                    }
+                  });
+                },
+              ),
+              barrierDismissible: false);
+        } else {
+          bool success = await Get.find<CartController>().addToCartOnline(onlineCart, storeId: item.storeId);
+          if (success) {
+            showCustomSnackBar('item_added_to_cart'.tr,
+                isError: false,
+                actionLabel: 'view_cart'.tr,
+                onAction: () => Get.toNamed(RouteHelper.getCartRoute(storeId: item.storeId)));
+          }
+        }
+      } else if (Get.find<SplashController>()
               .configModel!
               .moduleConfig!
               .module!
-              .stock! &&
-          item.stock! <= 0) {
-        showCustomSnackBar('out_of_stock'.tr);
-      } else if (Get.find<CartController>().existAnotherStoreItem(
-          cartModel.item!.storeId,
-          ModuleHelper.getModule() != null
-              ? ModuleHelper.getModule()?.id
-              : ModuleHelper.getCacheModule()?.id)) {
-        Get.dialog(
-            ConfirmationDialog(
-              icon: Images.warning,
-              title: 'are_you_sure_to_reset'.tr,
-              description: Get.find<SplashController>()
-                      .configModel!
-                      .moduleConfig!
-                      .module!
-                      .showRestaurantText!
-                  ? 'if_you_continue'.tr
-                  : 'if_you_continue_without_another_store'.tr,
-              onYesPressed: () {
-                Get.find<CartController>()
-                    .clearCartOnline()
-                    .then((success) async {
-                  if (success) {
-                    await Get.find<CartController>()
-                        .addToCartOnline(onlineCart, storeId: item.storeId);
-                    Get.back();
-                    showCartSnackBar(success
-                        ? 'item_added_to_cart'.tr
-                        : 'failed_to_add_to_cart'.tr,isError: false);
-                  }
-                });
-              },
-            ),
-            barrierDismissible: false);
+              .showRestaurantText! ||
+          item.moduleType == AppConstants.food) {
+        ResponsiveHelper.isMobile(context)
+            ? Get.bottomSheet(
+                ItemBottomSheet(
+                    item: item, inStorePage: inStore, isCampaign: isCampaign),
+                backgroundColor: Colors.transparent,
+                isScrollControlled: true,
+              )
+            : Get.dialog(
+                Dialog(
+                    child: ItemBottomSheet(
+                        item: item,
+                        inStorePage: inStore,
+                        isCampaign: isCampaign)),
+              );
       } else {
-        Get.find<CartController>().addToCartOnline(onlineCart, storeId: item.storeId);
-        showCartSnackBar('item_added_to_cart'.tr, isError: false);
+        Get.toNamed(RouteHelper.getItemDetailsRoute(item.id, inStore),
+            arguments: ItemDetailsScreen(item: item, inStorePage: inStore));
       }
-    } else if (Get.find<SplashController>()
-            .configModel!
-            .moduleConfig!
-            .module!
-            .showRestaurantText! ||
-        item.moduleType == AppConstants.food) {
-      ResponsiveHelper.isMobile(context)
-          ? Get.bottomSheet(
-              ItemBottomSheet(
-                  item: item, inStorePage: inStore, isCampaign: isCampaign),
-              backgroundColor: Colors.transparent,
-              isScrollControlled: true,
-            )
-          : Get.dialog(
-              Dialog(
-                  child: ItemBottomSheet(
-                      item: item,
-                      inStorePage: inStore,
-                      isCampaign: isCampaign)),
-            );
-    } else {
-      Get.toNamed(RouteHelper.getItemDetailsRoute(item.id, inStore),
-          arguments: ItemDetailsScreen(item: item, inStorePage: inStore));
+    } finally {
+      _isDirectlyAdding = false;
+      update();
     }
   }
 }

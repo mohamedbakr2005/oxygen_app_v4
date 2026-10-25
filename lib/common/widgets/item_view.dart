@@ -78,7 +78,7 @@ class _ItemsViewState extends State<ItemsView> {
                       ? 200
                       : (widget.inStorePage && !widget.isStore)
                           ? (Get.find<SplashController>().module?.moduleType == AppConstants.ecommerce || Get.find<SplashController>().module?.moduleType == AppConstants.grocery ? 280 : 130)
-                          : ResponsiveHelper.isTab(context)?250: 220
+                          : ResponsiveHelper.isTab(context) ? 265 : 255
                   : (widget.inStorePage && !widget.isStore) ? 130 : 290,
       crossAxisCount: isFoodCircularLayout
           ? 3
@@ -202,49 +202,53 @@ class _ItemsViewState extends State<ItemsView> {
 
   /// Returns the original Column-wrapped GridView for backward compatibility.
   Widget _buildLegacyContent(BuildContext context, bool isNull, int length, bool isFoodCircularLayout) {
-    return Column(children: [
-      !isNull
-          ? length > 0
-              ? GridView.builder(
-                  gridDelegate: _buildGridDelegate(context, isFoodCircularLayout),
-                  physics: widget.isScrollable
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  shrinkWrap: widget.isScrollable ? false : true,
-                  controller: widget.scrollController,
-                  itemCount: length,
-                  padding: widget.padding,
-                  addAutomaticKeepAlives: false, // Don't keep off-screen items alive
-                  itemBuilder: (context, index) {
-                    return _buildItem(context, index, length, isFoodCircularLayout);
-                  },
-                )
-              : NoDataScreen(
-                  text: widget.noDataText ??
-                      (widget.isStore
-                          ? Get.find<SplashController>()
-                                  .configModel!
-                                  .moduleConfig!
-                                  .module!
-                                  .showRestaurantText!
-                              ? 'no_restaurant_available'.tr
-                              : 'no_store_available'.tr
-                          : 'no_item_available'.tr),
-                )
-          : GridView.builder(
-              gridDelegate: _buildShimmerGridDelegate(context, isFoodCircularLayout),
-              physics: widget.isScrollable
-                  ? const BouncingScrollPhysics()
-                  : const NeverScrollableScrollPhysics(),
-              shrinkWrap: widget.isScrollable ? false : true,
-              controller: widget.scrollController,
-              itemCount: widget.shimmerLength,
-              padding: widget.padding,
-              itemBuilder: (context, index) {
-                return _buildShimmerItem(context, isNull, index);
-              },
-            ),
-    ]);
+    if (!isNull) {
+      if (length > 0) {
+        final grid = GridView.builder(
+          gridDelegate: _buildGridDelegate(context, isFoodCircularLayout),
+          physics: widget.isScrollable
+              ? const BouncingScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
+          shrinkWrap: !widget.isScrollable,
+          controller: widget.scrollController,
+          itemCount: length,
+          padding: widget.padding,
+          addAutomaticKeepAlives: false, // Don't keep off-screen items alive
+          itemBuilder: (context, index) {
+            return _buildItem(context, index, length, isFoodCircularLayout);
+          },
+        );
+        return widget.isScrollable ? grid : Column(children: [grid]);
+      } else {
+        return NoDataScreen(
+          text: widget.noDataText ??
+              (widget.isStore
+                  ? Get.find<SplashController>()
+                          .configModel!
+                          .moduleConfig!
+                          .module!
+                          .showRestaurantText!
+                      ? 'no_restaurant_available'.tr
+                      : 'no_store_available'.tr
+                  : 'no_item_available'.tr),
+        );
+      }
+    } else {
+      final shimmerGrid = GridView.builder(
+        gridDelegate: _buildShimmerGridDelegate(context, isFoodCircularLayout),
+        physics: widget.isScrollable
+            ? const BouncingScrollPhysics()
+            : const NeverScrollableScrollPhysics(),
+        shrinkWrap: !widget.isScrollable,
+        controller: widget.scrollController,
+        itemCount: widget.shimmerLength,
+        padding: widget.padding,
+        itemBuilder: (context, index) {
+          return _buildShimmerItem(context, isNull, index);
+        },
+      );
+      return widget.isScrollable ? shimmerGrid : Column(children: [shimmerGrid]);
+    }
   }
 
   SliverGridDelegateWithFixedCrossAxisCount _buildShimmerGridDelegate(BuildContext context, bool isFoodCircularLayout) {
@@ -267,7 +271,7 @@ class _ItemsViewState extends State<ItemsView> {
                           ? 200
                           : (widget.inStorePage && !widget.isStore)
                               ? (Get.find<SplashController>().module?.moduleType == AppConstants.ecommerce || Get.find<SplashController>().module?.moduleType == AppConstants.grocery ? 280 : 130)
-                              : ResponsiveHelper.isTab(context)?250: 220
+                              : ResponsiveHelper.isTab(context)?250: 235
                       : (widget.inStorePage && !widget.isStore) ? 130 : 290,
       crossAxisCount:ResponsiveHelper.isTab(context)? (widget.inStorePage && !widget.isStore ? 2 : 4) :ResponsiveHelper.isMobile(context)
               ? (widget.inStorePage && !widget.isStore ? (Get.find<SplashController>().module?.moduleType == AppConstants.ecommerce || Get.find<SplashController>().module?.moduleType == AppConstants.grocery ? 3 : 1) : 3)
@@ -318,7 +322,7 @@ class NewOnShimmerView extends StatelessWidget {
                   Container(
                     height: double.infinity,
                     width: double.infinity,
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   ),
                   Positioned(
                     top: 15,
@@ -327,7 +331,7 @@ class NewOnShimmerView extends StatelessWidget {
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Theme.of(context).cardColor.withOpacity(0.8),
+                        color: Theme.of(context).cardColor.withValues(alpha: 0.8),
                       ),
                       child: Icon(Icons.favorite_border,
                           color: Theme.of(context).primaryColor, size: 20),
@@ -387,7 +391,7 @@ class NewOnShimmerView extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Theme.of(context)
                                   .primaryColor
-                                  .withOpacity(0.1),
+                                  .withValues(alpha: 0.1),
                               borderRadius:
                                   BorderRadius.circular(Dimensions.radiusLarge),
                             ),

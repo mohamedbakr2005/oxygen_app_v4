@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:Oxygen_Mart/util/styles.dart';
-import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/payment_methods_view.dart';
-import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
+import 'package:Oxygen_Mart/util/styles.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class PaymentSection extends StatelessWidget {
   final int? storeId;
@@ -28,26 +27,48 @@ class PaymentSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(storeId != null ? 'payment_method'.tr : 'choose_payment_method'.tr,
-            style: robotoMedium),
-      ]),
-      !ResponsiveHelper.isDesktop(context)
-          ? const Divider()
-          : const SizedBox(height: Dimensions.paddingSizeSmall),
-      SizedBox(
-          height: !ResponsiveHelper.isDesktop(context)
-              ? Dimensions.paddingSizeSmall
-              : 0),
-      PaymentMethodsView(
-        isCashOnDeliveryActive: isCashOnDeliveryActive,
-        isDigitalPaymentActive: isDigitalPaymentActive,
-        isWalletActive: isWalletActive,
-        storeId: storeId,
-        totalPrice: total,
-        isOfflinePaymentActive: isOfflinePaymentActive,
-      ),
-    ]);
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.account_balance_wallet_rounded,
+                size: 18,
+                color: theme.primaryColor,
+              ),
+            ),
+            const SizedBox(width: Dimensions.paddingSizeSmall),
+            Text(
+              storeId != null
+                  ? 'payment_method'.tr
+                  : 'choose_payment_method'.tr,
+              style: robotoBold.copyWith(
+                fontSize: Dimensions.fontSizeDefault,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Dimensions.paddingSizeDefault),
+
+        PaymentMethodsView(
+          isCashOnDeliveryActive: isCashOnDeliveryActive,
+          isDigitalPaymentActive: isDigitalPaymentActive,
+          isWalletActive: isWalletActive,
+          storeId: storeId,
+          totalPrice: total,
+          isOfflinePaymentActive: isOfflinePaymentActive,
+        ),
+      ],
+    );
   }
 }

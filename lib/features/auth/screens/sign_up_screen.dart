@@ -272,9 +272,7 @@ class SignUpScreenState extends State<SignUpScreen> {
     if (formKey.currentState!.validate()) {
       if (name.isEmpty) {
         showCustomSnackBar('please_enter_your_name'.tr);
-      } else if (email.isEmpty) {
-        showCustomSnackBar('enter_email_address'.tr);
-      } else if (!GetUtils.isEmail(email)) {
+      } else if (email.isNotEmpty && !GetUtils.isEmail(email)) {
         showCustomSnackBar('enter_a_valid_email_address'.tr);
       } else if (number.isEmpty) {
         showCustomSnackBar('enter_phone_number'.tr);
@@ -291,7 +289,7 @@ class SignUpScreenState extends State<SignUpScreen> {
       } else {
         SignUpBodyModel signUpBody = SignUpBodyModel(
           name: name,
-          email: email,
+          email: email.isNotEmpty ? email : null,
           phone: numberWithCountryCode,
           password: password,
           refCode: referCode,

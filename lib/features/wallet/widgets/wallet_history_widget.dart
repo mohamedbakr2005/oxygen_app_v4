@@ -19,122 +19,180 @@ class WalletHistoryWidget extends StatelessWidget {
       String filterName = '';
 
       for (int i = 0; i < walletController.walletFilterList.length; i++) {
-        entryList.add(PopupMenuItem<int>(
+        bool isSelected = walletController.walletFilterList[i].value ==
+            walletController.type;
+        entryList.add(
+          PopupMenuItem<int>(
             value: i,
-            child: Text(
-              walletController.walletFilterList[i].title!.tr,
-              style: robotoMedium.copyWith(
-                color: walletController.walletFilterList[i].value ==
-                        walletController.type
-                    ? Theme.of(context).textTheme.bodyMedium!.color
-                    : Theme.of(context).disabledColor,
-              ),
-            )));
-        if (walletController.walletFilterList[i].value ==
-            walletController.type) {
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  walletController.walletFilterList[i].title!.tr,
+                  style: robotoMedium.copyWith(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).textTheme.bodyMedium!.color,
+                    fontSize: Dimensions.fontSizeDefault,
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check_rounded,
+                    color: Theme.of(context).primaryColor,
+                    size: 18,
+                  ),
+              ],
+            ),
+          ),
+        );
+        if (isSelected) {
           filterName = walletController.walletFilterList[i].title!.tr;
         } else if (walletController.type == 'all') {
           filterName = '';
         }
       }
 
-      return Column(children: [
-        Padding(
-          padding: EdgeInsets.only(
+      int count = walletController.transactionList?.length ?? 0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
               top: ResponsiveHelper.isDesktop(context)
                   ? Dimensions.paddingSizeExtraSmall
-                  : Dimensions.paddingSizeExtraLarge),
-          child:
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                'wallet_history'.tr,
-                style:
-                    robotoMedium.copyWith(fontSize: Dimensions.fontSizeLarge),
-              ),
-              const SizedBox(height: Dimensions.paddingSizeExtraSmall),
-              Text(
-                filterName,
-                style: robotoRegular.copyWith(
-                    fontSize: Dimensions.fontSizeSmall,
-                    color: Theme.of(context).primaryColor),
-              ),
-            ]),
-            PopupMenuButton<dynamic>(
-              offset: const Offset(-20, 20),
-              itemBuilder: (BuildContext context) => entryList,
-              onSelected: (dynamic value) {
-                walletController.setWalletFilerType(
-                    walletController.walletFilterList[value].value!);
-                walletController.getWalletTransactionList(
-                    '1', false, walletController.type);
-              },
-              padding: const EdgeInsets.symmetric(horizontal: 2),
-              shape: const RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.all(Radius.circular(Dimensions.radiusDefault)),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
-                  border: Border.all(
-                      color: Theme.of(context).disabledColor, width: 1),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: Dimensions.paddingSizeSmall,
-                      right: Dimensions.paddingSizeExtraSmall,
-                      top: 2,
-                      bottom: 2),
-                  child: Row(children: [
-                    Text(
-                      'filter'.tr,
-                      style: robotoRegular.copyWith(
-                          fontSize: Dimensions.fontSizeDefault),
-                    ),
-                    const Icon(Icons.arrow_drop_down, size: 18),
-                  ]),
-                ),
-              ),
+                  : Dimensions.paddingSizeLarge,
+              bottom: Dimensions.paddingSizeDefault,
             ),
-          ]),
-        ),
-        walletController.transactionList != null
-            ? walletController.transactionList!.isNotEmpty
-                ? GridView.builder(
-                    key: UniqueKey(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisSpacing: 50,
-                      mainAxisSpacing: ResponsiveHelper.isDesktop(context)
-                          ? Dimensions.paddingSizeSmall
-                          : 0.01,
-                      childAspectRatio:
-                          ResponsiveHelper.isDesktop(context) ? 7 : 4.45,
-                      crossAxisCount:
-                          ResponsiveHelper.isMobile(context) ? 1 : 1,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      'wallet_history'.tr,
+                      style: robotoBold.copyWith(
+                        fontSize: Dimensions.fontSizeLarge + 2,
+                        color: Theme.of(context).textTheme.bodyLarge!.color,
+                      ),
                     ),
-                    physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
-                    itemCount: walletController.transactionList!.length,
-                    padding: EdgeInsets.only(
-                        top: ResponsiveHelper.isDesktop(context) ? 28 : 25),
-                    itemBuilder: (context, index) {
-                      return HistoryItemWidget(
+                    if (count > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: robotoBold.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                PopupMenuButton<dynamic>(
+                  offset: const Offset(0, 40),
+                  itemBuilder: (BuildContext context) => entryList,
+                  onSelected: (dynamic value) {
+                    walletController.setWalletFilerType(
+                        walletController.walletFilterList[value].value!);
+                    walletController.getWalletTransactionList(
+                        '1', false, walletController.type);
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(Dimensions.radiusDefault),
+                  ),
+                  elevation: 4,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: walletController.type != 'all'
+                            ? Theme.of(context).primaryColor
+                            : Theme.of(context).disabledColor.withOpacity(0.35),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.tune_rounded,
+                          size: 16,
+                          color: walletController.type != 'all'
+                              ? Theme.of(context).primaryColor
+                              : Theme.of(context).hintColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          filterName.isNotEmpty ? filterName : 'filter'.tr,
+                          style: robotoMedium.copyWith(
+                            fontSize: Dimensions.fontSizeSmall,
+                            color: walletController.type != 'all'
+                                ? Theme.of(context).primaryColor
+                                : Theme.of(context).textTheme.bodyLarge?.color,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: Theme.of(context).hintColor,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          walletController.transactionList != null
+              ? walletController.transactionList!.isNotEmpty
+                  ? ListView.separated(
+                      key: UniqueKey(),
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      itemCount: walletController.transactionList!.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return HistoryItemWidget(
                           index: index,
                           fromWallet: true,
-                          data: walletController.transactionList);
-                    },
-                  )
-                : NoDataScreen(text: 'no_data_found'.tr)
-            : WalletShimmer(walletController: walletController),
-        walletController.isLoading
-            ? const Center(
-                child: Padding(
-                padding: EdgeInsets.all(Dimensions.paddingSizeSmall),
+                          data: walletController.transactionList,
+                        );
+                      },
+                    )
+                  : NoDataScreen(text: 'no_data_found'.tr)
+              : WalletShimmer(walletController: walletController),
+          if (walletController.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(Dimensions.paddingSizeLarge),
                 child: CircularProgressIndicator(),
-              ))
-            : const SizedBox(),
-      ]);
+              ),
+            ),
+          const SizedBox(height: Dimensions.paddingSizeLarge),
+        ],
+      );
     });
   }
 }
@@ -145,75 +203,80 @@ class WalletShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
+    return ListView.separated(
       key: UniqueKey(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisSpacing: 50,
-        mainAxisSpacing: ResponsiveHelper.isDesktop(context)
-            ? Dimensions.paddingSizeLarge
-            : 0.01,
-        childAspectRatio: ResponsiveHelper.isDesktop(context) ? 5 : 3.8,
-        crossAxisCount: ResponsiveHelper.isMobile(context) ? 1 : 1,
-      ),
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
-      itemCount: 10,
-      padding:
-          EdgeInsets.only(top: ResponsiveHelper.isDesktop(context) ? 28 : 25),
+      itemCount: 5,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        return Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: Dimensions.paddingSizeSmall),
-          child: Shimmer.fromColors(
-            period: const Duration(milliseconds: 2000),
-      baseColor: Colors.grey,
-      highlightColor: Colors.white,
-            enabled: walletController.transactionList == null,
-            child: Column(
+        return Shimmer.fromColors(
+          baseColor: Colors.grey.shade300,
+          highlightColor: Colors.grey.shade100,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 14,
+                        width: 140,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 11,
+                        width: 90,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                              height: 10,
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(height: 10),
-                          Container(
-                              height: 10,
-                              width: 70,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                        ]),
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                              height: 10,
-                              width: 50,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                          const SizedBox(height: 10),
-                          Container(
-                              height: 10,
-                              width: 70,
-                              decoration: BoxDecoration(
-                                  color: Theme.of(context).shadowColor,
-                                  borderRadius: BorderRadius.circular(2))),
-                        ]),
+                    Container(
+                      height: 14,
+                      width: 65,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 18,
+                      width: 45,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
                   ],
                 ),
-                Padding(
-                    padding:
-                        const EdgeInsets.only(top: Dimensions.paddingSizeLarge),
-                    child: Divider(color: Theme.of(context).disabledColor)),
               ],
             ),
           ),
@@ -222,3 +285,4 @@ class WalletShimmer extends StatelessWidget {
     );
   }
 }
+

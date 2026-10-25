@@ -22,14 +22,15 @@ class BonusBannerWidget extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: Dimensions.paddingSizeDefault),
                 SizedBox(
-                  height: ResponsiveHelper.isDesktop(context) ? 110 : 105,
+                  height: ResponsiveHelper.isDesktop(context) ? 120 : 115,
                   child: CarouselSlider.builder(
                     options: CarouselOptions(
                       autoPlay: true,
                       enlargeCenterPage: true,
                       disableCenter: true,
-                      viewportFraction: 0.8,
+                      viewportFraction: 0.9,
                       autoPlayInterval: const Duration(seconds: 7),
                       onPageChanged: (index, reason) {
                         walletController.setCurrentIndex(index, true);
@@ -37,53 +38,115 @@ class BonusBannerWidget extends StatelessWidget {
                     ),
                     itemCount: walletController.fundBonusList!.length,
                     itemBuilder: (context, index, _) {
+                      final item = walletController.fundBonusList![index];
                       return Container(
                         decoration: BoxDecoration(
-                          borderRadius:
-                              BorderRadius.circular(Dimensions.radiusDefault),
-                          border:
-                              Border.all(color: Theme.of(context).primaryColor),
-                          color:
-                              Theme.of(context).primaryColor.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFF2FBF6),
+                              Color(0xFFE4F8ED),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFF1EA35D).withOpacity(0.35),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1EA35D).withOpacity(0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        padding:
-                            const EdgeInsets.all(Dimensions.paddingSizeSmall),
-                        child: Row(children: [
-                          Expanded(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
                               child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                Text(
-                                  walletController.fundBonusList![index].title!,
-                                  maxLines: 1,
-                                  style: robotoBold.copyWith(
-                                      fontSize: Dimensions.fontSizeDefault,
-                                      color: Theme.of(context).primaryColor,
-                                      overflow: TextOverflow.ellipsis),
-                                ),
-                                const SizedBox(
-                                    height: Dimensions.paddingSizeExtraSmall),
-                                Text(
-                                  '${'valid_till'.tr} ${DateConverter.stringToReadableString(walletController.fundBonusList![index].endDate!)}',
-                                  style: robotoMedium.copyWith(
-                                      fontSize: Dimensions.fontSizeSmall),
-                                ),
-                                const SizedBox(
-                                    height: Dimensions.paddingSizeExtraSmall),
-                                Text(
-                                  '${'add_fund_to_wallet_minimum'.tr} ${PriceConverter.convertPrice(walletController.fundBonusList![index].minimumAddAmount)} ${'and_enjoy'.tr} ${walletController.fundBonusList![index].bonusAmount} '
-                                  '${walletController.fundBonusList![index].bonusType == 'amount' ? Get.find<SplashController>().configModel!.currencySymbol : '%'} ${'bonus'.tr}',
-                                  style: robotoRegular.copyWith(
-                                      fontSize: Dimensions.fontSizeSmall,
-                                      color: Theme.of(context).primaryColor),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ])),
-                          Image.asset(Images.walletBonus,
-                              height: 65, width: 65),
-                        ]),
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF0F7A42),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          '${item.bonusAmount} ${item.bonusType == 'amount' ? Get.find<SplashController>().configModel!.currencySymbol : '%'} ${'bonus'.tr}',
+                                          style: robotoBold.copyWith(
+                                            fontSize: 10,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          item.title!,
+                                          maxLines: 1,
+                                          style: robotoBold.copyWith(
+                                            fontSize:
+                                                Dimensions.fontSizeDefault,
+                                            color: const Color(0xFF0F7A42),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '${'add_fund_to_wallet_minimum'.tr} ${PriceConverter.convertPrice(item.minimumAddAmount)}',
+                                    style: robotoRegular.copyWith(
+                                      fontSize:
+                                          Dimensions.fontSizeExtraSmall + 1,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.color,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.access_time_rounded,
+                                        size: 12,
+                                        color: Theme.of(context).hintColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${'valid_till'.tr} ${DateConverter.stringToReadableString(item.endDate!)}',
+                                        style: robotoMedium.copyWith(
+                                          fontSize: 11,
+                                          color: Theme.of(context).hintColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Image.asset(
+                              Images.walletBonus,
+                              height: 55,
+                              width: 55,
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -96,9 +159,9 @@ class BonusBannerWidget extends StatelessWidget {
                     return TabPageSelectorIndicator(
                       backgroundColor: index == walletController.currentIndex
                           ? Theme.of(context).primaryColor
-                          : Theme.of(context).primaryColor.withOpacity(0.5),
-                      borderColor: Theme.of(context).colorScheme.surface,
-                      size: index == walletController.currentIndex ? 10 : 7,
+                          : Theme.of(context).primaryColor.withOpacity(0.3),
+                      borderColor: Colors.transparent,
+                      size: index == walletController.currentIndex ? 8 : 6,
                     );
                   }).toList(),
                 ),
@@ -108,3 +171,4 @@ class BonusBannerWidget extends StatelessWidget {
     });
   }
 }
+

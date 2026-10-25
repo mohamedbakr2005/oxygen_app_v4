@@ -37,7 +37,10 @@ class TopCategory {
   List<TopCategoryChild>? childes;
   int? moduleId;
 
-  TopCategory({this.id, this.name, this.imageFullUrl, this.orderCount, this.slug, this.childes, this.moduleId});
+  TopCategory({
+    this.id, this.name, this.imageFullUrl, this.orderCount, this.slug,
+    this.childes, this.moduleId,
+  });
 
   TopCategory.fromJson(Map<String, dynamic> json) {
     id = json['id'];

@@ -1323,5 +1323,9 @@
   "password_field_is_required": "Password field is required",
   "select_time": "Select Time",
   "explore": "Explore",
-  "oxgenMart": "Oxygen Mart"
+  "oxgenMart": "Oxygen Mart",
+  "redirecting_to_verification": "Přesměrování na ověření...",
+  "sending_otp_code": "Odesílání ověřovacího kódu...",
+  "could_not_send_otp_please_retry": "Kód se nepodařilo odeslat, zkuste to znovu",
+  "resend_code": "Znovu odeslat kód"
 }

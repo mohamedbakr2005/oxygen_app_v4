@@ -39,10 +39,12 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double? discount =
-        item.storeDiscount == 0 ? item.discount : item.storeDiscount;
-    String? discountType =
-        item.storeDiscount == 0 ? item.discountType : 'percent';
+    double? discount = (item.storeDiscount == 0 || item.storeDiscount == null)
+        ? (item.discount ?? 0)
+        : item.storeDiscount;
+    String? discountType = (item.storeDiscount == 0 || item.storeDiscount == null)
+        ? (item.discountType ?? 'percent')
+        : 'percent';
 
     // RepaintBoundary isolates this card's repaints from siblings
     return RepaintBoundary(

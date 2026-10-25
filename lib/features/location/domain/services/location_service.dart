@@ -1,28 +1,28 @@
 import 'dart:convert';
-
+import 'dart:developer';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
-import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/prediction_model.dart';
+import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/repositories/location_repository_interface.dart';
 import 'package:Oxygen_Mart/features/location/domain/services/location_service_interface.dart';
 import 'package:Oxygen_Mart/features/location/screens/pick_map_screen.dart';
 import 'package:Oxygen_Mart/features/location/widgets/permission_dialog_widget.dart';
-import 'package:Oxygen_Mart/features/parcel/domain/models/place_details_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
+import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 
-class LocationService implements LocationServiceInterface {
+class LocationService implements LocationServiceInterface{
   final LocationRepositoryInterface locationRepoInterface;
   LocationService({required this.locationRepoInterface});
+
 
   @override
   Future<String> getAddressFromGeocode(LatLng latLng) async {
@@ -30,50 +30,31 @@ class LocationService implements LocationServiceInterface {
   }
 
   @override
-  Future<ZoneResponseModel> getZone(String? lat, String? lng,
-      {bool handleError = false}) async {
-    return await locationRepoInterface.getZone(lat, lng,
-        handleError: handleError);
+  Future<ZoneResponseModel> getZone(String? lat, String? lng, {bool handleError = false}) async {
+    return await locationRepoInterface.getZone(lat, lng, handleError: handleError);
   }
 
   @override
-  Future<Position> getPosition(
-      LatLng? defaultLatLng, LatLng configLatLng) async {
+  Future<Position> getPosition(LatLng? defaultLatLng, LatLng configLatLng) async {
     Position myPosition;
     try {
-      Position newLocalData = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high));
+      Position newLocalData = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       myPosition = newLocalData;
-    } catch (e) {
+    }catch(e) {
       myPosition = Position(
-        latitude: defaultLatLng != null
-            ? defaultLatLng.latitude
-            : configLatLng.latitude,
-        longitude: defaultLatLng != null
-            ? defaultLatLng.longitude
-            : configLatLng.longitude,
-        timestamp: DateTime.now(),
-        accuracy: 1,
-        altitude: 1,
-        heading: 1,
-        speed: 1,
-        speedAccuracy: 1,
-        altitudeAccuracy: 1,
-        headingAccuracy: 1,
+        latitude: defaultLatLng != null ? defaultLatLng.latitude : configLatLng.latitude,
+        longitude: defaultLatLng != null ? defaultLatLng.longitude : configLatLng.longitude,
+        timestamp: DateTime.now(), accuracy: 1, altitude: 1, heading: 1, speed: 1, speedAccuracy: 1, altitudeAccuracy: 1, headingAccuracy: 1,
       );
     }
     return myPosition;
   }
 
   @override
-  void handleMapAnimation(
-      GoogleMapController? mapController, Position myPosition) {
+  void handleMapAnimation(GoogleMapController? mapController, Position myPosition) {
     if (mapController != null) {
       mapController.animateCamera(CameraUpdate.newCameraPosition(
-        CameraPosition(
-            target: LatLng(myPosition.latitude, myPosition.longitude),
-            zoom: 17),
+        CameraPosition(target: LatLng(myPosition.latitude, myPosition.longitude), zoom: 17),
       ));
     }
   }
@@ -89,45 +70,49 @@ class LocationService implements LocationServiceInterface {
 
   @override
   void configureFirebaseMessaging(AddressModel address) {
-    if (!GetPlatform.isWeb) {
-      if (Get.find<SplashController>().configModel!.demo!) {
+    if(!GetPlatform.isWeb) {
+      if(Get.find<SplashController>().configModel!.demo!) {
         FirebaseMessaging.instance.subscribeToTopic('demo_reset');
       } else {
         FirebaseMessaging.instance.unsubscribeFromTopic('demo_reset');
       }
       if (AddressHelper.getUserAddressFromSharedPref() != null) {
-        if (AddressHelper.getUserAddressFromSharedPref()!.zoneIds != null) {
-          for (int zoneID
-              in AddressHelper.getUserAddressFromSharedPref()!.zoneIds!) {
-            FirebaseMessaging.instance
-                .unsubscribeFromTopic('zone_${zoneID}_customer');
+        if(AddressHelper.getUserAddressFromSharedPref()!.zoneIds != null) {
+          for(int zoneID in AddressHelper.getUserAddressFromSharedPref()!.zoneIds!) {
+            FirebaseMessaging.instance.unsubscribeFromTopic('zone_${zoneID}_customer');
           }
-        } else {
-          FirebaseMessaging.instance.unsubscribeFromTopic(
-              'zone_${AddressHelper.getUserAddressFromSharedPref()!.zoneId}_customer');
+        }else {
+          FirebaseMessaging.instance.unsubscribeFromTopic('zone_${AddressHelper.getUserAddressFromSharedPref()!.zoneId}_customer');
         }
       } else {
-        FirebaseMessaging.instance
-            .subscribeToTopic('zone_${address.zoneId}_customer');
+        FirebaseMessaging.instance.subscribeToTopic('zone_${address.zoneId}_customer');
       }
-      if (address.zoneIds != null) {
-        for (int zoneID in address.zoneIds!) {
-          FirebaseMessaging.instance
-              .subscribeToTopic('zone_${zoneID}_customer');
+      if(address.zoneIds != null) {
+        for(int zoneID in address.zoneIds!) {
+          FirebaseMessaging.instance.subscribeToTopic('zone_${zoneID}_customer');
         }
       } else {
-        FirebaseMessaging.instance
-            .subscribeToTopic('zone_${address.zoneId}_customer');
+        FirebaseMessaging.instance.subscribeToTopic('zone_${address.zoneId}_customer');
       }
     }
   }
 
   @override
   void handleRoute(bool fromSignUp, String? route, bool canRoute) {
-    if (route != null && canRoute) {
-      Get.offAllNamed(route);
-    } else {
-      Get.offAllNamed(RouteHelper.getInitialRoute());
+    debugPrint('=====route: $route, canRoute: $canRoute');
+    if(canRoute && route == null) {
+      Get.back();
+    } else if(route != null && canRoute) {
+      String newRoute = route;
+      if(Get.find<SplashController>().module != null) {
+        String? moduleId = Get.find<SplashController>().module?.slug ?? Get.find<SplashController>().module?.id?.toString();
+        if(route.contains('module=null')) {
+          newRoute = route.replaceAll('module=null', 'module=$moduleId');
+        }
+      }
+      Get.offAllNamed(newRoute);
+    }else {
+      Get.offAllNamed(RouteHelper.getInitialRoute(moduleId: Get.find<SplashController>().module?.slug ?? Get.find<SplashController>().module?.id?.toString()));
     }
   }
 
@@ -135,13 +120,13 @@ class LocationService implements LocationServiceInterface {
   Future<LatLng> getLatLng(String? id) async {
     LatLng latLng = const LatLng(0, 0);
     Response? response = await locationRepoInterface.get(id);
-    if (response?.statusCode == 200) {
-      PlaceDetailsModel placeDetails =
-          PlaceDetailsModel.fromJson(response?.body);
-      if (placeDetails.status == 'OK') {
-        latLng = LatLng(placeDetails.result!.geometry!.location!.lat!,
-            placeDetails.result!.geometry!.location!.lng!);
-      }
+    if(response?.statusCode == 200) {
+
+      final data = response?.body;
+      final location = data['location'];
+      final double lat = location['latitude'];
+      final double lng = location['longitude'];
+      latLng = LatLng(lat, lng);
     }
     return latLng;
   }
@@ -150,10 +135,13 @@ class LocationService implements LocationServiceInterface {
   Future<List<PredictionModel>> searchLocation(String text) async {
     List<PredictionModel> predictionList = [];
     Response response = await locationRepoInterface.searchLocation(text);
-    if (response.statusCode == 200 && response.body['status'] == 'OK') {
+    if (response.statusCode == 200) {
       predictionList = [];
-      response.body['predictions'].forEach((prediction) =>
-          predictionList.add(PredictionModel.fromJson(prediction)));
+      try {
+        response.body['suggestions'].forEach((prediction) => predictionList.add(PredictionModel.fromJson(prediction)));
+      } catch (e) {
+        log('$e');
+      }
     } else {
       showCustomSnackBar(response.body['error_message'] ?? response.bodyString);
     }
@@ -176,32 +164,22 @@ class LocationService implements LocationServiceInterface {
   }
 
   @override
-  Future<void> authorizeNavigation(String page, List<AddressModel>? addressList,
-      GoogleMapController? mapController,
-      {bool offNamed = false, bool offAll = false}) async {
-    if (addressList != null && addressList.isEmpty) {
-      if (ResponsiveHelper.isDesktop(Get.context)) {
-        showGeneralDialog(
-            context: Get.context!,
-            pageBuilder: (_, __, ___) {
-              return SizedBox(
-                height: 300,
-                width: 300,
-                child: PickMapScreen(
-                    fromSignUp: (page == RouteHelper.signUp),
-                    canRoute: false,
-                    fromAddAddress: false,
-                    route: null,
-                    googleMapController: mapController),
-              );
-            });
+  Future<void> authorizeNavigation(String page, List<AddressModel>? addressList, GoogleMapController? mapController, {bool offNamed = false, bool offAll = false}) async {
+    if(addressList != null && addressList.isEmpty) {
+      if(ResponsiveHelper.isDesktop(Get.context)) {
+        showGeneralDialog(context: Get.context!, pageBuilder: (context, anim1, anim2) {
+          return SizedBox(
+            height: 300, width: 300,
+            child: PickMapScreen(fromSignUp: (page == RouteHelper.signUp), canRoute: false, fromAddAddress: false, route: null, googleMapController: mapController),
+          );
+        });
       } else {
         Get.toNamed(RouteHelper.getPickMapRoute(page, false));
       }
     } else {
-      if (offNamed) {
+      if(offNamed) {
         Get.offNamed(RouteHelper.getAccessLocationRoute(page));
-      } else if (offAll) {
+      } else if(offAll) {
         Get.offAllNamed(RouteHelper.getAccessLocationRoute(page));
       } else {
         Get.toNamed(RouteHelper.getAccessLocationRoute(page));
@@ -211,24 +189,57 @@ class LocationService implements LocationServiceInterface {
 
   @override
   void defaultNavigation(String page, GoogleMapController? mapController) {
-    if (ResponsiveHelper.isDesktop(Get.context)) {
-      showGeneralDialog(
-          context: Get.context!,
-          pageBuilder: (_, __, ___) {
-            return SizedBox(
-              height: Get.context!.height * 0.75,
-              width: 300,
-              child: PickMapScreen(
-                fromSignUp: (page == RouteHelper.signUp),
-                canRoute: false,
-                fromAddAddress: false,
-                route: null,
-                googleMapController: mapController,
-              ),
-            );
-          });
+    if(ResponsiveHelper.isDesktop(Get.context)) {
+      showGeneralDialog(context: Get.context!, pageBuilder: (context, anim1, anim2) {
+        return SizedBox(
+          height: Get.context!.height * 0.75, width: 300,
+          child: PickMapScreen(
+            fromSignUp: (page == RouteHelper.signUp),
+            canRoute: false, fromAddAddress: false, route: null,
+            googleMapController: mapController,
+          ),
+        );
+      });
     } else {
       Get.toNamed(RouteHelper.getPickMapRoute(page, false));
     }
   }
+
+  @override
+  String? getUserAddress() {
+    return locationRepoInterface.getUserAddress();
+  }
+
+  @override
+  List<AddressModel> getRecentDeliveryAddresses() {
+    final String? raw = locationRepoInterface.getRecentDeliveryAddresses();
+    if (raw == null || raw.isEmpty) {
+      return [];
+    }
+    try {
+      final List<dynamic> decoded = jsonDecode(raw) as List<dynamic>;
+      return decoded.map((e) => AddressModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      log('Recent delivery addresses decode error: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<AddressModel>> addRecentDeliveryAddress(AddressModel address) async {
+    final List<AddressModel> list = getRecentDeliveryAddresses();
+    list.removeWhere((a) =>
+        a.latitude == address.latitude
+        && a.longitude == address.longitude
+        && a.address == address.address);
+    list.insert(0, address);
+    final List<AddressModel> trimmed = list.length > AppConstants.recentDeliveryAddressesMax
+        ? list.sublist(0, AppConstants.recentDeliveryAddressesMax)
+        : list;
+    await locationRepoInterface.saveRecentDeliveryAddresses(
+      jsonEncode(trimmed.map((a) => a.toJson()).toList()),
+    );
+    return trimmed;
+  }
+
 }
