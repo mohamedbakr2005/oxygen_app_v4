@@ -1,5 +1,7 @@
 import 'package:get/get_connect/http/src/response/response.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:Oxygen_Mart/common/models/ongoing_order_model.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/last_order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/monthly_order_model.dart';
@@ -8,10 +10,22 @@ import 'package:Oxygen_Mart/features/order/domain/models/order_details_model.dar
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 
+enum OrderListType { all, running, previous }
+
+extension OrderListTypeQuery on OrderListType {
+  String get queryValue => switch(this) {
+    OrderListType.all => 'all',
+    OrderListType.running => 'running',
+    OrderListType.previous => 'previous',
+  };
+}
+
 abstract class OrderServiceInterface {
-  Future<PaginatedOrderModel?> getRunningOrderList(
-      int offset, bool fromDashboard);
+  Future<PaginatedOrderModel?> getOrderList(OrderListType type, int offset, {bool fromDashboard = false, int? moduleId});
+  Future<PaginatedOrderModel?> getRunningOrderList(int offset, bool fromDashboard);
   Future<PaginatedOrderModel?> getHistoryOrderList(int offset);
+  Future<OngoingOrderModel?> getDashboardOrders();
+  Future<List<LatLng>> getDirectionPolyline({required LatLng origin, required LatLng destination});
   Future<List<String?>?> getSupportReasonsList();
   Future<List<OrderDetailsModel>?> getOrderDetails(
       String orderID, String? guestId);
@@ -26,7 +40,8 @@ abstract class OrderServiceInterface {
   Future<Response> trackOrder(String? orderID, String? guestId,
       {String? contactNumber});
   Future<Response> getDeliveryManLastLocation(String orderID);
-  Future<bool> cancelOrder(String orderID, String? reason, {String? guestId});
+  Future<bool> cancelOrder(String orderID, String? reason,
+      {String? guestId, bool isParcel = false, List<String>? reasons, String? comment});
   Future<bool> deleteOrder(int orderId);
   OrderModel? prepareOrderModel(
       PaginatedOrderModel? runningOrderModel, int? orderID);
@@ -52,4 +67,3 @@ abstract class OrderServiceInterface {
       bool isProSubscription = false,
       bool isRenew = false});
 }
-

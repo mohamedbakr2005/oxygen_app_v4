@@ -61,7 +61,7 @@ class BottomCartWidget extends StatelessWidget {
               width: 130,
               height: 45,
               onPressed: () => Get.toNamed(RouteHelper.getCartRoute(
-                storeId: cartController.cartList.isNotEmpty ? cartController.cartList[0].item?.storeId : null,
+                storeId: cartController.cartList.isNotEmpty ? (cartController.cartList[0].item?.storeId ?? cartController.cartList[0].storeId) : null,
               )))
         ]),
       );

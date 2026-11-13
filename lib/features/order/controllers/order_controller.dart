@@ -22,7 +22,12 @@ import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
+import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/util/images.dart';
+import 'package:Oxygen_Mart/common/models/ongoing_order_model.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+export 'package:Oxygen_Mart/features/order/domain/services/order_service_interface.dart' show OrderListType;
 
 class OrderController extends GetxController implements GetxService {
   final OrderServiceInterface orderServiceInterface;
@@ -34,6 +39,22 @@ class OrderController extends GetxController implements GetxService {
 
   PaginatedOrderModel? _historyOrderModel;
   PaginatedOrderModel? get historyOrderModel => _historyOrderModel;
+
+  PaginatedOrderModel? _allOrderModel;
+  PaginatedOrderModel? get allOrderModel => _allOrderModel;
+
+  OngoingOrderModel? _ongoingOrderModel;
+  OngoingOrderModel? get ongoingOrderModel => _ongoingOrderModel;
+
+  String? _activeTrackOrderId;
+  String? get activeTrackOrderId => _activeTrackOrderId;
+
+  void setActiveTrackOrder(String? orderID) {
+    _activeTrackOrderId = orderID;
+  }
+
+  List<LatLng> _routePolyline = [];
+  List<LatLng> get routePolyline => _routePolyline;
 
   List<MonthlyOrder>? _monthlyOrders;
   List<MonthlyOrder>? get monthlyOrders => _monthlyOrders;
@@ -170,47 +191,94 @@ class OrderController extends GetxController implements GetxService {
     update();
   }
 
-  Future<void> getRunningOrders(int offset,
-      {bool isUpdate = false, bool fromDashboard = false}) async {
+  Future<void> getDashboardOrders() async {
+    _ongoingOrderModel = await orderServiceInterface.getDashboardOrders();
+    update();
+  }
+
+  Future<void> getOrders(OrderListType type, int offset,
+      {bool isUpdate = false, bool fromDashboard = false, int? moduleId}) async {
     if (offset == 1) {
-      _runningOrderModel = null;
+      _setOrderModel(type, null);
       if (isUpdate) {
         update();
       }
     }
-    PaginatedOrderModel? orderModel =
-        await orderServiceInterface.getRunningOrderList(offset, fromDashboard);
+    PaginatedOrderModel? orderModel = await orderServiceInterface.getOrderList(
+        type, offset,
+        fromDashboard: fromDashboard, moduleId: moduleId);
+    PaginatedOrderModel? current = switch (type) {
+      OrderListType.all => _allOrderModel,
+      OrderListType.running => _runningOrderModel,
+      OrderListType.previous => _historyOrderModel,
+    };
     if (orderModel != null) {
       if (offset == 1) {
-        _runningOrderModel = orderModel;
+        _setOrderModel(type, orderModel);
       } else {
-        _runningOrderModel!.orders!.addAll(orderModel.orders!);
-        _runningOrderModel!.offset = orderModel.offset;
-        _runningOrderModel!.totalSize = orderModel.totalSize;
+        current!.orders!.addAll(orderModel.orders!);
+        current.offset = orderModel.offset;
+        current.totalSize = orderModel.totalSize;
+        _setOrderModel(type, current);
       }
       update();
     }
   }
 
+  void _setOrderModel(OrderListType type, PaginatedOrderModel? value) {
+    switch (type) {
+      case OrderListType.all:
+        _allOrderModel = value;
+      case OrderListType.running:
+        _runningOrderModel = value;
+      case OrderListType.previous:
+        _historyOrderModel = value;
+    }
+  }
+
+  void clearAllOrderModels({bool notify = true}) {
+    _allOrderModel = null;
+    _runningOrderModel = null;
+    _historyOrderModel = null;
+    if (notify) update();
+  }
+
+  void syncOrderStatusInLists(int? orderId, String? orderStatus) {
+    if (orderId == null || orderStatus == null) return;
+    for (final PaginatedOrderModel? model
+        in [_allOrderModel, _runningOrderModel, _historyOrderModel]) {
+      final List<OrderModel>? list = model?.orders;
+      if (list == null) continue;
+      for (int i = 0; i < list.length; i++) {
+        if (list[i].id == orderId) {
+          list[i].orderStatus = orderStatus;
+          break;
+        }
+      }
+    }
+    update();
+  }
+
+  Future<void> getDirectionPolyline(
+      {required LatLng origin, required LatLng destination}) async {
+    _routePolyline = await orderServiceInterface.getDirectionPolyline(
+        origin: origin, destination: destination);
+    update();
+  }
+
+  void clearRoutePolyline() {
+    _routePolyline = [];
+    update();
+  }
+
+  Future<void> getRunningOrders(int offset,
+      {bool isUpdate = false, bool fromDashboard = false}) async {
+    await getOrders(OrderListType.running, offset,
+        isUpdate: isUpdate, fromDashboard: fromDashboard);
+  }
+
   Future<void> getHistoryOrders(int offset, {bool isUpdate = false}) async {
-    if (offset == 1) {
-      _historyOrderModel = null;
-      if (isUpdate) {
-        update();
-      }
-    }
-    PaginatedOrderModel? orderModel =
-        await orderServiceInterface.getHistoryOrderList(offset);
-    if (orderModel != null) {
-      if (offset == 1) {
-        _historyOrderModel = orderModel;
-      } else {
-        _historyOrderModel!.orders!.addAll(orderModel.orders!);
-        _historyOrderModel!.offset = orderModel.offset;
-        _historyOrderModel!.totalSize = orderModel.totalSize;
-      }
-      update();
-    }
+    await getOrders(OrderListType.previous, offset, isUpdate: isUpdate);
   }
 
   Future<void> getSupportReasons() async {
@@ -264,7 +332,7 @@ class OrderController extends GetxController implements GetxService {
         AuthHelper.isLoggedIn() ? null : AuthHelper.getGuestId(),
         contactNumber: contactNumber,
       );
-      if (response.statusCode == 200) {
+      if (ApiClient.isSuccessCode(response.statusCode)) {
         _trackModel = OrderModel.fromJson(response.body);
         bool isSuccessOrCOD = (_trackModel!.paymentStatus == 'paid') ||
             (_trackModel!.paymentMethod == 'cash_on_delivery') ||
@@ -360,7 +428,10 @@ class OrderController extends GetxController implements GetxService {
       AuthHelper.isLoggedIn() ? null : AuthHelper.getGuestId(),
       contactNumber: contactNumber,
     );
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      if (_activeTrackOrderId != null && _activeTrackOrderId != orderID) {
+        return null;
+      }
       _trackModel = OrderModel.fromJson(response.body);
       _responseModel = ResponseModel(true, response.body.toString());
     } else {
@@ -377,7 +448,7 @@ class OrderController extends GetxController implements GetxService {
   Future<DeliveryMan?> refreshDeliveryManLocation(String orderID, {bool canUpdate = true}) async {
     final Response response =
         await orderServiceInterface.getDeliveryManLastLocation(orderID);
-    if (response.statusCode != 200) {
+    if (!ApiClient.isSuccessCode(response.statusCode)) {
       return null;
     }
 
@@ -459,13 +530,24 @@ class OrderController extends GetxController implements GetxService {
   }
 
   Future<bool> cancelOrder(int? orderID, String? cancelReason,
-      {String? guestId}) async {
+      {String? guestId,
+      bool isParcel = false,
+      List<String>? reasons,
+      String? comment}) async {
     _isLoading = true;
     update();
-    bool success = await orderServiceInterface
-        .cancelOrder(orderID.toString(), cancelReason, guestId: guestId);
+    bool success = await orderServiceInterface.cancelOrder(
+      orderID.toString(),
+      cancelReason,
+      guestId: guestId,
+      isParcel: isParcel,
+      reasons: reasons,
+      comment: comment,
+    );
     _isLoading = false;
-    Get.back();
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
     if (success) {
       OrderModel? orderModel =
           orderServiceInterface.prepareOrderModel(_runningOrderModel, orderID);

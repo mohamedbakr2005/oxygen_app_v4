@@ -17,67 +17,64 @@ class AdvertisementController extends GetxController implements GetxService {
   Duration autoPlayDuration = const Duration(seconds: 7);
   bool autoPlay = true;
 
-  //-----------------------
-  // Guards
-  //-----------------------
   bool _isLoading = false;
+  bool get isLoading => _isLoading;
   bool _loadedOnce = false;
 
-  //-----------------------
-  // Advertisement loader (Optimized + Anti-Spam)
-  //-----------------------
-  Future<void> getAdvertisementList(
-      {DataSourceEnum dataSource = DataSourceEnum.local,
-      bool reload = false,
-      bool fromRecall = false}) async {
+  void clearAdvertisementList() {
+    _advertisementList = null;
+    _currentIndex = 0;
+    _loadedOnce = false;
+  }
+
+  Future<void> getAdvertisementList({
+    DataSourceEnum dataSource = DataSourceEnum.local,
+    bool reload = false,
+  }) async {
     final splash = Get.find<SplashController>();
 
-    // ⛔ ممنوع تعمل calls أثناء refresh
     if (splash.isRefreshing) return;
-
-    // ⛔ لو في request شغّال — skip
     if (_isLoading) return;
-
-    // ⛔ لو البيانات already loaded ومفيش reload — skip
     if (_loadedOnce && !reload && dataSource == DataSourceEnum.client) return;
-
-    // ⛔ لو البيانات موجودة ومش محتاج recall — skip
-    if (_advertisementList != null &&
-        !reload &&
-        dataSource == DataSourceEnum.local &&
-        !fromRecall) {
-      return;
-    }
 
     _isLoading = true;
 
     try {
-      List<AdvertisementModel>? response;
-
       if (dataSource == DataSourceEnum.local) {
-        // أولاً: local data
-        response = await advertisementServiceInterface
+        final localData = await advertisementServiceInterface
             .getAdvertisementList(DataSourceEnum.local);
 
-        if (response != null) _advertisementList = response;
+        if (localData != null) {
+          _advertisementList = localData;
+          _currentIndex = 0;
+          autoPlay = true;
+          update();
+        }
 
-        update();
-
-        // ثانياً: أطلب client مرة واحدة فقط
-        await getAdvertisementList(
-          dataSource: DataSourceEnum.client,
-          fromRecall: true,
-        );
-      } else {
-        // Client call
-        if (_loadedOnce && !reload) return;
-
-        response = await advertisementServiceInterface
+        final clientData = await advertisementServiceInterface
             .getAdvertisementList(DataSourceEnum.client);
 
-        if (response != null) {
-          _advertisementList = response;
+        if (clientData != null) {
+          _advertisementList = clientData;
           _loadedOnce = true;
+        } else if (_advertisementList == null) {
+          _advertisementList = [];
+        }
+
+        _currentIndex = 0;
+        autoPlay = true;
+        update();
+      } else {
+        if (_loadedOnce && !reload) return;
+
+        final clientData = await advertisementServiceInterface
+            .getAdvertisementList(DataSourceEnum.client);
+
+        if (clientData != null) {
+          _advertisementList = clientData;
+          _loadedOnce = true;
+        } else if (_advertisementList == null) {
+          _advertisementList = [];
         }
 
         update();
@@ -87,9 +84,6 @@ class AdvertisementController extends GetxController implements GetxService {
     }
   }
 
-  //-----------------------
-  // Index + autoplay controls
-  //-----------------------
   void setCurrentIndex(int index, bool notify) {
     _currentIndex = index;
     if (notify) update();

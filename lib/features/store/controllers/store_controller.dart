@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
+import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
 import 'package:Oxygen_Mart/features/category/controllers/category_controller.dart';
 import 'package:Oxygen_Mart/features/category/domain/models/category_model.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
@@ -111,6 +113,16 @@ class StoreController extends GetxController implements GetxService {
 
   List<Store>? _recommendedStoreList;
   List<Store>? get recommendedStoreList => _recommendedStoreList;
+
+  StoreBogoOfferListModel? _bogoOfferListModel;
+  List<StoreBogoOfferModel>? get bogoOfferList => _bogoOfferListModel?.offers;
+
+  Future<void> getStoreBogoOffers(int? storeId, {bool notify = true}) async {
+    _bogoOfferListModel = null;
+    if (notify) update();
+    _bogoOfferListModel = await storeServiceInterface.getStoreBogoOffers(storeId, store: _store);
+    update();
+  }
 
   StoreCategoryItemModel? _storeCategoryItemsModel;
   StoreCategoryItemModel? get storeCategoryItemsModel => _storeCategoryItemsModel;

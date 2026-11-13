@@ -45,6 +45,18 @@ class AppConstants {
   static const String loginUri = '/api/v1/auth/login';
   static const String tokenUri = '/api/v1/customer/cm-firebase-token';
   static const String placeOrderUri = '/api/v1/customer/order/place';
+  static const String checkoutSummaryUri = '/api/v1/customer/order/checkout-summary';
+  static const String deliveryChargeCoverageListUri = '/api/v1/delivery-charge/coverage-list';
+  static const String cartDiscountEligibilityUri = '/api/v1/customer/cart/discount-eligibility';
+  static const String bogoOfferListUri = '/api/v1/bogo/offers';
+  static const String storeBogoOffersUri = '/api/v1/bogo/store-offers';
+  static const String bogoHomeUri = '/api/v1/bogo/home';
+  static const String bundleDetailsUri = '/api/v1/bundle/';
+  static const String storeBundlesUri = '/api/v1/bundle/store-bundles';
+  static const String bundleHomeUri = '/api/v1/bundle/home';
+  static const String bundleListUri = '/api/v1/bundle/list';
+  static const String happyHourRunningUri = '/api/v1/happy-hour/running';
+  static const String happyHourStoreUri = '/api/v1/happy-hour/stores';
   static const String placePrescriptionOrderUri =
       '/api/v1/customer/order/prescription/place';
   static const String addressListUri = '/api/v1/customer/address/list';
@@ -61,6 +73,7 @@ class AppConstants {
   static const String runningOrderListUri =
       '/api/v1/customer/order/running-orders';
   static const String historyOrderListUri = '/api/v1/customer/order/list';
+  static const String allOrderList = '/api/v1/customer/order/list';
   static const String orderCancelUri = '/api/v1/customer/order/cancel';
   static const String orderDeleteUri = '/api/v1/customer/order/delete';
   static const String codSwitchUri = '/api/v1/customer/order/payment-method';
@@ -116,6 +129,8 @@ class AppConstants {
   static const String updateZoneUri = '/api/v1/customer/update-zone';
   static const String moduleUri = '/api/v1/module';
   static const String parcelCategoryUri = '/api/v1/parcel-category';
+  static const String parcelWeightUri = '/api/v1/parcel-weight';
+  static const String parcelDimensionUri = '/api/v1/parcel-dimension';
   static const String aboutUsUri = '/api/v1/about-us';
   static const String privacyPolicyUri = '/api/v1/privacy-policy';
   static const String termsAndConditionUri = '/api/v1/terms-and-conditions';
@@ -378,6 +393,12 @@ class AppConstants {
   static const String addCartUri = '/api/v1/customer/cart/add';
   static const String updateCartUri = '/api/v1/customer/cart/update';
   static const String removeAllCartUri = '/api/v1/customer/cart/remove';
+  static const String addBundleCartUri = '/api/v1/customer/cart/bundle/add';
+  static const String updateBundleCartUri = '/api/v1/customer/cart/bundle/update';
+  static const String removeBundleCartUri = '/api/v1/customer/cart/bundle/remove';
+  static const String addBogoCartUri = '/api/v1/customer/cart/bogo/add';
+  static const String updateBogoCartUri = '/api/v1/customer/cart/bogo/update';
+  static const String removeBogoCartUri = '/api/v1/customer/cart/bogo/remove';
   static const String removeItemCartUri = '/api/v1/customer/cart/remove-item';
 
   /// Shared Key

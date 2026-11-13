@@ -4,8 +4,10 @@ import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_cancellation_reasons_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_instruction_model.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_tier_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/video_content_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/why_choose_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/repositories/parcel_repository_interface.dart';
@@ -133,6 +135,40 @@ class ParcelRepository implements ParcelRepositoryInterface {
           .addAll(ParcelInstructionModel.fromJson(response.body).data!);
     }
     return parcelInstructionList;
+  }
+
+  @override
+  Future<ParcelCancellationReasonsModel?> getParcelCancellationReasons({required bool isBeforePickup}) async {
+    ParcelCancellationReasonsModel? cancellationReasonsModel;
+    Response response = await apiClient.getData('${AppConstants.getParcelCancellationReasons}?limit=25&offset=1&user_type=customer&cancellation_type=${isBeforePickup ? 'before_pickup' : 'after_pickup'}');
+    if (response.statusCode == 200) {
+      cancellationReasonsModel = ParcelCancellationReasonsModel.fromJson(response.body);
+    }
+    return cancellationReasonsModel;
+  }
+
+  @override
+  Future<ParcelTierListModel<ParcelWeightModel>?> getParcelWeightList({required int zoneId, int? moduleId}) async {
+    return await _getParcelTierList(
+      AppConstants.parcelWeightUri, zoneId, moduleId, ParcelWeightModel.fromJson,
+    );
+  }
+
+  @override
+  Future<ParcelTierListModel<ParcelDimensionModel>?> getParcelDimensionList({required int zoneId, int? moduleId}) async {
+    return await _getParcelTierList(
+      AppConstants.parcelDimensionUri, zoneId, moduleId, ParcelDimensionModel.fromJson,
+    );
+  }
+
+  Future<ParcelTierListModel<T>?> _getParcelTierList<T>(String uri, int zoneId, int? moduleId,
+      T Function(Map<String, dynamic>) rowFromJson) async {
+    final String moduleQuery = moduleId != null ? '&module_id=$moduleId' : '';
+    final Response response = await apiClient.getData('$uri?zone_id=$zoneId$moduleQuery', handleError: false);
+    if (response.statusCode == 200 && response.body is Map) {
+      return ParcelTierListModel<T>.fromJson(Map<String, dynamic>.from(response.body as Map), rowFromJson);
+    }
+    return null;
   }
 
   @override

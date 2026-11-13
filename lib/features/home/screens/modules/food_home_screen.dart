@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
+import 'package:Oxygen_Mart/features/dashboard/widgets/bogo_offer_card_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/banner_view.dart';
 import 'package:Oxygen_Mart/features/home/widgets/highlight_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/best_store_nearby_view.dart';
@@ -63,6 +64,7 @@ class FoodHomeScreen extends StatelessWidget {
           child: ReelsSectionWidget(),
         ) : const SizedBox();
       }),
+      const BogoOfferCardWidget(),
       const HighlightWidget(),
       const TopOffersNearMe(),
       const BestStoreNearbyView(),

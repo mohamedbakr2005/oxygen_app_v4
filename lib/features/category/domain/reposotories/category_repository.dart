@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/category/domain/models/category_model.dart';
 import 'package:Oxygen_Mart/features/category/domain/reposotories/category_repository_interface.dart';
@@ -59,13 +60,14 @@ class CategoryRepository implements CategoryRepositoryInterface {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.categoryUri, headers: header);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
+          final List<dynamic> categoriesJson = ResponseParser.listOrEmpty(response.body);
           categoryList = [];
-          response.body.forEach((category) {
+          for (final dynamic category in categoriesJson) {
             categoryList!.add(CategoryModel.fromJson(category));
-          });
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body), cacheHeader);
+              jsonEncode(categoriesJson), cacheHeader);
         }
 
       case DataSourceEnum.local:
@@ -73,9 +75,9 @@ class CategoryRepository implements CategoryRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           categoryList = [];
-          jsonDecode(cacheResponseData).forEach((category) {
+          for (final dynamic category in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
             categoryList!.add(CategoryModel.fromJson(category));
-          });
+          }
         }
     }
 
@@ -89,12 +91,14 @@ class CategoryRepository implements CategoryRepositoryInterface {
     switch (source) {
       case DataSourceEnum.client:
         Response response = await apiClient.getData(cacheId);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
+          final List<dynamic> subCategoriesJson = ResponseParser.listOrEmpty(response.body);
           subCategoryList = [];
-          response.body.forEach(
-              (category) => subCategoryList!.add(CategoryModel.fromJson(category)));
+          for (final dynamic category in subCategoriesJson) {
+            subCategoryList.add(CategoryModel.fromJson(category));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body), apiClient.getHeader());
+              jsonEncode(subCategoriesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -102,8 +106,9 @@ class CategoryRepository implements CategoryRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           subCategoryList = [];
-          jsonDecode(cacheResponseData).forEach(
-              (category) => subCategoryList!.add(CategoryModel.fromJson(category)));
+          for (final dynamic category in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            subCategoryList.add(CategoryModel.fromJson(category));
+          }
         }
     }
 

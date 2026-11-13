@@ -936,6 +936,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.15.2"
+  full_screen_bottom_sheet:
+    dependency: "direct main"
+    description:
+      name: full_screen_bottom_sheet
+      sha256: "1eeb6b5fe0a673554553c21f70c64e87e33add8a28c99a36e21c27429ef9ecdd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   geolocator:
     dependency: "direct main"
     description:

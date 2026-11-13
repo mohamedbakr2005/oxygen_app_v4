@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import 'package:Oxygen_Mart/common/models/ongoing_order_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
@@ -18,6 +17,7 @@ import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 class OrderService implements OrderServiceInterface {
@@ -25,16 +25,75 @@ class OrderService implements OrderServiceInterface {
   OrderService({required this.orderRepositoryInterface});
 
   @override
+  Future<PaginatedOrderModel?> getOrderList(OrderListType type, int offset, {bool fromDashboard = false, int? moduleId}) async {
+    return await orderRepositoryInterface.getOrderList(type, offset, fromDashboard: fromDashboard, moduleId: moduleId);
+  }
+
+  @override
   Future<PaginatedOrderModel?> getRunningOrderList(
       int offset, bool fromDashboard) async {
-    return await orderRepositoryInterface.getList(
-        isRunningOrder: true, offset: offset, fromDashboard: fromDashboard);
+    return await getOrderList(OrderListType.running, offset, fromDashboard: fromDashboard);
   }
 
   @override
   Future<PaginatedOrderModel?> getHistoryOrderList(int offset) async {
-    return await orderRepositoryInterface.getList(
-        isHistoryOrder: true, offset: offset);
+    return await getOrderList(OrderListType.previous, offset);
+  }
+
+  @override
+  Future<OngoingOrderModel?> getDashboardOrders() async {
+    return await orderRepositoryInterface.getDashboardOrders();
+  }
+
+  @override
+  Future<List<LatLng>> getDirectionPolyline({required LatLng origin, required LatLng destination}) async {
+    List<LatLng> coordinates = [];
+    final Response? response = await orderRepositoryInterface.getDirection(origin: origin, destination: destination);
+    if (response != null && response.statusCode == 200) {
+      try {
+        final dynamic body = response.body;
+        String? encoded;
+        if (body is Map && body['routes'] is List && (body['routes'] as List).isNotEmpty) {
+          final dynamic route = body['routes'][0];
+          encoded = route['polyline']?['encodedPolyline'];
+          encoded ??= route['overview_polyline']?['points'];
+        }
+        if ((encoded == null || encoded.isEmpty) && body is Map) {
+          encoded = body['encoded_polyline'];
+        }
+        if (encoded != null && encoded.isNotEmpty) {
+          coordinates = _decodeEncodedPolyline(encoded);
+        }
+      } catch (_) {}
+    }
+    return coordinates;
+  }
+
+  List<LatLng> _decodeEncodedPolyline(String encoded) {
+    List<LatLng> poly = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+      poly.add(LatLng((lat / 1E5).toDouble(), (lng / 1E5).toDouble()));
+    }
+    return poly;
   }
 
   @override
@@ -97,9 +156,9 @@ class OrderService implements OrderServiceInterface {
 
   @override
   Future<bool> cancelOrder(String orderID, String? reason,
-      {String? guestId}) async {
+      {String? guestId, bool isParcel = false, List<String>? reasons, String? comment}) async {
     return await orderRepositoryInterface.cancelOrder(orderID, reason,
-        guestId: guestId);
+        guestId: guestId, isParcel: isParcel, reasons: reasons, comment: comment);
   }
 
   @override
@@ -124,7 +183,6 @@ class OrderService implements OrderServiceInterface {
         await orderRepositoryInterface.switchToCOD(orderID, guestId: guestId);
     if (response.statusCode == 200) {
       isSuccess = true;
-      await Get.offAllNamed(RouteHelper.getInitialRoute());
       showCustomSnackBar(response.body['message'], isError: false);
     }
     return isSuccess;
@@ -158,15 +216,23 @@ class OrderService implements OrderServiceInterface {
       bool isFailed;
       bool isCancel;
 
-      if (isProSubscription) {
-        isSuccess = url.startsWith('${AppConstants.baseUrl}/payment-success') ||
-            url.contains('payment-success') ||
-            url.contains('success=true');
-        isFailed = url.startsWith('${AppConstants.baseUrl}/payment-fail') ||
-            url.contains('payment-fail') ||
-            url.contains('fail=true');
-        isCancel = url.startsWith('${AppConstants.baseUrl}/payment-cancel') ||
-            url.contains('cancel');
+      if (kIsWeb) {
+        isSuccess = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-success')
+            : (url.contains('success=true') ||
+                url.contains('status=success') ||
+                url.contains('payment-success'));
+
+        isFailed = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-fail')
+            : (url.contains('fail=true') ||
+                url.contains('status=fail') ||
+                url.contains('payment-fail'));
+
+        isCancel = forSubscription
+            ? url.startsWith('${AppConstants.baseUrl}/subscription-cancel')
+            : (url.startsWith('${AppConstants.baseUrl}/payment-cancel') ||
+                url.contains('cancel'));
       } else {
         isSuccess = forSubscription
             ? url.startsWith('${AppConstants.baseUrl}/subscription-success')
@@ -288,7 +354,8 @@ class OrderService implements OrderServiceInterface {
 
   @override
   Future<List<LastOrderModel>?> getLastOrders({required bool isHome, int? storeId}) async {
-    return await orderRepositoryInterface.getLastOrders(isHome: isHome, storeId: storeId);
+    final List<LastOrderModel>? orders = await orderRepositoryInterface.getLastOrders(isHome: isHome, storeId: storeId);
+    return orders?.where((LastOrderModel order) => order.canReorder ?? false).toList();
   }
 
   @override
@@ -301,4 +368,3 @@ class OrderService implements OrderServiceInterface {
     return await orderRepositoryInterface.getPaymentFailedDetails(orderID);
   }
 }
-

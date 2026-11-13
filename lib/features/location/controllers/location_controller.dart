@@ -38,6 +38,8 @@ import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_loader.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/helper/taxi_helper.dart';
+import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class LocationController extends GetxController implements GetxService {
@@ -291,14 +293,21 @@ class LocationController extends GetxController implements GetxService {
       if (response.isSuccess) {
         Get.find<CartController>().getAllCarts();
 
-        if(Get.find<SplashController>().moduleList != null) {
-          for (var module in Get.find<SplashController>().moduleList!) {
-            if(module.moduleType == AppConstants.ride) {
-              ZoneResponseModel rideZoneModel = await Get.find<SearchLocationController>().getRideZone(address.latitude ?? '', address.longitude ?? '');
-              address.zoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
-              address.rideZoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
-              break;
-            }
+        final Map<String, String> zoneScopedHeader =
+            Map<String, String>.from(Get.find<ApiClient>().getHeader())
+              ..[AppConstants.zoneId] = jsonEncode(response.zoneIds);
+
+        await Get.find<SplashController>().getModules(
+          headers: zoneScopedHeader,
+          dataSource: DataSourceEnum.client,
+        );
+
+        for (final ModuleModel module in Get.find<SplashController>().moduleList ?? <ModuleModel>[]) {
+          if(module.moduleType == AppConstants.ride) {
+            ZoneResponseModel rideZoneModel = await Get.find<SearchLocationController>().getRideZone(address.latitude ?? '', address.longitude ?? '');
+            address.zoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
+            address.rideZoneId = rideZoneModel.zoneId != null ? int.tryParse(rideZoneModel.zoneId??'') : null;
+            break;
           }
         }
 
@@ -311,13 +320,11 @@ class LocationController extends GetxController implements GetxService {
         autoNavigate(address, fromSignUp, route, canRoute, isDesktop);
       } else {
         if (response.statusCode == 404) {
-          Get.toNamed(RouteHelper.getPickMapRoute(route, false));
+          _routeToPickMap(route);
         } else {
           Get.back();
           showCustomSnackBar(response.message);
-          if(route == 'splash') {
-            Get.toNamed(RouteHelper.getPickMapRoute(route, false));
-          }
+          _routeToPickMap(route);
         }
       }
     });
@@ -515,13 +522,19 @@ class LocationController extends GetxController implements GetxService {
     bool isActiveLocation = await Geolocator.isLocationServiceEnabled();
 
     if(isActiveLocation) {
+      final defaultLoc = Get.find<SplashController>().configModel?.defaultLocation;
+      final userAddress = AddressHelper.getUserAddressFromSharedPref();
+      if(defaultLoc == null || userAddress?.latitude == null || userAddress?.longitude == null) {
+        return false;
+      }
+
       Position myPosition = await locationServiceInterface.getPosition(null, LatLng(
-        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lat ?? '0'),
-        double.parse(Get.find<SplashController>().configModel!.defaultLocation!.lng ?? '0'),
+        double.parse(defaultLoc.lat ?? '0'),
+        double.parse(defaultLoc.lng ?? '0'),
       ));
 
       double distance = Geolocator.distanceBetween(
-        double.parse(AddressHelper.getUserAddressFromSharedPref()!.latitude!), double.parse(AddressHelper.getUserAddressFromSharedPref()!.longitude!), myPosition.latitude, myPosition.longitude,
+        double.parse(userAddress!.latitude!), double.parse(userAddress.longitude!), myPosition.latitude, myPosition.longitude,
       ) / 1000;
 
       if (kDebugMode) {
@@ -635,15 +648,19 @@ class LocationController extends GetxController implements GetxService {
     );
     await AddressHelper.saveUserAddressInSharedPref(addressModel);
 
-    await Get.find<SplashController>().getModules();
-    List<ModuleModel>? modules = Get.find<SplashController>().moduleList;
-    for(ModuleModel m in modules!){
-      if(m.id == Get.find<StoreController>().store!.moduleId) {
-        Get.find<SplashController>().setModule(m);
-      }
-    }
+    await Get.find<SplashController>().activateModuleById(Get.find<StoreController>().store?.moduleId);
 
   }
+
+  void _routeToPickMap(String? route) {
+    if(!shouldRouteToPickMap(Get.currentRoute)) {
+      return;
+    }
+    Get.toNamed(RouteHelper.getPickMapRoute(route, false));
+  }
+
+  static bool shouldRouteToPickMap(String currentRoute) =>
+      !currentRoute.startsWith(RouteHelper.pickMap);
 
   Future<bool> checkInternet() async {
     if(kIsWeb) {

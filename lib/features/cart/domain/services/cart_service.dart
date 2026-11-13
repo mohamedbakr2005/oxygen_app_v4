@@ -1,3 +1,4 @@
+import 'package:get/get_connect.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
@@ -5,6 +6,7 @@ import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/all_carts_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/online_cart_model.dart';
+import 'package:Oxygen_Mart/features/cart/domain/models/online_cart_model.dart' as online_cart;
 import 'package:Oxygen_Mart/features/cart/domain/repositories/cart_repository_interface.dart';
 import 'package:Oxygen_Mart/features/cart/domain/services/cart_service_interface.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
@@ -26,9 +28,89 @@ class CartService implements CartServiceInterface {
     return await cartRepositoryInterface.update(cart.toJson(), null, storeId: storeId);
   }
 
+  /// Changes only the quantity of a row that is already in the cart.
+  ///
+  /// Posts the **whole** row, not just `cart_id`/`price`/`quantity`.
+  /// `customer/cart/update` validates the cart line it is given rather than
+  /// patching the stored one, so an item with variations is rejected with
+  /// "variation is required" when the variation is left out — the +/- buttons
+  /// then failed on exactly the items that had a variation chosen, while plain
+  /// items worked. Rebuilding the row from [cart] and overriding the two fields
+  /// that actually changed keeps this identical to the body the edit-item flow
+  /// already posts successfully to the same endpoint.
   @override
-  Future<bool> updateCartQuantityOnline(int cartId, double price, int quantity, {int? storeId}) async {
-    return await cartRepositoryInterface.update({}, cartId, price: price, quantity: quantity, isUpdateQty: true, storeId: storeId);
+  Future<bool> updateCartQuantityOnline(CartModel cart, double price, int quantity, {int? storeId}) async {
+    return await cartRepositoryInterface.update(
+      buildOnlineCart(cart, price: price, quantity: quantity).toJson(),
+      cart.id, isUpdateQty: true, storeId: storeId,
+    );
+  }
+
+  /// The cart row as `customer/cart` expects it, optionally with a new [price]
+  /// and [quantity].
+  ///
+  /// The two variation shapes are mutually exclusive and the module decides
+  /// which one is live: `newVariation` modules send the selected-option matrix
+  /// as `variations`, everything else sends the legacy typed `variation` list.
+  /// Sending both, or the wrong one, is what the endpoint rejects.
+  @override
+  OnlineCart buildOnlineCart(CartModel cart, {double? price, int? quantity}) {
+    final Item item = cart.item!;
+    final bool newVariation = ModuleHelper.getModuleConfig(item.moduleType).newVariation ?? false;
+    final bool isCampaign = cart.isCampaign ?? false;
+
+    final List<int?> addOnIdList = <int?>[];
+    final List<int?> addOnQtyList = <int?>[];
+    for (final AddOn addOn in cart.addOnIds ?? const <AddOn>[]) {
+      addOnIdList.add(addOn.id);
+      addOnQtyList.add(addOn.quantity);
+    }
+
+    return OnlineCart(
+      cart.id,
+      isCampaign ? null : item.id,
+      isCampaign ? item.id : null,
+      (price ?? cart.discountedPrice ?? 0).toString(),
+      '',
+      newVariation ? null : cart.variation,
+      newVariation ? selectedFoodVariations(cart) : null,
+      quantity ?? cart.quantity,
+      addOnIdList,
+      cart.addOns,
+      addOnQtyList,
+      'Item',
+    );
+  }
+
+  /// The chosen food-variation options, read out of the `List<List<bool>>`
+  /// matrix the cart keeps them in and back into the `{name, values: {label}}`
+  /// shape the API speaks.
+  ///
+  /// The matrix is positional — index `i` of [CartModel.foodVariations] lines up
+  /// with index `i` of `item.foodVariations` — so both are walked together and
+  /// anything ragged is skipped rather than throwing and taking the cart with it.
+  @override
+  List<OrderVariation> selectedFoodVariations(CartModel cart) {
+    final List<OrderVariation> variations = <OrderVariation>[];
+    final List<FoodVariation> itemVariations = cart.item?.foodVariations ?? const <FoodVariation>[];
+    final List<List<bool?>> selected = cart.foodVariations ?? const <List<bool?>>[];
+
+    for (int i = 0; i < itemVariations.length && i < selected.length; i++) {
+      if (!selected[i].contains(true)) {
+        continue;
+      }
+      final List<VariationValue> values = itemVariations[i].variationValues ?? const <VariationValue>[];
+      final List<String?> labels = <String?>[];
+      for (int j = 0; j < values.length && j < selected[i].length; j++) {
+        if (selected[i][j] ?? false) {
+          labels.add(values[j].level);
+        }
+      }
+      if (labels.isNotEmpty) {
+        variations.add(OrderVariation(name: itemVariations[i].name, values: OrderVariationValue(label: labels)));
+      }
+    }
+    return variations;
   }
 
   @override
@@ -186,12 +268,8 @@ class CartService implements CartServiceInterface {
     if (isIncrement) {
       if(moduleStock && cartList[cartIndex].quantity! >= stock!) {
         showCustomSnackBar('out_of_stock'.tr);
-      }else if(quantityLimit != null){
-        if(quantity >= quantityLimit && quantityLimit != 0) {
-          showCustomSnackBar('${'maximum_quantity_limit'.tr} $quantityLimit');
-        } else {
-          quantity = quantity + 1;
-        }
+      }else if(quantityLimit != null && cartList[cartIndex].quantity! >= quantityLimit && quantityLimit > 0) {
+        showCustomSnackBar('${'maximum_quantity_limit'.tr} $quantityLimit');
       } else {
         quantity = quantity + 1;
       }
@@ -202,7 +280,7 @@ class CartService implements CartServiceInterface {
   }
 
   @override
-  Future<double> calculateDiscountedPrice(CartModel cartModel, int quantity, bool isFoodVariation) async{
+  Future<double> calculateDiscountedPrice(CartModel cartModel, int quantity, bool isFoodVariation) async {
     double? discount = cartModel.item!.discount;
     String? discountType = cartModel.item!.discountType;
     double variationPrice = 0;
@@ -212,7 +290,7 @@ class CartService implements CartServiceInterface {
       for(int index = 0; index< cartModel.item!.foodVariations!.length; index++) {
         for(int i=0; i<cartModel.item!.foodVariations![index].variationValues!.length; i++) {
           if(cartModel.foodVariations![index][i]!) {
-            variationPrice += (PriceConverter.convertWithDiscount(cartModel.item!.foodVariations![index].variationValues![i].optionPrice!, discount, discountType, isFoodVariation: true)! * cartModel.quantity!);
+            variationPrice += (PriceConverter.convertWithDiscount(cartModel.item!.foodVariations![index].variationValues![i].optionPrice!, discount, discountType, isFoodVariation: true)! * quantity);
           }
         }
       }
@@ -238,33 +316,65 @@ class CartService implements CartServiceInterface {
   List<CartModel> formatOnlineCartToLocalCart({required List<OnlineCartModel> onlineCartModel}) {
     List<CartModel> cartList = [];
     for (OnlineCartModel cart in onlineCartModel) {
-      double price = cart.item!.price!;
-      double? discount = cart.item!.discount;
-      String? discountType = cart.item!.discountType;
+      // Anything thrown in this loop loses the *whole* cart, not the one bad row, so
+      // the two values that can legitimately be absent are read without `!`:
+      // `item` (a row whose item the API no longer returns) and `item.price`.
+      if (cart.bogoDetails != null) {
+        cartList.add(CartModel.bogoBundle(bogoDetails: cart.bogoDetails!, storeId: cart.storeId ?? cart.item?.storeId));
+        continue;
+      }
+      if (cart.bundleDetails != null) {
+        cartList.add(CartModel.bundle(bundleDetails: cart.bundleDetails!, storeId: cart.storeId ?? cart.item?.storeId));
+        continue;
+      }
+      final Item? item = cart.item;
+      if (item == null) {
+        continue;
+      }
+      double price = item.price ?? 0;
+      double? discount = item.discount;
+      String? discountType = item.discountType;
       double discountedPrice = PriceConverter.convertWithDiscount(price, discount, discountType)!;
 
       double? discountAmount = price - discountedPrice;
       int? quantity = cart.quantity;
-      int? stock = cart.item!.stock ?? 0;
+      int? stock = item.stock ?? 0;
 
       List<List<bool?>> selectedFoodVariations = [];
       List<bool> collapsVariation = [];
 
-      if(cart.item!.moduleType == 'food') {
-        for(int index=0; index<cart.item!.foodVariations!.length; index++) {
+      if(item.moduleType == 'food') {
+        final Map<String, Set<String>> selectedLabelsByName = <String, Set<String>>{};
+        final List<online_cart.Variation> cartVariations = cart.foodVariation ?? const <online_cart.Variation>[];
+        for (final online_cart.Variation cartVariation in cartVariations) {
+          final String? variationName = cartVariation.name;
+          if (variationName == null) {
+            continue;
+          }
+          final Set<String> labels = selectedLabelsByName.putIfAbsent(variationName, () => <String>{});
+          final List<String> chosenLabels = cartVariation.values?.label ?? const <String>[];
+          for (final String label in chosenLabels) {
+            labels.add(label.trim());
+          }
+        }
+
+        final List<FoodVariation> itemFoodVariations = item.foodVariations ?? const <FoodVariation>[];
+        for(int index=0; index<itemFoodVariations.length; index++) {
           selectedFoodVariations.add([]);
           collapsVariation.add(true);
-          for(int i=0; i < cart.item!.foodVariations![index].variationValues!.length; i++) {
-            if(cart.item!.foodVariations![index].variationValues![i].isSelected ?? false){
-              selectedFoodVariations[index].add(true);
-            } else {
-              selectedFoodVariations[index].add(false);
-            }
+          final FoodVariation foodVariation = itemFoodVariations[index];
+          final Set<String> selectedLabels = selectedLabelsByName[foodVariation.name] ?? const <String>{};
+          final List<VariationValue> values = foodVariation.variationValues ?? const <VariationValue>[];
+          for(int i=0; i < values.length; i++) {
+            final VariationValue variationValue = values[i];
+            final bool isSelected = (variationValue.isSelected ?? false)
+                || selectedLabels.contains(variationValue.level?.trim());
+            selectedFoodVariations[index].add(isSelected);
           }
         }
       } else {
-        String variationType = cart.productVariation != null && cart.productVariation!.isNotEmpty ? cart.productVariation![0].type! : '';
-        for (item_variation.Variation variation in cart.item!.variations!) {
+        String variationType = cart.productVariation != null && cart.productVariation!.isNotEmpty ? (cart.productVariation![0].type ?? '') : '';
+        for (item_variation.Variation variation in item.variations ?? const <item_variation.Variation>[]) {
           if (variation.type == variationType) {
             discountedPrice = (PriceConverter.convertWithDiscount(variation.price!, discount, discountType)! * cart.quantity!);
             stock = variation.stock ?? 0;
@@ -275,21 +385,24 @@ class CartService implements CartServiceInterface {
 
       List<AddOn> addOnIdList = [];
       List<AddOns> addOnsList = [];
-      for (int index = 0; index < cart.addOnIds!.length; index++) {
-        addOnIdList.add(AddOn(id: cart.addOnIds![index], quantity: cart.addOnQtys![index]));
-        for (int i=0; i< cart.item!.addOns!.length; i++) {
-          if(cart.addOnIds![index] == cart.item!.addOns![i].id) {
-            addOnsList.add(AddOns(id: cart.item!.addOns![i].id, name: cart.item!.addOns![i].name, price: cart.item!.addOns![i].price));
+      final List<int> cartAddOnIds = cart.addOnIds ?? const <int>[];
+      final List<int> cartAddOnQtys = cart.addOnQtys ?? const <int>[];
+      final List<AddOns> itemAddOns = item.addOns ?? const <AddOns>[];
+      for (int index = 0; index < cartAddOnIds.length; index++) {
+        addOnIdList.add(AddOn(id: cartAddOnIds[index], quantity: index < cartAddOnQtys.length ? cartAddOnQtys[index] : 1));
+        for (int i = 0; i < itemAddOns.length; i++) {
+          if(cartAddOnIds[index] == itemAddOns[i].id) {
+            addOnsList.add(AddOns(id: itemAddOns[i].id, name: itemAddOns[i].name, price: itemAddOns[i].price));
           }
         }
       }
 
-      int? quantityLimit = cart.item!.quantityLimit;
+      int? quantityLimit = item.quantityLimit;
 
       cartList.add(
         CartModel(
           cart.id, price, discountedPrice, cart.productVariation?? [], selectedFoodVariations, discountAmount, quantity,
-          addOnIdList, addOnsList, false, stock, cart.item, quantityLimit,
+          addOnIdList, addOnsList, false, stock, item, quantityLimit,
         ),
       );
     }
@@ -300,6 +413,9 @@ class CartService implements CartServiceInterface {
   @override
   int isExistInCart(List<CartModel> cartList, int? itemID, String variationType, bool isUpdate, int? cartIndex) {
     for(int index=0; index<cartList.length; index++) {
+      if(cartList[index].isAtomicBundle) {
+        continue;
+      }
       if(cartList[index].item!.id == itemID && (cartList[index].variation!.isNotEmpty
           ? cartList[index].variation![0].type == variationType : true)) {
         if((isUpdate && index == cartIndex)) {
@@ -315,6 +431,9 @@ class CartService implements CartServiceInterface {
   @override
   bool existAnotherStoreItem(int? storeID, int? moduleId, List<CartModel> cartList) {
     for(CartModel cartModel in cartList) {
+      if(cartModel.isAtomicBundle) {
+        continue;
+      }
       if(cartModel.item!.storeId != storeID && cartModel.item!.moduleId == moduleId) {
         return true;
       }
@@ -326,6 +445,9 @@ class CartService implements CartServiceInterface {
   int cartQuantity(int itemId, List<CartModel> cartList) {
     int quantity = 0;
     for(CartModel cart in cartList) {
+      if(cart.isAtomicBundle) {
+        continue;
+      }
       if(cart.item!.id == itemId) {
         quantity += cart.quantity!;
       }
@@ -338,6 +460,9 @@ class CartService implements CartServiceInterface {
   String cartVariant(int itemId, List<CartModel> cartList) {
     String variant = '';
     for(CartModel cart in cartList) {
+      if(cart.isAtomicBundle) {
+        continue;
+      }
       if(cart.item!.id == itemId) {
         if(!ModuleHelper.getModuleConfig(cart.item!.moduleType).newVariation!) {
           variant = (cart.variation != null && cart.variation!.isNotEmpty) ? cart.variation![0].type! : '';
@@ -357,4 +482,33 @@ class CartService implements CartServiceInterface {
     return await cartRepositoryInterface.removeStoreCart(storeId);
   }
 
+  @override
+  Future<Response> addBogoToCartOnline(int bogoId, int quantity, String? guestId, {String? contactPersonNumber, int? moduleId}) async {
+    return await cartRepositoryInterface.addBogoToCartOnline(bogoId, quantity, guestId, contactPersonNumber: contactPersonNumber, moduleId: moduleId);
+  }
+
+  @override
+  Future<Response> updateBogoBundleQuantityOnline(String bogoGroupId, int quantity, String? guestId, {int? moduleId}) async {
+    return await cartRepositoryInterface.updateBogoBundleQuantityOnline(bogoGroupId, quantity, guestId, moduleId: moduleId);
+  }
+
+  @override
+  Future<bool> removeBogoBundleItemOnline(String bogoGroupId, String? guestId, {required int storeId}) async {
+    return await cartRepositoryInterface.removeBogoBundleItemOnline(bogoGroupId, guestId, storeId: storeId);
+  }
+
+  @override
+  Future<Response> addBundleToCartOnline(int bundleId, int quantity, String? guestId) async {
+    return await cartRepositoryInterface.addBundleToCartOnline(bundleId, quantity, guestId);
+  }
+
+  @override
+  Future<Response> updateBundleQuantityOnline(String bundleGroupId, int quantity, String? guestId) async {
+    return await cartRepositoryInterface.updateBundleQuantityOnline(bundleGroupId, quantity, guestId);
+  }
+
+  @override
+  Future<bool> removeBundleItemOnline(String bundleGroupId, String? guestId) async {
+    return await cartRepositoryInterface.removeBundleItemOnline(bundleGroupId, guestId);
+  }
 }

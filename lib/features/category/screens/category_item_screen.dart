@@ -134,6 +134,14 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
   void _onMainScroll() {
     if (_isTabNavigating || _sectionKeys.isEmpty) return;
 
+    if (scrollController.hasClients && scrollController.offset <= 10) {
+      if (_activeSubCategoryNotifier.value != 0) {
+        _activeSubCategoryNotifier.value = 0;
+        _scrollToTab(0);
+      }
+      return;
+    }
+
     for (int i = 0; i < _sectionKeys.length; i++) {
       final key = _sectionKeys[i];
       if (key.currentContext != null) {
@@ -499,6 +507,7 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
         children: [
           // Subcategory capsules horizontal bar
           if (catController.subCategoryList != null &&
+              catController.subCategoryList!.isNotEmpty &&
               !catController.isSearching)
             Container(
               height: 48,
@@ -615,6 +624,7 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
   Widget _buildProductScrollView(
       CategoryController catController, List<Item>? item) {
     final bool hasSubcategories = catController.subCategoryList != null &&
+        catController.subCategoryList!.isNotEmpty &&
         item != null &&
         _sectionKeys.isNotEmpty &&
         !catController.isSearching;
@@ -665,7 +675,9 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
       final subCategory = catController.subCategoryList![index];
       final String subCatId = subCategory.id.toString();
 
-      if (subCatId == '0' || index == 0) {
+      // Previously skipped index 0 because it was the 'all' item.
+      // Now only subcategories exist, so check by ID/name if 'all' is ever passed.
+      if (subCatId == '0' || subCategory.name == 'all'.tr) {
         slivers.add(SliverToBoxAdapter(
           child: SizedBox.shrink(key: _sectionKeys[index]),
         ));

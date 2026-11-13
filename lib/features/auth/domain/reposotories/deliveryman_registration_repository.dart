@@ -1,6 +1,7 @@
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/delivery_man_body.dart';
 import 'package:Oxygen_Mart/features/auth/domain/models/delivery_man_vehicles_model.dart';
@@ -61,13 +62,11 @@ class DeliverymanRegistrationRepository
       },
     );
     if (response.statusCode == 200) {
-      print("ddddddddddddddddddddddddddd${response.body}");
       moduleList = [];
-
-      response.body.forEach((storeCategory) =>
-          moduleList!.add(ModuleModel.fromJson(storeCategory)));
+      for (final dynamic storeCategory in ResponseParser.listOrEmpty(response.body)) {
+        moduleList.add(ModuleModel.fromJson(storeCategory));
+      }
     }
-    print("ddddddddddddddddddddddddddd${moduleList!.length}");
     return moduleList;
   }
 
@@ -76,8 +75,9 @@ class DeliverymanRegistrationRepository
     Response response = await apiClient.getData(AppConstants.vehiclesUri);
     if (response.statusCode == 200) {
       vehicles = [];
-      response.body.forEach((vehicle) =>
-          vehicles!.add(DeliveryManVehicleModel.fromJson(vehicle)));
+      for (final dynamic vehicle in ResponseParser.listOrEmpty(response.body)) {
+        vehicles.add(DeliveryManVehicleModel.fromJson(vehicle));
+      }
     }
     return vehicles;
   }

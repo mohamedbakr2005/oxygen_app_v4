@@ -18,6 +18,8 @@ import 'package:Oxygen_Mart/features/dashboard/widgets/address_bottom_sheet_widg
 import 'package:Oxygen_Mart/features/dashboard/widgets/bottom_nav_item_widget.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/parcel_bottom_sheet_widget.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/store_registration_success_bottom_sheet.dart';
+import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_banner_widget.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
 import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
@@ -308,7 +310,12 @@ class DashboardScreenState extends State<DashboardScreen> {
           return Scaffold(
             key: _scaffoldKey,
             floatingActionButton: _pageIndex == 0 ? GetBuilder<SplashController>(builder: (splashController) {
-              return _HomeFloatingActionButton(splashController: splashController);
+              return GetBuilder<HappyHourController>(builder: (happyHourController) {
+                final double promoOffset = _shouldShowHappyHourBanner(happyHourController, splashController)
+                    ? (happyHourController.bannerHeight > 0 ? happyHourController.bannerHeight : 60)
+                    : 0;
+                return _HomeFloatingActionButton(splashController: splashController, extraBottomOffset: promoOffset);
+              });
             }) : null,
             body: ExpandableBottomSheet(
               background: Stack(children: [
@@ -328,9 +335,21 @@ class DashboardScreenState extends State<DashboardScreen> {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 8),
-                            child: Container(
-                              width: size.width,
-                              height: dashboardNavBarHeight - 16,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GetBuilder<HappyHourController>(builder: (happyHourController) {
+                                  if (_shouldShowHappyHourBanner(happyHourController, splashController)) {
+                                    return const Padding(
+                                      padding: EdgeInsets.only(bottom: 8),
+                                      child: _JumpingPromo(child: HappyHourBannerWidget()),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }),
+                                Container(
+                                  width: size.width,
+                                  height: dashboardNavBarHeight - 16,
                               decoration: BoxDecoration(
                                 color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(30),
@@ -478,9 +497,11 @@ class DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
+                    ),
+                  ),
                 if (showCompactRunningOrderBanner && !keyboardVisible)
                   Positioned(
                     left: Dimensions.paddingSizeSmall,
@@ -591,6 +612,10 @@ class DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  bool _shouldShowHappyHourBanner(HappyHourController happyHourController, SplashController splashController) {
+    return _pageIndex == 0 && happyHourController.showBannerForModule(splashController.module?.id);
+  }
+
   Widget trackView(BuildContext context, {required bool status}) {
     return Container(
         height: 3,
@@ -604,8 +629,9 @@ class DashboardScreenState extends State<DashboardScreen> {
 
 class _HomeFloatingActionButton extends StatelessWidget {
   final SplashController splashController;
+  final double extraBottomOffset;
 
-  const _HomeFloatingActionButton({required this.splashController});
+  const _HomeFloatingActionButton({required this.splashController, this.extraBottomOffset = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -623,7 +649,7 @@ class _HomeFloatingActionButton extends StatelessWidget {
     return AnimatedPadding(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
-      padding: EdgeInsets.only(bottom: 70.0, right: ResponsiveHelper.isDesktop(context) ? 50 : 0),
+      padding: EdgeInsets.only(bottom: 70.0 + extraBottomOffset, right: ResponsiveHelper.isDesktop(context) ? 50 : 0),
       child: const Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -631,6 +657,48 @@ class _HomeFloatingActionButton extends StatelessWidget {
           AiChatBotFloatingButtonWidget(),
         ],
       ),
+    );
+  }
+}
+
+class _JumpingPromo extends StatefulWidget {
+  final Widget child;
+
+  const _JumpingPromo({required this.child});
+
+  @override
+  State<_JumpingPromo> createState() => _JumpingPromoState();
+}
+
+class _JumpingPromoState extends State<_JumpingPromo> with SingleTickerProviderStateMixin {
+  static const double _hopHeight = 10;
+
+  late final AnimationController _controller;
+  late final Animation<double> _hop;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
+    _hop = TweenSequence<double>(<TweenSequenceItem<double>>[
+      TweenSequenceItem(tween: Tween<double>(begin: 0, end: -1).chain(CurveTween(curve: Curves.easeOut)), weight: 10),
+      TweenSequenceItem(tween: Tween<double>(begin: -1, end: 0).chain(CurveTween(curve: Curves.bounceOut)), weight: 17),
+      TweenSequenceItem(tween: ConstantTween<double>(0), weight: 73),
+    ]).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _hop,
+      builder: (context, child) => Transform.translate(offset: Offset(0, _hop.value * _hopHeight), child: child),
+      child: widget.child,
     );
   }
 }

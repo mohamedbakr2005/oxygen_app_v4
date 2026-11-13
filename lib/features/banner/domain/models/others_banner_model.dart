@@ -1,8 +1,9 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
 
 class ParcelOtherBannerModel {
   String? promotionalBannerUrl;
   String? promotionalBanners3Url;
-  List<Banners>? banners;
+  List<ParcelBanner>? banners;
 
   ParcelOtherBannerModel({
     this.promotionalBannerUrl,
@@ -13,11 +14,12 @@ class ParcelOtherBannerModel {
   ParcelOtherBannerModel.fromJson(Map<String, dynamic> json) {
     promotionalBannerUrl = json['promotional_banner_url'];
     promotionalBanners3Url = json['promotional_banner_s3_url'];
-    if (json['banners'] != null) {
-      banners = <Banners>[];
-      json['banners'].forEach((v) {
-        banners!.add(Banners.fromJson(v));
-      });
+    final List<dynamic>? entries = ResponseParser.listOf(json, legacyKey: 'banners');
+    if (entries != null) {
+      banners = <ParcelBanner>[];
+      for (final dynamic v in entries) {
+        banners!.add(ParcelBanner.fromJson(v));
+      }
     }
   }
 
@@ -32,7 +34,7 @@ class ParcelOtherBannerModel {
   }
 }
 
-class Banners {
+class ParcelBanner {
   int? id;
   int? moduleId;
   String? key;
@@ -42,7 +44,7 @@ class Banners {
   String? createdAt;
   String? updatedAt;
 
-  Banners({
+  ParcelBanner({
     this.id,
     this.moduleId,
     this.key,
@@ -53,7 +55,7 @@ class Banners {
     this.updatedAt,
   });
 
-  Banners.fromJson(Map<String, dynamic> json) {
+  ParcelBanner.fromJson(Map<String, dynamic> json) {
     id = json['id'];
     moduleId = json['module_id'];
     key = json['key'];
@@ -77,3 +79,5 @@ class Banners {
     return data;
   }
 }
+
+typedef Banners = ParcelBanner;

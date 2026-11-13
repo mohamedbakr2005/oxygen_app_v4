@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/features/notification/domain/models/notification_model.dart';
 import 'package:Oxygen_Mart/features/notification/domain/repository/notification_repository_interface.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
@@ -17,10 +18,11 @@ class NotificationRepository implements NotificationRepositoryInterface {
   Future<List<NotificationModel>?> getList({int? offset}) async {
     List<NotificationModel>? notificationList;
     Response response = await apiClient.getData(AppConstants.notificationUri);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       notificationList = [];
-      response.body.forEach((notification) =>
-          notificationList!.add(NotificationModel.fromJson(notification)));
+      for (final dynamic notification in ResponseParser.listOrEmpty(response.body)) {
+        notificationList.add(NotificationModel.fromJson(notification));
+      }
     }
     return notificationList;
   }

@@ -39,7 +39,7 @@ class ZoneData {
     cashOnDelivery = json['cash_on_delivery'];
     digitalPayment = json['digital_payment'];
     offlinePayment = json['offline_payment'];
-    increaseDeliveryFee = json['increased_delivery_fee']?.toDouble();
+    increaseDeliveryFee = json['increased_delivery_fee'] != null ? double.tryParse(json['increased_delivery_fee'].toString()) : null;
     increaseDeliveryFeeStatus = json['increased_delivery_fee_status'];
     increaseDeliveryFeeMessage = json['increase_delivery_charge_message'];
     if (json['modules'] != null) {
@@ -149,12 +149,14 @@ class Modules {
   int? allZoneService;
   bool? additionalDeliveryOptionStatus;
   List<DeliveryOptions>? deliveryOptions;
+  ZoneFreeDelivery? freeDelivery;
   Pivot? pivot;
 
   Modules({
     this.id, this.moduleName, this.moduleType, this.thumbnail, this.status,
     this.storesCount, this.createdAt, this.updatedAt, this.icon, this.themeId,
-    this.description, this.allZoneService, this.additionalDeliveryOptionStatus, this.deliveryOptions, this.pivot,
+    this.description, this.allZoneService, this.additionalDeliveryOptionStatus, this.deliveryOptions, this.freeDelivery,
+    this.pivot,
   });
 
   Modules.fromJson(Map<String, dynamic> json) {
@@ -177,6 +179,7 @@ class Modules {
         deliveryOptions!.add(DeliveryOptions.fromJson(v));
       });
     }
+    freeDelivery = json['free_delivery'] != null ? ZoneFreeDelivery.fromJson(json['free_delivery']) : null;
     pivot = json['pivot'] != null ? Pivot.fromJson(json['pivot']) : null;
   }
 
@@ -198,9 +201,36 @@ class Modules {
     if (deliveryOptions != null) {
       data['delivery_options'] = deliveryOptions!.map((v) => v.toJson()).toList();
     }
+    if (freeDelivery != null) {
+      data['free_delivery'] = freeDelivery!.toJson();
+    }
     if (pivot != null) {
       data['pivot'] = pivot!.toJson();
     }
+    return data;
+  }
+}
+
+class ZoneFreeDelivery {
+  bool? status;
+  String? type;
+  double? minimumOrderAmount;
+
+  ZoneFreeDelivery({this.status, this.type, this.minimumOrderAmount});
+
+  ZoneFreeDelivery.fromJson(Map<String, dynamic> json) {
+    status = json['status'] == true || json['status'] == 1;
+    type = json['type']?.toString();
+    minimumOrderAmount = json['minimum_order_amount'] != null
+        ? double.tryParse(json['minimum_order_amount'].toString())
+        : null;
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['status'] = status;
+    data['type'] = type;
+    data['minimum_order_amount'] = minimumOrderAmount;
     return data;
   }
 }

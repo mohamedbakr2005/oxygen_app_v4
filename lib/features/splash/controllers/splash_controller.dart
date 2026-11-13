@@ -302,6 +302,21 @@ class SplashController extends GetxController implements GetxService {
     _firstTimeConnectionCheck = isChecked;
   }
 
+  Future<bool> activateModuleById(int? moduleId) async {
+    if(moduleId == null) return false;
+
+    await getModules();
+
+    final List<ModuleModel>? modules = _moduleList;
+    if(modules == null || modules.isEmpty) return false;
+
+    final int index = modules.indexWhere((ModuleModel module) => module.id == moduleId);
+    if(index == -1) return false;
+
+    await setModule(modules[index]);
+    return true;
+  }
+
   Future<void> setModule(ModuleModel? module, {bool notify = true, bool fromModuleDialog = false}) async {
     _module = module;
     splashServiceInterface.setModule(module);

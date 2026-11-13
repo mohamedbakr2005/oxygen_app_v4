@@ -41,7 +41,7 @@ class TimeSlotSection extends StatelessWidget {
         (checkoutController.store!.scheduleOrder ?? false) &&
         cartList != null &&
         cartList!.isNotEmpty &&
-        cartList![0]!.item!.availableDateStarts == null;
+        cartList![0]?.item?.availableDateStarts == null;
 
     if (!shouldShow) return const SizedBox();
 

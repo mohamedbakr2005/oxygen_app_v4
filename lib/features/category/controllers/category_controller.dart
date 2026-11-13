@@ -146,7 +146,7 @@ class CategoryController extends GetxController implements GetxService {
     if (_currentCategoryId == categoryID) {
       if (localSub != null && localSub.isNotEmpty) {
         _subCategoryList = [
-          CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
+          // CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
           ...localSub,
         ];
       }
@@ -170,7 +170,7 @@ class CategoryController extends GetxController implements GetxService {
     if (_currentCategoryId == categoryID) {
       if (clientSub != null) {
         _subCategoryList = [
-          CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
+          // CategoryModel(id: int.parse(categoryID!), name: 'all'.tr),
           ...clientSub,
         ];
       }
@@ -203,14 +203,13 @@ class CategoryController extends GetxController implements GetxService {
   void setSubCategoryIndex(int index, String? categoryID) {
     _subCategoryIndex = index;
     update(['sub_category']);
+    final String? targetId = (_subCategoryList != null && _subCategoryList!.isNotEmpty && index < _subCategoryList!.length)
+        ? _subCategoryList![index].id.toString()
+        : categoryID;
     if (_isStore) {
-      getCategoryStoreList(
-          _subCategoryIndex == 0 ? categoryID : _subCategoryList![index].id.toString(),
-          1, _type, true);
+      getCategoryStoreList(targetId, 1, _type, true);
     } else {
-      getCategoryItemList(
-          _subCategoryIndex == 0 ? categoryID : _subCategoryList![index].id.toString(),
-          1, _type, true);
+      getCategoryItemList(targetId, 1, _type, true);
     }
   }
 

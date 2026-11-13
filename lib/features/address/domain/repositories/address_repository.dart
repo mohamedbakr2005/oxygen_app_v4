@@ -1,6 +1,7 @@
 import 'package:get/get_connect/connect.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/repositories/address_repository_interface.dart';
@@ -20,10 +21,12 @@ class AddressRepository implements AddressRepositoryInterface<AddressModel> {
     Response response = await apiClient.postData(
         AppConstants.addAddressUri, addressModel.toJson(),
         handleError: false);
-    if (response.statusCode == 200) {
-      String? message = response.body["message"];
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      final String? message = (response.body is Map ? response.body["message"] : null) ?? response.statusText;
       List<int> zoneIds = [];
-      response.body['zone_ids'].forEach((z) => zoneIds.add(z));
+      for (final dynamic z in ResponseParser.listOrEmpty(response.body, legacyKey: 'zone_ids')) {
+        zoneIds.add(z is int ? z : int.tryParse(z.toString()) ?? 0);
+      }
       return ResponseModel(true, message, zoneIds: zoneIds);
     } else {
       return ResponseModel(
@@ -43,8 +46,9 @@ class AddressRepository implements AddressRepositoryInterface<AddressModel> {
     Response response = await apiClient.postData(
         '${AppConstants.removeAddressUri}$id', {"_method": "delete"},
         handleError: false);
-    if (response.statusCode == 200) {
-      return ResponseModel(true, response.body['message']);
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      final String? message = (response.body is Map ? response.body['message'] : null) ?? response.statusText;
+      return ResponseModel(true, message);
     } else {
       return ResponseModel(false, response.statusText);
     }
@@ -63,11 +67,11 @@ class AddressRepository implements AddressRepositoryInterface<AddressModel> {
   Future<List<AddressModel>?> _getAllAddress() async {
     List<AddressModel>? addressList;
     Response response = await apiClient.getData(AppConstants.addressListUri);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       addressList = [];
-      response.body['addresses'].forEach((address) {
-        addressList!.add(AddressModel.fromJson(address));
-      });
+      for (final dynamic address in ResponseParser.listOrEmpty(response.body, legacyKey: 'addresses')) {
+        addressList.add(AddressModel.fromJson(address));
+      }
     }
     return addressList;
   }
@@ -81,8 +85,9 @@ class AddressRepository implements AddressRepositoryInterface<AddressModel> {
       Map<String, dynamic> addressBody, int? addressId) async {
     Response response = await apiClient.putData(
         '${AppConstants.updateAddressUri}$addressId', addressBody);
-    if (response.statusCode == 200) {
-      return ResponseModel(true, response.body["message"]);
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      final String? message = (response.body is Map ? response.body["message"] : null) ?? response.statusText;
+      return ResponseModel(true, message);
     } else {
       return ResponseModel(false, response.statusText);
     }

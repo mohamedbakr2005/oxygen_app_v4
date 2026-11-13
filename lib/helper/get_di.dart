@@ -323,6 +323,25 @@ import 'package:Oxygen_Mart/features/wallet/domain/repositories/wallet_repositor
 import 'package:Oxygen_Mart/features/wallet/domain/services/wallet_service.dart';
 import 'package:Oxygen_Mart/features/wallet/domain/services/wallet_service_interface.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/controllers/bogo_offer_controller.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/controllers/bogo_offer_details_controller.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/repositories/bogo_offer_repository.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/repositories/bogo_offer_repository_interface.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/services/bogo_offer_service.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/services/bogo_offer_service_interface.dart';
+
+import 'package:Oxygen_Mart/features/bundle/controllers/bundle_controller.dart';
+import 'package:Oxygen_Mart/features/bundle/domain/repositories/bundle_repository.dart';
+import 'package:Oxygen_Mart/features/bundle/domain/repositories/bundle_repository_interface.dart';
+import 'package:Oxygen_Mart/features/bundle/domain/services/bundle_service.dart';
+import 'package:Oxygen_Mart/features/bundle/domain/services/bundle_service_interface.dart';
+
+import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/domain/repositories/happy_hour_repository.dart';
+import 'package:Oxygen_Mart/features/happy_hour/domain/repositories/happy_hour_repository_interface.dart';
+import 'package:Oxygen_Mart/features/happy_hour/domain/services/happy_hour_service.dart';
+import 'package:Oxygen_Mart/features/happy_hour/domain/services/happy_hour_service_interface.dart';
+
 
 Future<Map<String, Map<String, String>>> init() async {
   /// Core
@@ -333,6 +352,10 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.put(DeepLinkService(), permanent: true);
 
   /// Repositories
+  Get.lazyPut<BogoOfferRepositoryInterface>(() => BogoOfferRepository(apiClient: Get.find()), fenix: true);
+  Get.lazyPut<BundleRepositoryInterface>(() => BundleRepository(apiClient: Get.find()), fenix: true);
+  Get.lazyPut<HappyHourRepositoryInterface>(() => HappyHourRepository(apiClient: Get.find()), fenix: true);
+
   CheckoutRepositoryInterface checkoutRepositoryInterface =
       CheckoutRepository(apiClient: Get.find(), sharedPreferences: Get.find());
   Get.lazyPut(() => checkoutRepositoryInterface);
@@ -585,6 +608,10 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => serviceReviewRepositoryInterface, fenix: true);
 
   /// Services
+  Get.lazyPut<BogoOfferServiceInterface>(() => BogoOfferService(bogoOfferRepositoryInterface: Get.find()), fenix: true);
+  Get.lazyPut<BundleServiceInterface>(() => BundleService(bundleRepositoryInterface: Get.find()), fenix: true);
+  Get.lazyPut<HappyHourServiceInterface>(() => HappyHourService(happyHourRepositoryInterface: Get.find()), fenix: true);
+
   CheckoutServiceInterface checkoutServiceInterface =
       CheckoutService(checkoutRepositoryInterface: Get.find());
   Get.lazyPut(() => checkoutServiceInterface);
@@ -837,6 +864,11 @@ Future<Map<String, Map<String, String>>> init() async {
   Get.lazyPut(() => serviceReviewServiceInterface, fenix: true);
 
   /// Controllers
+  Get.lazyPut(() => BogoOfferController(bogoOfferServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => BogoOfferDetailsController(bogoOfferServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => BundleController(bundleServiceInterface: Get.find()), fenix: true);
+  Get.lazyPut(() => HappyHourController(happyHourServiceInterface: Get.find()), fenix: true);
+
   Get.lazyPut(() => ThemeController(sharedPreferences: Get.find()));
   Get.lazyPut(() => SplashController(splashServiceInterface: Get.find()));
   Get.lazyPut(() => AddressController(addressServiceInterface: Get.find()));

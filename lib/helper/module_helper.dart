@@ -17,8 +17,13 @@ class ModuleHelper {
     return Get.find<SplashController>().getModuleConfig(moduleType);
   }
 
+  static String? _activeModuleType() {
+    if (!Get.isRegistered<SplashController>()) return null;
+    return getModule()?.moduleType ?? getCacheModule()?.moduleType;
+  }
+
   static String proMinSpendLabel({String? moduleType, required String fallbackKey}) {
-    final String? type = moduleType ?? getModule()?.moduleType ?? getCacheModule()?.moduleType;
+    final String? type = moduleType ?? _activeModuleType();
     switch (type) {
       case AppConstants.parcel:
         return 'min_delivery_fee'.tr;
@@ -33,8 +38,24 @@ class ModuleHelper {
     }
   }
 
+  // A food store is a restaurant to the customer; every other module sells from a store.
+  static String storeDiscountAppliedLabel({String? moduleType}) {
+    final String? type = moduleType ?? _activeModuleType();
+    return type == AppConstants.food ? 'restaurant_discount_applied'.tr : 'store_discount_applied'.tr;
+  }
+
   static bool isBookingModule({String? moduleType}) =>
-      (moduleType ?? getModule()?.moduleType ?? getCacheModule()?.moduleType) == 'service';
+      (moduleType ?? _activeModuleType()) == 'service';
+
+  /// Single source of truth for whether the product-bundle feature is live for
+  /// a module — admin's `product_bundle_status` switch plus its per-module
+  /// allow-list, both on [ConfigModel].
+  static bool isBundleEnabled({String? moduleType}) {
+    if (!Get.isRegistered<SplashController>()) return false;
+    final ConfigModel? config = Get.find<SplashController>().configModel;
+    final String? type = moduleType ?? getModule()?.moduleType ?? getCacheModule()?.moduleType;
+    return (config?.productBundleStatus ?? false) && type != null && (config?.productBundleModuleTypes?.contains(type) ?? false);
+  }
 
   static ModuleModel? getModuleByType(String moduleType) {
     final List<ModuleModel> modules = Get.find<SplashController>().moduleList ?? [];

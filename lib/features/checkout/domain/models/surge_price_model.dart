@@ -1,3 +1,5 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+
 class SurgePriceModel {
   String? title;
   String? customerNote;
@@ -13,7 +15,9 @@ class SurgePriceModel {
     this.priceType,
   });
 
-  SurgePriceModel.fromJson(Map<String, dynamic> json) {
+  SurgePriceModel.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic payload = ResponseParser.payloadOf(rawJson);
+    final Map<String, dynamic> json = payload is Map ? Map<String, dynamic>.from(payload) : rawJson;
     title = json['title'];
     customerNote = json['customer_note'];
     customerNoteStatus = json['customer_note_status'];

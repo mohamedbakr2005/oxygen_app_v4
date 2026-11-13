@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/basic_medicine_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/common_condition_model.dart';
@@ -91,7 +92,7 @@ class ItemRepository implements ItemRepositoryInterface {
         .getData('${AppConstants.conditionWiseItemUri}$id?limit=15&offset=1');
     if (response.statusCode == 200) {
       conditionWiseProduct = [];
-      conditionWiseProduct.addAll(ItemModel.fromJson(response.body).items!);
+      conditionWiseProduct.addAll(ItemModel.fromJson(response.body).items ?? []);
     }
     return conditionWiseProduct;
   }
@@ -139,7 +140,7 @@ class ItemRepository implements ItemRepositoryInterface {
             .getData('${AppConstants.popularItemUri}?type=$type');
         if (response.statusCode == 200) {
           popularItemList = [];
-          popularItemList.addAll(ItemModel.fromJson(response.body).items!);
+          popularItemList.addAll(ItemModel.fromJson(response.body).items ?? []);
           LocalClient.organize(DataSourceEnum.client, cacheId,
               jsonEncode(response.body), apiClient.getHeader());
         }
@@ -150,7 +151,7 @@ class ItemRepository implements ItemRepositoryInterface {
         if (cacheResponseData != null) {
           popularItemList = [];
           popularItemList
-              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items!);
+              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items ?? []);
         }
     }
 
@@ -225,7 +226,7 @@ class ItemRepository implements ItemRepositoryInterface {
             .getData('${AppConstants.recommendedItemsUri}$type&limit=30');
         if (response.statusCode == 200) {
           recommendedItemList = [];
-          recommendedItemList.addAll(ItemModel.fromJson(response.body).items!);
+          recommendedItemList.addAll(ItemModel.fromJson(response.body).items ?? []);
           LocalClient.organize(DataSourceEnum.client, cacheId,
               jsonEncode(response.body), apiClient.getHeader());
         }
@@ -236,7 +237,7 @@ class ItemRepository implements ItemRepositoryInterface {
         if (cacheResponseData != null) {
           recommendedItemList = [];
           recommendedItemList
-              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items!);
+              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items ?? []);
         }
     }
 
@@ -249,8 +250,9 @@ class ItemRepository implements ItemRepositoryInterface {
         await apiClient.getData(AppConstants.commonConditionUri);
     if (response.statusCode == 200) {
       commonConditions = [];
-      response.body.forEach((condition) =>
-          commonConditions!.add(CommonConditionModel.fromJson(condition)));
+      for (final dynamic condition in ResponseParser.listOrEmpty(response.body)) {
+        commonConditions.add(CommonConditionModel.fromJson(condition));
+      }
     }
     return commonConditions;
   }
@@ -268,7 +270,7 @@ class ItemRepository implements ItemRepositoryInterface {
             '${AppConstants.discountedItemsUri}?type=$type&offset=1&limit=50');
         if (response.statusCode == 200) {
           discountedItemList = [];
-          discountedItemList.addAll(ItemModel.fromJson(response.body).items!);
+          discountedItemList.addAll(ItemModel.fromJson(response.body).items ?? []);
           LocalClient.organize(DataSourceEnum.client, cacheId,
               jsonEncode(response.body), apiClient.getHeader());
         }
@@ -279,7 +281,7 @@ class ItemRepository implements ItemRepositoryInterface {
         if (cacheResponseData != null) {
           discountedItemList = [];
           discountedItemList
-              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items!);
+              .addAll(ItemModel.fromJson(jsonDecode(cacheResponseData)).items ?? []);
         }
     }
 

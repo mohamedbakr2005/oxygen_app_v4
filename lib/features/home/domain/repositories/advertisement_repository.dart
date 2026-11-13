@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/home/domain/models/advertisement_model.dart';
 import 'package:Oxygen_Mart/features/home/domain/repositories/advertisement_repository_interface.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
-import 'package:Oxygen_Mart/local/cache_response.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class AdvertisementRepository implements AdvertisementRepositoryInterface {
@@ -19,19 +19,22 @@ class AdvertisementRepository implements AdvertisementRepositoryInterface {
       {int? offset, DataSourceEnum source = DataSourceEnum.client}) async {
     List<AdvertisementModel>? advertisementList;
     String cacheId =
-        '${AppConstants.advertisementListUri}-${Get.find<SplashController>().module!.id!}';
+        '${AppConstants.advertisementListUri}-${Get.find<SplashController>().module?.id ?? 0}';
 
     switch (source) {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.advertisementListUri);
         if (response.statusCode == 200) {
+          final List<dynamic> adsJson = ResponseParser.listOrEmpty(response.body);
           advertisementList = [];
-          response.body.forEach((data) {
-            advertisementList?.add(AdvertisementModel.fromJson(data));
-          });
-          LocalClient.organize(source, cacheId, jsonEncode(response.body),
+          for (final dynamic data in adsJson) {
+            advertisementList.add(AdvertisementModel.fromJson(data));
+          }
+          LocalClient.organize(source, cacheId, jsonEncode(adsJson),
               apiClient.getHeader());
+        } else {
+          advertisementList = [];
         }
 
       case DataSourceEnum.local:
@@ -39,18 +42,10 @@ class AdvertisementRepository implements AdvertisementRepositoryInterface {
             await LocalClient.organize(source, cacheId, null, null);
         if (cacheResponseData != null) {
           advertisementList = [];
-          jsonDecode(cacheResponseData).forEach((data) {
-            advertisementList?.add(AdvertisementModel.fromJson(data));
-          });
+          for (final dynamic data in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            advertisementList.add(AdvertisementModel.fromJson(data));
+          }
         }
-    }
-    Response response =
-        await apiClient.getData(AppConstants.advertisementListUri);
-    if (response.statusCode == 200) {
-      advertisementList = [];
-      response.body.forEach((data) {
-        advertisementList?.add(AdvertisementModel.fromJson(data));
-      });
     }
     return advertisementList;
   }

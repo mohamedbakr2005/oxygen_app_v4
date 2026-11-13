@@ -10,10 +10,12 @@ import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
 import 'package:Oxygen_Mart/features/banner/controllers/banner_controller.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/controllers/bogo_offer_controller.dart';
 import 'package:Oxygen_Mart/features/brands/controllers/brands_controller.dart';
 import 'package:Oxygen_Mart/features/category/controllers/category_controller.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
 import 'package:Oxygen_Mart/features/flash_sale/controllers/flash_sale_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/advertisement_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
 import 'package:Oxygen_Mart/features/home/screens/modules/grocery_home_screen.dart';
@@ -59,6 +61,8 @@ class HomeScreen extends StatefulWidget {
     bool isParcel = splashCtrl.module != null && (splashCtrl.configModel!.moduleConfig?.module?.isParcel ?? false);
 
     if (splashCtrl.module != null && !isParcel) {
+      Get.find<BogoOfferController>().getBogoHomeData();
+      Get.find<HappyHourController>().getRunningHappyHour();
       final String moduleType = splashCtrl.module!.moduleType.toString();
 
       if (moduleType == AppConstants.grocery) {

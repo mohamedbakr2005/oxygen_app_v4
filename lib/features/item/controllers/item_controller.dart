@@ -231,8 +231,8 @@ class ItemController extends GetxController implements GetxService {
     if (itemModel != null) {
       _reviewedItemList = [];
       _reviewedCategoriesList = [];
-      _reviewedItemList!.addAll(itemModel.items!);
-      _reviewedCategoriesList!.addAll(itemModel.categories!);
+      _reviewedItemList!.addAll(itemModel.items ?? <Item>[]);
+      _reviewedCategoriesList!.addAll(itemModel.categories ?? <Categories>[]);
       _isLoading = false;
     }
     update();
@@ -435,6 +435,27 @@ class ItemController extends GetxController implements GetxService {
       return item.categoryId.toString();
     }
     return null;
+  }
+
+  void resetItemDetails(Item item, {bool notify = false}) {
+    _isDetailsLoading = true;
+    _detailsError = false;
+    _item = item;
+    _relatedItemList = null;
+    _currentIndex = 0;
+    if (item.name != null) {
+      initData(item, null);
+    }
+    if (notify) update();
+  }
+
+  void clearItemDetails({bool notify = false}) {
+    _item = null;
+    _isDetailsLoading = true;
+    _detailsError = false;
+    _relatedItemList = null;
+    _currentIndex = 0;
+    if (notify) update();
   }
 
   Future<void> getProductDetails(Item item, {bool notify = false}) async {
@@ -827,7 +848,7 @@ class ItemController extends GetxController implements GetxService {
 
   Future<void> itemDirectlyAddToCart(Item? item, BuildContext context,
       {bool inStore = false, bool isCampaign = false}) async {
-    if (_isDirectlyAdding) return;
+    if (_isDirectlyAdding || (item?.id != null && Get.isRegistered<CartController>() && Get.find<CartController>().isItemAdding(item!.id))) return;
     _isDirectlyAdding = true;
     update();
 
@@ -950,7 +971,9 @@ class ItemController extends GetxController implements GetxService {
       }
     } finally {
       _isDirectlyAdding = false;
-      update();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        update();
+      });
     }
   }
 }

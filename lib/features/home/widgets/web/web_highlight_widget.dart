@@ -23,8 +23,12 @@ class _WebHighlightWidgetState extends State<WebHighlightWidget> {
   Widget build(BuildContext context) {
     return GetBuilder<AdvertisementController>(
         builder: (advertisementController) {
-      return advertisementController.advertisementList != null &&
-              advertisementController.advertisementList!.isNotEmpty
+      final bool hasAds = advertisementController.advertisementList != null &&
+          advertisementController.advertisementList!.isNotEmpty;
+      final bool isLoading = advertisementController.isLoading &&
+          advertisementController.advertisementList == null;
+
+      return hasAds
           ? Padding(
               padding: const EdgeInsets.only(
                   top: Dimensions.paddingSizeDefault,
@@ -144,7 +148,7 @@ class _WebHighlightWidgetState extends State<WebHighlightWidget> {
                 ],
               ),
             )
-          : advertisementController.advertisementList == null
+          : isLoading
               ? const AdvertisementShimmer()
               : const SizedBox();
     });

@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
@@ -171,5 +172,10 @@ class StoreService implements StoreServiceInterface {
   @override
   Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId) async {
     return await storeRepositoryInterface.getStoreCategoryItems(storeId);
+  }
+
+  @override
+  Future<StoreBogoOfferListModel?> getStoreBogoOffers(int? storeId, {int offset = 1, int limit = 10, Store? store}) async {
+    return await storeRepositoryInterface.getStoreBogoOffers(storeId, offset: offset, limit: limit, store: store);
   }
 }

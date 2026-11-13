@@ -2,6 +2,7 @@ import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:flutter/material.dart';
+import 'package:Oxygen_Mart/features/dashboard/widgets/bogo_offer_card_widget.dart';
 import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
 import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
 import 'package:get/get.dart';
@@ -93,6 +94,7 @@ class ShopHomeScreen extends StatelessWidget {
           child: ReelsSectionWidget(),
         ) : const SizedBox();
       }),
+      const BogoOfferCardWidget(),
       const HighlightWidget(),
       const PopularStoreView(),
       const BrandsViewWidget(),

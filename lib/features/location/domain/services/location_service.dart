@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/prediction_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
@@ -133,19 +134,16 @@ class LocationService implements LocationServiceInterface{
 
   @override
   Future<List<PredictionModel>> searchLocation(String text) async {
-    List<PredictionModel> predictionList = [];
     Response response = await locationRepoInterface.searchLocation(text);
-    if (response.statusCode == 200) {
-      predictionList = [];
-      try {
-        response.body['suggestions'].forEach((prediction) => predictionList.add(PredictionModel.fromJson(prediction)));
-      } catch (e) {
-        log('$e');
-      }
-    } else {
-      showCustomSnackBar(response.body['error_message'] ?? response.bodyString);
+    if (!ApiClient.isSuccessCode(response.statusCode)) {
+      return <PredictionModel>[];
     }
-    return predictionList;
+    final PlaceAutocompleteResult result = PlaceAutocompleteResult.fromBody(response.body);
+    if (result.hasError) {
+      log('place-api-autocomplete failed: ${result.errorMessage}');
+      showCustomSnackBar(result.errorMessage ?? 'location_search_failed'.tr);
+    }
+    return result.predictions;
   }
 
   @override

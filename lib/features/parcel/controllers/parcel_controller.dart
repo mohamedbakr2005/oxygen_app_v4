@@ -14,6 +14,9 @@ import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_mod
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/coverage_list_model.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_cancellation_reasons_model.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_tier_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/place_details_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/video_content_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/why_choose_model.dart';
@@ -85,6 +88,42 @@ class ParcelController extends GetxController implements GetxService {
 
   int _selectedOfflineBankIndex = 0;
   int get selectedOfflineBankIndex => _selectedOfflineBankIndex;
+
+  List<Reason>? _parcelCancellationReasons;
+  List<Reason>? get parcelCancellationReasons => _parcelCancellationReasons;
+
+  ParcelTierListModel<ParcelWeightModel>? _weightTier;
+  ParcelTierListModel<ParcelWeightModel>? get weightTier => _weightTier;
+
+  ParcelTierListModel<ParcelDimensionModel>? _dimensionTier;
+  ParcelTierListModel<ParcelDimensionModel>? get dimensionTier => _dimensionTier;
+
+  int? _selectedWeightId;
+  int? get selectedWeightId => _selectedWeightId;
+
+  int? _selectedDimensionId;
+  int? get selectedDimensionId => _selectedDimensionId;
+
+  bool get needsWeightSelection => _weightTier?.requiresSelection ?? false;
+  bool get needsDimensionSelection => _dimensionTier?.requiresSelection ?? false;
+
+  bool get isTierSelectionMissing =>
+      (needsWeightSelection && _selectedWeightId == null)
+      || (needsDimensionSelection && _selectedDimensionId == null);
+
+  ParcelWeightModel? get selectedWeight => _findById(_weightTier?.data, _selectedWeightId, (ParcelWeightModel w) => w.id);
+  ParcelDimensionModel? get selectedDimension => _findById(_dimensionTier?.data, _selectedDimensionId, (ParcelDimensionModel d) => d.id);
+
+  CoverageListModel? _coverage;
+  CoverageListModel? get coverage => _coverage;
+
+  int? _selectedAreaId;
+  int? get selectedAreaId => _selectedAreaId;
+
+  int? _selectedZipCodeId;
+  int? get selectedZipCodeId => _selectedZipCodeId;
+
+  bool get needsCoverageSelection => _coverage?.requiresSelection ?? false;
 
   List<Data>? _parcelInstructionList;
   List<Data>? get parcelInstructionList => _parcelInstructionList;
@@ -176,6 +215,74 @@ class ParcelController extends GetxController implements GetxService {
   void changeDigitalPaymentName(String name) {
     _digitalPaymentName = name;
     update();
+  }
+
+  Future<void> getParcelCancellationReasons({required bool isBeforePickup}) async {
+    final ParcelCancellationReasonsModel? result = await parcelServiceInterface.getParcelCancellationReasons(isBeforePickup: isBeforePickup);
+    if (result != null) {
+      _parcelCancellationReasons = result.data;
+      update();
+    }
+  }
+
+  void selectWeight(int? id) {
+    _selectedWeightId = id;
+    update();
+  }
+
+  void selectDimension(int? id) {
+    _selectedDimensionId = id;
+    update();
+  }
+
+  void clearTierSelections({bool notify = true}) {
+    _selectedWeightId = null;
+    _selectedDimensionId = null;
+    if (notify) update();
+  }
+
+  void selectArea(int? id) {
+    _selectedAreaId = id;
+    update();
+  }
+
+  void selectZipCode(int? id) {
+    _selectedZipCodeId = id;
+    update();
+  }
+
+  Future<void> loadParcelTiers({required int zoneId, int? moduleId}) async {
+    final int? previousWeightId = _selectedWeightId;
+    final int? previousDimensionId = _selectedDimensionId;
+
+    final List<dynamic> tiers = await Future.wait(<Future<dynamic>>[
+      parcelServiceInterface.getParcelWeightList(zoneId: zoneId, moduleId: moduleId),
+      parcelServiceInterface.getParcelDimensionList(zoneId: zoneId, moduleId: moduleId),
+    ]);
+    final ParcelTierListModel<ParcelWeightModel>? weight = tiers[0] as ParcelTierListModel<ParcelWeightModel>?;
+    final ParcelTierListModel<ParcelDimensionModel>? dimension = tiers[1] as ParcelTierListModel<ParcelDimensionModel>?;
+
+    if (weight != null) _weightTier = weight;
+    if (dimension != null) _dimensionTier = dimension;
+
+    _selectedWeightId = _survivingPick(_weightTier, previousWeightId, (ParcelWeightModel w) => w.id);
+    _selectedDimensionId = _survivingPick(_dimensionTier, previousDimensionId, (ParcelDimensionModel d) => d.id);
+
+    update();
+  }
+
+  static int? _survivingPick<T>(ParcelTierListModel<T>? tier, int? id, int? Function(T) idOf) {
+    if (id == null) return null;
+    if (tier == null || !tier.requiresSelection) return id;
+    return tier.data.any((T row) => idOf(row) == id) ? id : null;
+  }
+
+  static T? _findById<T>(List<T>? list, int? id, int? Function(T) idOf) {
+    if (list == null || id == null) return null;
+    for (final T element in list) {
+      if (idOf(element) == id) return element;
+    }
+    return null;
   }
 
   void toggleTerms() {

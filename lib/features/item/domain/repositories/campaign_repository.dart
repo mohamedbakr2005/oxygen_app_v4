@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/basic_campaign_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
@@ -32,17 +33,19 @@ class CampaignRepository implements CampaignRepositoryInterface {
       DataSourceEnum source) async {
     List<BasicCampaignModel>? basicCampaignList;
     String cacheId =
-        '${AppConstants.basicCampaignUri}-banner-${Get.find<SplashController>().module!.id!}';
+        '${AppConstants.basicCampaignUri}-banner-${Get.find<SplashController>().module?.id ?? 0}';
 
     switch (source) {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.basicCampaignUri);
         if (response.statusCode == 200) {
+          final List<dynamic> campaignsJson = ResponseParser.listOrEmpty(response.body);
           basicCampaignList = [];
-          response.body.forEach((campaign) =>
-              basicCampaignList!.add(BasicCampaignModel.fromJson(campaign)));
-          LocalClient.organize(source, cacheId, jsonEncode(response.body),
+          for (final dynamic campaign in campaignsJson) {
+            basicCampaignList.add(BasicCampaignModel.fromJson(campaign));
+          }
+          LocalClient.organize(source, cacheId, jsonEncode(campaignsJson),
               apiClient.getHeader());
         }
 
@@ -51,8 +54,9 @@ class CampaignRepository implements CampaignRepositoryInterface {
             await LocalClient.organize(source, cacheId, null, null);
         if (cacheResponseData != null) {
           basicCampaignList = [];
-          jsonDecode(cacheResponseData).forEach((campaign) =>
-              basicCampaignList!.add(BasicCampaignModel.fromJson(campaign)));
+          for (final dynamic campaign in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            basicCampaignList.add(BasicCampaignModel.fromJson(campaign));
+          }
         }
     }
 
@@ -62,17 +66,19 @@ class CampaignRepository implements CampaignRepositoryInterface {
   Future<List<Item>?> _getItemCampaignList(DataSourceEnum source) async {
     List<Item>? itemCampaignList;
     String cacheId =
-        '${AppConstants.basicCampaignUri}-${Get.find<SplashController>().module!.id!}';
+        '${AppConstants.basicCampaignUri}-${Get.find<SplashController>().module?.id ?? 0}';
 
     switch (source) {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.itemCampaignUri);
         if (response.statusCode == 200) {
+          final List<dynamic> campsJson = ResponseParser.listOrEmpty(response.body);
           itemCampaignList = [];
-          response.body
-              .forEach((camp) => itemCampaignList!.add(Item.fromJson(camp)));
-          LocalClient.organize(source, cacheId, jsonEncode(response.body),
+          for (final dynamic camp in campsJson) {
+            itemCampaignList.add(Item.fromJson(camp));
+          }
+          LocalClient.organize(source, cacheId, jsonEncode(campsJson),
               apiClient.getHeader());
         }
 
@@ -81,8 +87,9 @@ class CampaignRepository implements CampaignRepositoryInterface {
             await LocalClient.organize(source, cacheId, null, null);
         if (cacheResponseData != null) {
           itemCampaignList = [];
-          jsonDecode(cacheResponseData)
-              .forEach((camp) => itemCampaignList!.add(Item.fromJson(camp)));
+          for (final dynamic camp in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            itemCampaignList.add(Item.fromJson(camp));
+          }
         }
     }
 

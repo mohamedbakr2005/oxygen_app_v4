@@ -70,7 +70,7 @@ class AuthRepository implements AuthRepositoryInterface{
     ResponseModel responseModel;
     String? deviceToken = await saveDeviceToken();
     Response response = await apiClient.postData(AppConstants.guestLoginUri, {'fcm_token': deviceToken});
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode) && response.body != null && response.body['guest_id'] != null) {
       await saveSharedPrefGuestId(response.body['guest_id'].toString());
       responseModel = ResponseModel(true, '${response.body['guest_id']}');
     } else {

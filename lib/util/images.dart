@@ -21,9 +21,12 @@ class Images {
   static const String placeHolder = 'assets/image/placeholder-image.jpg';
   static const String proPlanCrown = 'assets/image/pro_plan_crown.png';
   static const String map = 'assets/image/map.png';
-  static const String onboard_1 = 'assets/image/onboard_1.png';
-  static const String onboard_2 = 'assets/image/onboard_2.png';
-  static const String onboard_3 = 'assets/image/onboard_3.png';
+  static const String onBoarding1 = 'assets/image/onBoarding1.png';
+  static const String onBoarding2 = 'assets/image/onBoarding2.png';
+  static const String onBoarding3 = 'assets/image/onBoarding3.png';
+  static const String onboard_1 = 'assets/image/onBoarding1.png';
+  static const String onboard_2 = 'assets/image/onBoarding2.png';
+  static const String onboard_3 = 'assets/image/onBoarding3.png';
   static const String restaurantMarker = 'assets/image/restaurant_marker.png';
   static const String deliveryManMarker =
       'assets/image/delivery_man_marker.png';
@@ -477,4 +480,8 @@ class Images {
   static const String dropdownIcon = 'assets/image/service/drop_down_icon.svg';
   static const String serviceNearByIcon = 'assets/image/service/near_by_icon.png';
   static const String zoneLocation = 'assets/image/zone_location.png';
+  static const String happyHours = 'assets/image/happy_hours.png';
+  static const String bogoOfferIcon = 'assets/image/bogo_offer.png';
+  static const String bogoOffers = 'assets/image/bogo_offers.png';
+  static const String giftIcons = 'assets/image/gifts.png';
 }

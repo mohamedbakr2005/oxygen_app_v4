@@ -4,10 +4,13 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
+import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/recommended_product_model.dart';
@@ -106,12 +109,14 @@ class StoreRepository implements StoreRepositoryInterface {
       case DataSourceEnum.client:
         Response response = await apiClient
             .getData('${AppConstants.popularStoreUri}?type=$type', moduleScoped: true);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           popularStoreList = [];
-          response.body['stores']
-              .forEach((store) => popularStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            popularStoreList.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body['stores']), apiClient.getHeader());
+              jsonEncode(storesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -119,8 +124,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           popularStoreList = [];
-          jsonDecode(cacheResponseData)
-              .forEach((store) => popularStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            popularStoreList.add(Store.fromJson(store));
+          }
         }
     }
     return popularStoreList;
@@ -136,12 +142,14 @@ class StoreRepository implements StoreRepositoryInterface {
       case DataSourceEnum.client:
         Response response = await apiClient
             .getData('${AppConstants.latestStoreUri}?type=$type', moduleScoped: true);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           latestStoreList = [];
-          response.body['stores']
-              .forEach((store) => latestStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            latestStoreList.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body['stores']), apiClient.getHeader());
+              jsonEncode(storesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -149,8 +157,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           latestStoreList = [];
-          jsonDecode(cacheResponseData)
-              .forEach((store) => latestStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            latestStoreList.add(Store.fromJson(store));
+          }
         }
     }
 
@@ -167,12 +176,14 @@ class StoreRepository implements StoreRepositoryInterface {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.topOfferStoreUri, moduleScoped: true);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           topOfferStoreList = [];
-          response.body['stores'].forEach(
-              (store) => topOfferStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            topOfferStoreList.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body['stores']), apiClient.getHeader());
+              jsonEncode(storesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -180,8 +191,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           topOfferStoreList = [];
-          jsonDecode(cacheResponseData).forEach(
-              (store) => topOfferStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            topOfferStoreList.add(Store.fromJson(store));
+          }
         }
     }
     return topOfferStoreList;
@@ -207,12 +219,14 @@ class StoreRepository implements StoreRepositoryInterface {
               : null,
           moduleScoped: true,
         );
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           featuredStoreList = [];
-          response.body['stores'].forEach(
-              (store) => featuredStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            featuredStoreList.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body['stores']), header);
+              jsonEncode(storesJson), header);
         }
 
       case DataSourceEnum.local:
@@ -220,8 +234,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           featuredStoreList = [];
-          jsonDecode(cacheResponseData).forEach(
-              (store) => featuredStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData), legacyKey: 'stores')) {
+            featuredStoreList.add(Store.fromJson(store));
+          }
         }
     }
     return featuredStoreList;
@@ -236,12 +251,14 @@ class StoreRepository implements StoreRepositoryInterface {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.visitAgainStoreUri, moduleScoped: true);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           visitAgainStoreList = [];
-          response.body.forEach(
-              (store) => visitAgainStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            visitAgainStoreList.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body), apiClient.getHeader());
+              jsonEncode(storesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -249,8 +266,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           visitAgainStoreList = [];
-          jsonDecode(cacheResponseData).forEach(
-              (store) => visitAgainStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            visitAgainStoreList.add(Store.fromJson(store));
+          }
         }
     }
     return visitAgainStoreList;
@@ -371,10 +389,11 @@ class StoreRepository implements StoreRepositoryInterface {
     List<StoreBannerModel>? storeBanners;
     Response response =
         await apiClient.getData('${AppConstants.storeBannersUri}$storeId');
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       storeBanners = [];
-      response.body.forEach(
-          (banner) => storeBanners!.add(StoreBannerModel.fromJson(banner)));
+      for (final dynamic banner in ResponseParser.listOrEmpty(response.body)) {
+        storeBanners!.add(StoreBannerModel.fromJson(banner));
+      }
     }
     return storeBanners;
   }
@@ -389,12 +408,14 @@ class StoreRepository implements StoreRepositoryInterface {
       case DataSourceEnum.client:
         Response response =
             await apiClient.getData(AppConstants.recommendedStoreUri, moduleScoped: true);
-        if (response.statusCode == 200) {
+        if (ApiClient.isSuccessCode(response.statusCode)) {
           recommendedStoreList = [];
-          response.body['stores'].forEach(
-              (store) => recommendedStoreList!.add(Store.fromJson(store)));
+          final List storesJson = ResponseParser.listOrEmpty(response.body, legacyKey: 'stores');
+          for (var store in storesJson) {
+            recommendedStoreList!.add(Store.fromJson(store));
+          }
           LocalClient.organize(DataSourceEnum.client, cacheId,
-              jsonEncode(response.body['stores']), apiClient.getHeader());
+              jsonEncode(storesJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
@@ -402,8 +423,9 @@ class StoreRepository implements StoreRepositoryInterface {
             DataSourceEnum.local, cacheId, null, null);
         if (cacheResponseData != null) {
           recommendedStoreList = [];
-          jsonDecode(cacheResponseData).forEach(
-              (store) => recommendedStoreList!.add(Store.fromJson(store)));
+          for (final dynamic store in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            recommendedStoreList!.add(Store.fromJson(store));
+          }
         }
     }
 
@@ -450,6 +472,21 @@ class StoreRepository implements StoreRepositoryInterface {
     final Map<String, String> headers = Map<String, String>.from(apiClient.getHeader());
     headers[AppConstants.moduleId] = '$moduleId';
     return headers;
+  }
+
+  @override
+  Future<StoreBogoOfferListModel?> getStoreBogoOffers(int? storeId, {int offset = 1, int limit = 10, Store? store}) async {
+    String guestQuery = '';
+    if(AuthHelper.isGuestLoggedIn()) {
+      guestQuery = '&guest_id=${AuthHelper.getGuestId()}';
+    }
+    Response response = await apiClient.getData(
+      '${AppConstants.storeBogoOffersUri}?store_id=$storeId&limit=$limit&offset=$offset$guestQuery', handleError: false,
+    );
+    if(response.statusCode == 200) {
+      return StoreBogoOfferListModel.fromJson(response.body, store: store);
+    }
+    return null;
   }
 
   @override

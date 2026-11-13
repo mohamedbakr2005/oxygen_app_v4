@@ -174,7 +174,7 @@ class DeliverySection extends StatelessWidget {
                                 children: [
                                   Container(
                                     constraints:
-                                        const BoxConstraints(minHeight: 70),
+                                        const BoxConstraints(minHeight: 80),
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(16),
                                       color: theme.primaryColor.withValues(alpha: 0.06),
@@ -331,7 +331,7 @@ class DeliverySection extends StatelessWidget {
                               )
                             : Container(
                                 constraints: BoxConstraints(
-                                  minHeight: isDesktop ? 90 : 70,
+                                  minHeight: isDesktop ? 90 : 80,
                                 ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
@@ -374,7 +374,7 @@ class DeliverySection extends StatelessWidget {
                                             '';
                                   },
                                   dropdownButtonStyle: DropdownButtonStyle(
-                                    height: isDesktop ? 70 : 68,
+                                    height: isDesktop ? 86 : 80,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 2,
                                       horizontal: Dimensions.paddingSizeSmall,

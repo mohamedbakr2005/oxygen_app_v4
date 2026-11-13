@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_asset_image_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
-import 'package:Oxygen_Mart/features/onboard/controllers/onboard_controller.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/repository/onboard_repository.dart';
-import 'package:Oxygen_Mart/features/onboard/domain/service/onboard_service.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
-import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 
@@ -24,31 +20,25 @@ class OnBoardingNewScreen extends StatefulWidget {
 
 class _OnBoardingNewScreenState extends State<OnBoardingNewScreen> {
   final PageController _pageController = PageController();
-  late final OnBoardingController _onBoardingController =
-      OnBoardingController(onboardServiceInterface: OnboardService(onboardRepositoryInterface: OnboardRepository()));
-  static const List<_OnBoardingNewText> _onBoardingText = [
-    _OnBoardingNewText(
-      image: Images.onBoard,
-      title: 'on_boarding_1_title',
-      description: 'on_boarding_1_description',
-    ),
-    _OnBoardingNewText(
-      image: Images.onboard_3,
-      title: 'on_boarding_2_title',
-      description: 'on_boarding_2_description',
-    ),
-    _OnBoardingNewText(
-      image: Images.onboard_2,
-      title: 'on_boarding_3_title',
-      description: 'on_boarding_3_description',
-    ),
+  int _currentPage = 0;
+  bool _isNavigating = false;
+
+  static const List<String> _onboardingImages = [
+    Images.onBoarding1,
+    Images.onBoarding2,
+    Images.onBoarding3,
   ];
 
-  @override
-  void initState() {
-    super.initState();
+  static const Color _screenBgColor = Color(0xFFFEFDF6);
+  static const Color _primaryGreen = Color(0xFF008B47);
+  static const Color _accentGreen = Color(0xFF05A855);
 
-    _onBoardingController.getOnBoardingList();
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    for (final img in _onboardingImages) {
+      precacheImage(AssetImage(img), context);
+    }
   }
 
   @override
@@ -57,243 +47,503 @@ class _OnBoardingNewScreenState extends State<OnBoardingNewScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: ResponsiveHelper.isDesktop(context) ? const WebMenuBar() : null,
-      body: SafeArea(
-        child: GetBuilder<OnBoardingController>(
-          init: _onBoardingController,
-          global: false,
-          builder: (onBoardingController) {
-            bool showIndicatorAndButton = onBoardingController.selectedIndex < onBoardingController.onBoardingList.length - 1;
-            bool isLastOnBoardingPage = onBoardingController.selectedIndex >= onBoardingController.onBoardingList.length - 2;
-            int displayIndex = onBoardingController.selectedIndex;
-            if (displayIndex >= _onBoardingText.length) {
-              displayIndex = _onBoardingText.length - 1;
-            }
-            return onBoardingController.onBoardingList.isNotEmpty
-              ? Center(child: SizedBox(width: Dimensions.webMaxWidth,
-                  child: Column(children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(25), bottomRight: Radius.circular(25)),
-                        ),
-                        child: Stack(children: [
-                          PageView.builder(
-                            itemCount: onBoardingController.onBoardingList.length,
-                            controller: _pageController,
-                            itemBuilder: (context, index) {
-                              if (index >= _onBoardingText.length) {
-                                return const SizedBox.expand();
-                              }
-                              return _OnBoardingImage(image: _onBoardingText[index].image);
-                            },
-                            onPageChanged: (index) {
-                              onBoardingController.changeSelectIndex(index);
-                              if (onBoardingController.selectedIndex == 3) {
-                                _configureToRouteInitialPage();
-                              }
-                            },
-                          ),
+  void _onPageChanged(int index) {
+    if (_currentPage != index) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _currentPage = index;
+      });
+    }
+  }
 
-                          if (showIndicatorAndButton && !isLastOnBoardingPage)
-                            Positioned(
-                              top: Dimensions.paddingSizeLarge,
-                              right: Dimensions.paddingSizeExtremeLarge,
-                              child: _SkipButton(onTap: _configureToRouteInitialPage),
-                            ),
-                        ]),
-                      ),
-                    ),
+  void _handleNext() {
+    HapticFeedback.lightImpact();
+    if (_currentPage < _onboardingImages.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _configureToRouteInitialPage();
+    }
+  }
 
-                    if (showIndicatorAndButton)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 42, 24, 28),
-                        child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Text(
-                            _onBoardingText[displayIndex].title.tr,
-                            style: robotoBold.copyWith(fontSize: Dimensions.fontSizeExtraLarge,
-                            ),
-                            textAlign: TextAlign.center, maxLines: 2,
-                          ),
-                          const SizedBox(height: 12),
+  void _handleBack() {
+    HapticFeedback.lightImpact();
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
-                          Text(_onBoardingText[displayIndex].description.tr,
-                            style: robotoRegular.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).disabledColor),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 34),
-
-                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            _CircleArrowButton(
-                              icon: Icons.arrow_back,
-                              backgroundColor: Theme.of(context).cardColor,
-                              iconColor: Theme.of(context).textTheme.bodyLarge!.color!.withValues(alpha: 0.6),
-                              onTap: () {
-                                if (onBoardingController.selectedIndex == 0) {
-                                  Get.back();
-                                }
-                                if (onBoardingController.selectedIndex > 0) {
-                                  _pageController.previousPage(
-                                    duration: const Duration(milliseconds: 450),
-                                    curve: Curves.easeInOut,
-                                  );
-                                }
-                              },
-                            ),
-                            const SizedBox(width: 22),
-                            _NextArrowButton(
-                              progress: (displayIndex + 1) / _onBoardingText.length,
-                              onTap: () {
-                                if (onBoardingController.selectedIndex != 2) {
-                                  _pageController.nextPage(
-                                    duration: const Duration(milliseconds: 450),
-                                    curve: Curves.easeInOut,
-                                  );
-                                } else {
-                                  _configureToRouteInitialPage();
-                                }
-                              },
-                            ),
-                          ]),
-                        ]),
-                      )
-                    else const SizedBox(height: 250),
-                  ]),
-                )) : const SizedBox();
-          },
-        ),
-      ),
-    );
+  void _handleSkip() {
+    HapticFeedback.lightImpact();
+    _configureToRouteInitialPage();
   }
 
   void _configureToRouteInitialPage() async {
-    Get.find<SplashController>().disableIntro();
-    await Get.find<AuthController>().guestLogin();
-    if (AddressHelper.getUserAddressFromSharedPref() != null) {
-      Get.offNamed(RouteHelper.getInitialRoute(fromSplash: true));
-    } else {
-      Get.find<LocationController>().navigateToLocationScreen(RouteHelper.onBoarding, offNamed: true)
-          .then((v) {_pageController.jumpToPage(_onBoardingController.onBoardingList.length - 2);});
+    if (_isNavigating) return;
+    _isNavigating = true;
+
+    try {
+      Get.find<SplashController>().disableIntro();
+      await Get.find<AuthController>().guestLogin();
+      if (AddressHelper.getUserAddressFromSharedPref() != null) {
+        Get.offNamed(RouteHelper.getInitialRoute(fromSplash: true));
+      } else {
+        Get.find<LocationController>().navigateToLocationScreen(
+          RouteHelper.onBoarding,
+          offNamed: true,
+        );
+      }
+    } catch (_) {
+      _isNavigating = false;
     }
   }
-}
-
-class _OnBoardingNewText {
-  final String image;
-  final String title;
-  final String description;
-
-  const _OnBoardingNewText({required this.image, required this.title, required this.description});
-}
-
-class _OnBoardingImage extends StatelessWidget {
-  final String image;
-
-  const _OnBoardingImage({required this.image});
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: const Alignment(0, 0.24),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: CustomAssetImageWidget(image, height: context.height * 0.26, fit: BoxFit.contain),
+    final bool isDesktop = ResponsiveHelper.isDesktop(context);
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: _screenBgColor,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: _screenBgColor,
+        appBar: isDesktop ? const WebMenuBar() : null,
+        body: SafeArea(
+          top: false,
+          bottom: true,
+          child: Center(
+            child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+          ),
+        ),
       ),
     );
   }
-}
 
-class _SkipButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _SkipButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 30,
-          decoration: BoxDecoration(
-            color: Theme.of(context).disabledColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildDesktopLayout() {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 440, maxHeight: 860),
+      margin: const EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        color: _screenBgColor,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.08),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 40,
+            spreadRadius: 2,
+            offset: const Offset(0, 16),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall + 2, vertical: Dimensions.paddingSizeExtraSmall - 2),
-          child: Center(
-            child: Text(
-              'skip'.tr,
-              style: robotoBold.copyWith(fontSize: Dimensions.fontSizeDefault),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _buildMobileLayout(),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Stack(
+      children: [
+        // Full screen content
+        Column(
+          children: [
+            // PageView taking maximum available space
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _onboardingImages.length,
+                physics: const BouncingScrollPhysics(),
+                onPageChanged: _onPageChanged,
+                itemBuilder: (context, index) {
+                  return _OnboardingImageCard(
+                    imagePath: _onboardingImages[index],
+                  );
+                },
+              ),
+            ),
+
+            // Bottom Navigation Controls Dock
+            _buildBottomControls(),
+          ],
+        ),
+
+        // Floating Top Bar (Back & Skip buttons)
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: SafeArea(
+            bottom: false,
+            child: _buildTopBar(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopBar() {
+    final bool isLastPage = _currentPage == _onboardingImages.length - 1;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Back button (shown when on slide 1 or 2)
+          AnimatedOpacity(
+            opacity: _currentPage > 0 ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 250),
+            child: IgnorePointer(
+              ignoring: _currentPage == 0,
+              child: _GlassIconButton(
+                icon: Icons.arrow_back_ios_new_rounded,
+                onTap: _handleBack,
+              ),
             ),
           ),
-        ),
+
+          // Skip button ("تخطي")
+          AnimatedOpacity(
+            opacity: isLastPage ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 250),
+            child: IgnorePointer(
+              ignoring: isLastPage,
+              child: _GlassCapsuleButton(
+                title: 'skip'.tr,
+                onTap: _handleSkip,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _CircleArrowButton extends StatelessWidget {
-  final IconData icon;
-  final Color backgroundColor;
-  final Color iconColor;
-  final VoidCallback onTap;
+  Widget _buildBottomControls() {
+    final bool isLastPage = _currentPage == _onboardingImages.length - 1;
 
-  const _CircleArrowButton({required this.icon, required this.backgroundColor, required this.iconColor, required this.onTap});
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Modern Animated Page Indicator
+          _buildPageIndicator(),
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: backgroundColor,
-      shape: const CircleBorder(),
-      child: InkWell(onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(width: 36, height: 36,
-          child: Icon(icon, color: iconColor, size: 14),
-        ),
+          // Dynamic Action CTA Button
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            height: 54,
+            width: isLastPage ? 185 : 54,
+            child: isLastPage
+                ? _buildGetStartedButton()
+                : _buildNextRoundButton(),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _NextArrowButton extends StatelessWidget {
-  final double progress;
-  final VoidCallback onTap;
+  Widget _buildPageIndicator() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(_onboardingImages.length, (index) {
+        final bool isSelected = _currentPage == index;
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            _pageController.animateToPage(
+              index,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+            );
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: 8,
+            width: isSelected ? 30 : 8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              gradient: isSelected
+                  ? const LinearGradient(
+                      colors: [_primaryGreen, _accentGreen],
+                    )
+                  : null,
+              color: isSelected ? null : const Color(0xFFD8E2DC),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: _primaryGreen.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+        );
+      }),
+    );
+  }
 
-  const _NextArrowButton({required this.progress, required this.onTap});
+  Widget _buildNextRoundButton() {
+    final double progress = (_currentPage + 1) / _onboardingImages.length;
 
-  @override
-  Widget build(BuildContext context) {
-    final Color primaryColor = Theme.of(context).primaryColor;
-
-    return SizedBox(width: 56, height: 48,
-      child: Stack(alignment: Alignment.center, children: [
-        SizedBox(width: 42, height: 42,
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Sleek outer circular progress tracker
+        SizedBox(
+          width: 54,
+          height: 54,
           child: TweenAnimationBuilder<double>(
             tween: Tween<double>(begin: 0, end: progress),
-            duration: const Duration(milliseconds: 450),
-            curve: Curves.easeInOut,
-            builder: (context, value, child) => CircularProgressIndicator(
-              value: value,
-              strokeWidth: 2,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return CircularProgressIndicator(
+                value: value,
+                strokeWidth: 2.5,
+                backgroundColor: _primaryGreen.withValues(alpha: 0.12),
+                valueColor: const AlwaysStoppedAnimation<Color>(_primaryGreen),
+              );
+            },
+          ),
+        ),
+
+        // Central elevated action button
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            onTap: _handleNext,
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [_primaryGreen, _accentGreen],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _primaryGreen.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
             ),
           ),
         ),
-        _CircleArrowButton(
-          icon: Icons.arrow_forward,
-          backgroundColor: primaryColor,
-          iconColor: Theme.of(context).cardColor,
-          onTap: onTap,
+      ],
+    );
+  }
+
+  Widget _buildGetStartedButton() {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(28),
+      child: InkWell(
+        onTap: _handleNext,
+        borderRadius: BorderRadius.circular(28),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_primaryGreen, Color(0xFF02A350)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _primaryGreen.withValues(alpha: 0.45),
+                blurRadius: 16,
+                spreadRadius: 1,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.shopping_bag_rounded,
+                  color: Colors.white,
+                  size: 19,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'يلا بينا'.tr,
+                  style: robotoBold.copyWith(
+                    color: Colors.white,
+                    fontSize: 15,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
         ),
-      ]),
+      ),
+    );
+  }
+}
+
+class _OnboardingImageCard extends StatelessWidget {
+  final String imagePath;
+
+  const _OnboardingImageCard({required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      alignment: Alignment.topCenter,
+      child: Image.asset(
+        imagePath,
+        width: double.infinity,
+        height: double.infinity,
+        fit: BoxFit.contain,
+        alignment: Alignment.topCenter,
+        filterQuality: FilterQuality.high,
+      ),
+    );
+  }
+}
+
+class _GlassCapsuleButton extends StatelessWidget {
+  final String title;
+  final VoidCallback onTap;
+
+  const _GlassCapsuleButton({required this.title, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFE2E8F0).withValues(alpha: 0.85),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: robotoBold.copyWith(
+                  fontSize: 13,
+                  color: const Color(0xFF0E3826),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 10,
+                color: Color(0xFF0E3826),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _GlassIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.88),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: const Color(0xFFE2E8F0).withValues(alpha: 0.85),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              size: 14,
+              color: const Color(0xFF0E3826),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

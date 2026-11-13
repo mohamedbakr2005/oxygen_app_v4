@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:Oxygen_Mart/features/reels/widgets/reels_section_widget.dart';
 import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/features/dashboard/widgets/bogo_offer_card_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/module_list_widget.dart';
 import 'package:Oxygen_Mart/features/flash_sale/widgets/flash_sale_view_widget.dart';
 import 'package:Oxygen_Mart/features/home/widgets/highlight_widget.dart';
@@ -46,6 +47,7 @@ class GroceryHomeScreen extends StatelessWidget {
           child: ShopUpToOffer(variant: TopOfferVariant.grocery),
         ),
         const SizedBox(height: Dimensions.paddingSizeSmall),
+        const BogoOfferCardWidget(),
 
         // const ModuleListWidget(),
         const SpecialOfferView(isFood: false, isShop: false),

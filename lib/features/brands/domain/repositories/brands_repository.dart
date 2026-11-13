@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/brands/domain/models/brands_model.dart';
@@ -25,21 +26,22 @@ class BrandsRepository implements BrandsRepositoryInterface {
       case DataSourceEnum.client:
         Response response = await apiClient.getData(AppConstants.brandListUri);
         if (response.statusCode == 200) {
+          final List<dynamic> brandsJson = ResponseParser.listOrEmpty(response.body);
           brandList = [];
-          response.body
-              .forEach((brand) => brandList!.add(BrandModel.fromJson(brand)));
-          LocalClient.organize(source, cacheId, jsonEncode(response.body),
-              apiClient.getHeader());
+          for (final dynamic brand in brandsJson) {
+            brandList.add(BrandModel.fromJson(brand));
+          }
+          LocalClient.organize(source, cacheId, jsonEncode(brandsJson), apiClient.getHeader());
         }
 
       case DataSourceEnum.local:
         String? cacheResponseData =
             await LocalClient.organize(source, cacheId, null, null);
-        print('=======brand cache: $cacheResponseData');
         if (cacheResponseData != null) {
           brandList = [];
-          jsonDecode(cacheResponseData)
-              .forEach((brand) => brandList!.add(BrandModel.fromJson(brand)));
+          for (final dynamic brand in ResponseParser.listOrEmpty(jsonDecode(cacheResponseData))) {
+            brandList.add(BrandModel.fromJson(brand));
+          }
         }
     }
 

@@ -1,3 +1,6 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/common/models/pagination_model.dart';
+
 class StoreModel {
   int? totalSize;
   String? limit;
@@ -7,15 +10,20 @@ class StoreModel {
   StoreModel({this.totalSize, this.limit, this.offset, this.stores});
 
   StoreModel.fromJson(Map<String, dynamic> json) {
-    totalSize = _toInt(json['total_size']);
-    limit = json['limit']?.toString();
-    offset = _toInt(json['offset']);
-    final dynamic storeList = json['stores'] ?? json['providers'];
+    final PaginationModel pagination = PaginationModel.fromJson(json);
+    totalSize = pagination.totalSize;
+    limit = pagination.limit?.toString();
+    offset = pagination.offset;
+    final List<dynamic>? storeList = (json['stores'] is List)
+        ? json['stores'] as List<dynamic>
+        : (json['providers'] is List)
+            ? json['providers'] as List<dynamic>
+            : ResponseParser.listOf(json);
     if (storeList != null) {
       stores = [];
-      storeList.forEach((v) {
+      for (final dynamic v in storeList) {
         stores!.add(Store.fromJson(v));
-      });
+      }
     }
   }
 
@@ -102,6 +110,10 @@ class Store {
   List<String?>? storeItemImageList;
   String? description;
   List<dynamic>? activeCoupons;
+  String? distanceLabel;
+  bool? isHappyHourRunning;
+  double? minPrice;
+  double? maxPrice;
 
 
   Store({
@@ -119,9 +131,14 @@ class Store {
     this.minDeliveryTime, this.maxDeliveryTime, this.storeOpeningTime, this.verifiedSeller, this.avgItemDiscountPercentage,
     this.offers, this.ad, this.proDiscount, this.isNew, this.sponsored,
     this.offerLabel, this.storeItemImageList, this.description, this.activeCoupons,
+    this.distanceLabel, this.isHappyHourRunning, this.minPrice, this.maxPrice,
   });
 
-  Store.fromJson(Map<String, dynamic> json) {
+  Store.fromJson(Map<String, dynamic> rawJson) {
+    final dynamic payload = ResponseParser.payloadOf(rawJson);
+    final Map<String, dynamic> json = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : rawJson;
     id = _toInt(json['id']);
     name = json['name']?.toString();
     phone = json['phone']?.toString();
@@ -139,7 +156,16 @@ class Store {
     scheduleOrder = _toBool(json['schedule_order']);
     avgRating = _toDouble(json['avg_rating']);
     tax = _toDouble(json['tax']);
-    ratingCount = _toInt(json['rating_count']);
+    ratingCount = _toInt(json['rating_count']) ?? _toInt(json['reviews_count']);
+    distanceLabel = _nonEmpty(json['distance_label']) ?? _nonEmpty(json['distance_lavel']);
+    isHappyHourRunning = _toBool(json['is_happy_hour_running']);
+    if (json['price_range'] is List && (json['price_range'] as List).isNotEmpty) {
+      final dynamic range = (json['price_range'] as List).first;
+      if (range is Map) {
+        minPrice = _toDouble(range['min_price']);
+        maxPrice = _toDouble(range['max_price']);
+      }
+    }
     reviewsCount = _toInt(json['reviews_count']);
     selfDeliverySystem = _toInt(json['self_delivery_system']);
     posSystem = _toBool(json['pos_system']);
@@ -186,7 +212,7 @@ class Store {
     slug = json['slug']?.toString();
     announcementActive = json['announcement'] == 1 || json['announcement'] == true;
     announcementMessage = json['announcement_message']?.toString();
-    itemCount = _toInt(json['total_items']);
+    itemCount = _toInt(json['total_items']) ?? _toInt(json['items_count']);
     if (json['items'] != null) {
       items = <Items>[];
       json['items'].forEach((v) {
@@ -319,6 +345,8 @@ class Store {
     data['store_item_image_list'] = storeItemImageList;
     data['description'] = description;
     data['active_coupons'] = activeCoupons;
+    data['distance_label'] = distanceLabel;
+    data['is_happy_hour_running'] = isHappyHourRunning;
     return data;
   }
 }
@@ -739,4 +767,10 @@ bool? _toBool(dynamic value) {
   if (s == 'true' || s == '1') return true;
   if (s == 'false' || s == '0') return false;
   return null;
+}
+
+String? _nonEmpty(dynamic value) {
+  if (value == null) return null;
+  final String text = value.toString().trim();
+  return text.isEmpty ? null : text;
 }

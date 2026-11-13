@@ -1,7 +1,10 @@
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/coverage_list_model.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_cancellation_reasons_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
+import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_tier_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/video_content_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/why_choose_model.dart';
 import 'package:Oxygen_Mart/features/payment/domain/models/offline_method_model.dart';
@@ -18,4 +21,8 @@ abstract class ParcelServiceInterface {
   Future<List<OfflineMethodModel>?> getOfflineMethodList();
   Future<int> getDmTipMostTapped();
   Future<Response> placeOrder(PlaceOrderBodyModel orderBody);
+  Future<ParcelCancellationReasonsModel?> getParcelCancellationReasons({required bool isBeforePickup});
+  Future<ParcelTierListModel<ParcelWeightModel>?> getParcelWeightList({required int zoneId, int? moduleId});
+  Future<ParcelTierListModel<ParcelDimensionModel>?> getParcelDimensionList({required int zoneId, int? moduleId});
+  Future<CoverageListModel?> getParcelCoverageList({required int zoneId, int? moduleId});
 }

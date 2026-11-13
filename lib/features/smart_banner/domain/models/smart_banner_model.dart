@@ -1,14 +1,17 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+
 class SmartBannerModel {
   List<SmartBanner>? smartBanners;
 
   SmartBannerModel({this.smartBanners});
 
   SmartBannerModel.fromJson(Map<String, dynamic> json) {
-    if (json['smart_banners'] != null) {
+    final List<dynamic>? banners = ResponseParser.listOf(json, legacyKey: 'smart_banners');
+    if (banners != null) {
       smartBanners = [];
-      json['smart_banners'].forEach((v) {
+      for (final dynamic v in banners) {
         smartBanners!.add(SmartBanner.fromJson(v));
-      });
+      }
     }
   }
 

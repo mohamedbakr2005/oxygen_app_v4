@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/models/transaction_model.dart';
 import 'package:Oxygen_Mart/features/wallet/domain/models/fund_bonus_model.dart';
 import 'package:Oxygen_Mart/features/wallet/domain/repositories/wallet_repository_interface.dart';
@@ -75,11 +76,11 @@ class WalletRepository implements WalletRepositoryInterface {
   Future<List<FundBonusModel>?> _getWalletBonusList() async {
     List<FundBonusModel>? fundBonusList;
     Response response = await apiClient.getData(AppConstants.walletBonusUri);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       fundBonusList = [];
-      response.body.forEach((value) {
+      for (final dynamic value in ResponseParser.listOrEmpty(response.body)) {
         fundBonusList!.add(FundBonusModel.fromJson(value));
-      });
+      }
     }
     return fundBonusList;
   }

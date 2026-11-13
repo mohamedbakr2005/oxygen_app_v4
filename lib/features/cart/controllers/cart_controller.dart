@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:Oxygen_Mart/api/api_checker.dart';
+import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 
@@ -19,6 +21,7 @@ import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/date_converter.dart';
 import 'package:Oxygen_Mart/helper/module_helper.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
+import 'package:Oxygen_Mart/helper/bundle_amount_helper.dart';
 
 class CartController extends GetxController implements GetxService {
   int _selectedFlowTab = 0;
@@ -32,6 +35,10 @@ class CartController extends GetxController implements GetxService {
   final CartServiceInterface cartServiceInterface;
 
   CartController({required this.cartServiceInterface});
+
+  final Set<int> _addingItemIds = <int>{};
+  Set<int> get addingItemIds => _addingItemIds;
+  bool isItemAdding(int? itemId) => itemId != null && _addingItemIds.contains(itemId);
 
   List<CartModel> _cartList = [];
   List<CartModel> get cartList => _cartList;
@@ -63,6 +70,34 @@ class CartController extends GetxController implements GetxService {
 
   int _notAvailableIndex = -1;
   int get notAvailableIndex => _notAvailableIndex;
+
+  CartModel? get firstItemCart {
+    for (final CartModel cart in _cartList) {
+      if (cart.item != null) {
+        return cart;
+      }
+    }
+    return _cartList.isNotEmpty ? _cartList.first : null;
+  }
+
+  Item? get firstCartItem => firstItemCart?.item;
+
+  int? get cartStoreId {
+    final int? id = firstCartItem?.storeId;
+    if (id != null) {
+      return id;
+    }
+    for (final CartModel cart in _cartList) {
+      if (cart.storeId != null) {
+        return cart.storeId;
+      }
+    }
+    return null;
+  }
+
+  int? get cartModuleId => firstCartItem?.moduleId ?? ModuleHelper.getModule()?.id ?? ModuleHelper.getCacheModule()?.id;
+
+  String? get cartModuleType => firstCartItem?.moduleType ?? ModuleHelper.getModule()?.moduleType ?? ModuleHelper.getCacheModule()?.moduleType;
 
   int _currentIndex = 0;
   int get currentIndex => _currentIndex;
@@ -145,17 +180,52 @@ class CartController extends GetxController implements GetxService {
     }
   }
 
+  double _bundleDiscount = 0;
+  double get bundleDiscount => _bundleDiscount;
+
   double calculationCart() {
     _addOnsList = [];
     _availableList = [];
     _itemPrice = 0;
     _itemDiscountPrice = 0;
+    _bundleDiscount = 0;
     _addOns = 0;
     _variationPrice = 0;
     bool isFoodVariation = false;
     double variationWithoutDiscountPrice = 0;
     bool haveVariation = false;
     for (var cartModel in cartList) {
+
+      if(cartModel.isBogoBundle) {
+        _addOnsList.add(<AddOns>[]);
+        _availableList.add(cartModel.bogoDetails?.isAvailable ?? true);
+        _itemPrice = _itemPrice + (cartModel.bogoDetails?.totalPrice ?? (cartModel.price ?? 0) * (cartModel.quantity ?? 1));
+        if(cartModel.bogoDetails?.isHappyHour ?? false) {
+          _itemDiscountPrice = _itemDiscountPrice + (cartModel.bogoDetails?.totalDiscountAmount ?? 0);
+        }
+        continue;
+      }
+
+      if(cartModel.isBundle) {
+        _addOnsList.add(<AddOns>[]);
+        final BundleCartDetails? bundleDetails = cartModel.bundleDetails;
+        _availableList.add(bundleDetails?.isAvailable ?? true);
+        if(bundleDetails != null) {
+          final double saving = BundleAmountHelper.savingOf(bundleDetails);
+          if(saving > 0) {
+            _itemPrice = _itemPrice + bundleDetails.totalBasePrice;
+            _itemDiscountPrice = _itemDiscountPrice + saving;
+            _bundleDiscount = _bundleDiscount + saving;
+          } else {
+            _itemPrice = _itemPrice + bundleDetails.totalFinalPrice;
+          }
+        }
+        continue;
+      }
+
+      if(cartModel.item == null) {
+        continue;
+      }
 
       isFoodVariation = ModuleHelper.getModuleConfig(cartModel.item!.moduleType).newVariation!;
       double? discount = cartModel.item!.discount;
@@ -204,6 +274,22 @@ class CartController extends GetxController implements GetxService {
     bool haveVariation = false;
     for (var cartModel in cartList) {
 
+      if(cartModel.isBundle) {
+        itemPrice = itemPrice + (cartModel.bundleDetails?.totalFinalPrice ?? (cartModel.price ?? 0) * (cartModel.quantity ?? 1));
+        continue;
+      }
+      if(cartModel.isBogoBundle) {
+        itemPrice = itemPrice + (cartModel.bogoDetails?.totalPrice ?? (cartModel.price ?? 0) * (cartModel.quantity ?? 1));
+        if(cartModel.bogoDetails?.isHappyHour ?? false) {
+          itemDiscountPrice = itemDiscountPrice + (cartModel.bogoDetails?.totalDiscountAmount ?? 0);
+        }
+        continue;
+      }
+
+      if(cartModel.item == null) {
+        continue;
+      }
+
       isFoodVariation = ModuleHelper.getModuleConfig(cartModel.item!.moduleType).newVariation!;
       double? discount = cartModel.item!.discount;
       String? discountType = cartModel.item!.discountType;
@@ -237,7 +323,14 @@ class CartController extends GetxController implements GetxService {
     return subTotal;
   }
 
+  final Map<int, List<CartModel>> _foldedCartsByStore = <int, List<CartModel>>{};
+
   List<CartModel> localCartsOfGroup(AllCartsModel group) {
+    final int? storeId = group.store?.id;
+    final List<CartModel>? folded = storeId != null ? _foldedCartsByStore[storeId] : null;
+    if(folded != null) {
+      return folded;
+    }
     return cartServiceInterface.formatOnlineCartToLocalCart(onlineCartModel: group.onlineCarts ?? <OnlineCartModel>[]);
   }
 
@@ -340,7 +433,7 @@ class CartController extends GetxController implements GetxService {
      await Get.find<ItemController>().setExistInCart(_cartList[cartIndex].item, null, notify: true);
     }
 
-    await updateCartQuantityOnline(_cartList[cartIndex].id!, discountedPrice, _cartList[cartIndex].quantity!,
+    await updateCartQuantityOnline(_cartList[cartIndex], discountedPrice, _cartList[cartIndex].quantity!,
       storeId: _cartList[cartIndex].item?.storeId);
 
   }
@@ -384,7 +477,7 @@ class CartController extends GetxController implements GetxService {
     if (newVariation) {
       await Get.find<ItemController>().setExistInCart(cart.item, null, notify: true);
     }
-    await updateCartQuantityOnline(cartId, discountedPrice, cart.quantity!, storeId: cart.item?.storeId);
+    await updateCartQuantityOnline(cart, discountedPrice, cart.quantity!, storeId: cart.item?.storeId);
   }
 
   Future<void> removeFromCart(int index, {Item? item}) async {
@@ -457,10 +550,18 @@ class CartController extends GetxController implements GetxService {
   }
 
   Future<bool> addToCartOnline(OnlineCart cart, {int? storeId, bool trackEvent = true}) async {
+    final int? addingId = cart.itemId ?? cart.itemCampaignId;
+    if (addingId != null && _addingItemIds.contains(addingId)) {
+      return false;
+    }
+    if (addingId != null) {
+      _addingItemIds.add(addingId);
+    }
     final int beforeCount = _cartList.length;
     _isLoading = true;
     bool success = false;
     update();
+    try {
     storeId ??= cart.storeId;
     if(storeId == null && Get.isRegistered<ItemController>()) {
       storeId = Get.find<ItemController>().item?.storeId;
@@ -518,6 +619,13 @@ class CartController extends GetxController implements GetxService {
     );
 
     return success;
+    } finally {
+      if (addingId != null) {
+        _addingItemIds.remove(addingId);
+      }
+      _isLoading = false;
+      update();
+    }
   }
 
   Future<bool> updateCartOnline(OnlineCart cart, {int? storeId}) async {
@@ -556,11 +664,32 @@ class CartController extends GetxController implements GetxService {
     return success;
   }
 
-  Future<void> updateCartQuantityOnline(int cartId, double price, int quantity, {int? storeId}) async {
+  Future<void> updateCartQuantityOnline(dynamic cartOrId, double price, int quantity, {int? storeId}) async {
+    CartModel? cart;
+    int? resolvedCartId;
+    if (cartOrId is CartModel) {
+      cart = cartOrId;
+      resolvedCartId = cart.id;
+      storeId ??= cart.storeId;
+    } else if (cartOrId is int) {
+      resolvedCartId = cartOrId;
+      for (final c in _cartList) {
+        if (c.id == resolvedCartId) {
+          cart = c;
+          storeId ??= c.storeId;
+          break;
+        }
+      }
+    }
+
+    if (cart == null) {
+      return;
+    }
+
     final int beforeCount = _cartList.length;
     _isLoading = true;
     update();
-    bool success = await cartServiceInterface.updateCartQuantityOnline(cartId, price, quantity, storeId: storeId);
+    bool success = await cartServiceInterface.updateCartQuantityOnline(cart, price, quantity, storeId: storeId);
     // Resync with the server whether the update succeeded or not: on success to
     // reflect the saved state, on failure (e.g. out of stock, or any other
     // rejection) to roll the optimistic local quantity back to the real cart
@@ -576,7 +705,7 @@ class CartController extends GetxController implements GetxService {
     _logCartDiagnostic(
       action: 'UPDATE_QUANTITY',
       storeId: storeId,
-      productId: cartId,
+      productId: resolvedCartId,
       quantity: quantity,
       apiResult: success ? 'SUCCESS' : 'FAILED',
       stateBeforeCount: beforeCount,
@@ -807,6 +936,205 @@ class CartController extends GetxController implements GetxService {
       debugPrint('CART ITEM COUNT (Total: $allCartsItemCount, CurrentModule: ${_cartList.length})');
       debugPrint('CART CONTROLLER INSTANCE: ${identityHashCode(this)}');
       debugPrint('════════════════════════════════════════════════');
+    }
+  }
+
+  Future<String?> _resolveGuestId() async {
+    if (AuthHelper.isLoggedIn()) {
+      return null;
+    }
+    String guestId = AuthHelper.getGuestId();
+    if (guestId.isEmpty) {
+      await AuthHelper.guestLogin();
+      guestId = AuthHelper.getGuestId();
+    }
+    return guestId.isNotEmpty ? guestId : null;
+  }
+
+  /// `POST /customer/cart/bogo/add`
+  Future<bool> addBogoToCartOnline(int bogoId, int quantity, {String? contactPersonNumber, int? moduleId}) async {
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      Response response = await cartServiceInterface.addBogoToCartOnline(
+        bogoId, quantity, guestId,
+        contactPersonNumber: contactPersonNumber,
+        moduleId: moduleId,
+      );
+
+      final bool isSuccess = ApiClient.isSuccessCode(response.statusCode);
+      if(isSuccess) {
+        await getAllCarts(notify: false);
+      } else {
+        ApiChecker.checkApi(response);
+      }
+      return isSuccess;
+    } finally {
+      _isLoading = false;
+      update();
+    }
+  }
+
+  /// `POST /customer/cart/bogo/update`
+  Future<void> updateBogoBundleQuantity(bool isIncrement, CartModel cart, {required int storeId}) async {
+    if(!cart.isBogoBundle) return;
+    await setBogoBundleQuantity(cart, (cart.quantity ?? 1) + (isIncrement ? 1 : -1), storeId: storeId);
+  }
+
+  /// Find Bogo Bundle in cart
+  CartModel? findBogoBundleInCart(int? bundleId, {int? storeId}) {
+    if(bundleId == null) {
+      return null;
+    }
+    for(final AllCartsModel group in _allCartsGroups ?? const <AllCartsModel>[]) {
+      final int? groupStoreId = group.store?.id;
+      if(storeId != null && groupStoreId != storeId) {
+        continue;
+      }
+      final List<CartModel> rows = (groupStoreId != null ? _foldedCartsByStore[groupStoreId] : null)
+          ?? group.carts ?? const <CartModel>[];
+      for(final CartModel cart in rows) {
+        if(cart.isBogoBundle && cart.bogoDetails?.bundleId == bundleId) {
+          return cart;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Update BOGO quantity directly
+  Future<bool> setBogoBundleQuantity(CartModel cart, int quantity, {required int storeId, int? moduleId}) async {
+    if(_isLoading || !cart.isBogoBundle || quantity < 1) return false;
+
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      Response response = await cartServiceInterface.updateBogoBundleQuantityOnline(
+        cart.bogoDetails!.bogoGroupId, quantity, guestId,
+        moduleId: moduleId,
+      );
+      final bool isSuccess = ApiClient.isSuccessCode(response.statusCode);
+      if(isSuccess) {
+        await getAllCarts(notify: false);
+      } else {
+        ApiChecker.checkApi(response);
+      }
+      return isSuccess;
+    } finally {
+      _isLoading = false;
+      update();
+    }
+  }
+
+  /// `POST /customer/cart/bundle/add`
+  Future<bool> addBundleToCart(int bundleId, int quantity) async {
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      Response response = await cartServiceInterface.addBundleToCartOnline(
+        bundleId, quantity, guestId,
+      );
+
+      final bool isSuccess = ApiClient.isSuccessCode(response.statusCode);
+      if(isSuccess) {
+        await getAllCarts(notify: false);
+      } else {
+        ApiChecker.checkApi(response);
+      }
+      return isSuccess;
+    } finally {
+      _isLoading = false;
+      update();
+    }
+  }
+
+  /// Find Bundle in cart
+  CartModel? findBundleInCart(int? bundleId, {int? storeId}) {
+    if(bundleId == null) {
+      return null;
+    }
+    for(final AllCartsModel group in _allCartsGroups ?? const <AllCartsModel>[]) {
+      final int? groupStoreId = group.store?.id;
+      if(storeId != null && groupStoreId != storeId) {
+        continue;
+      }
+      final List<CartModel> rows = (groupStoreId != null ? _foldedCartsByStore[groupStoreId] : null)
+          ?? group.carts ?? const <CartModel>[];
+      for(final CartModel cart in rows) {
+        if(cart.isBundle && cart.bundleDetails?.bundleId == bundleId) {
+          return cart;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// `POST /customer/cart/bundle/update`
+  Future<void> updateBundleQuantity(bool isIncrement, CartModel cart) async {
+    if(!cart.isBundle) return;
+    await setBundleQuantity(cart, (cart.quantity ?? 1) + (isIncrement ? 1 : -1));
+  }
+
+  /// Set bundle quantity
+  Future<bool> setBundleQuantity(CartModel cart, int quantity) async {
+    if(_isLoading || !cart.isBundle || quantity < 1) return false;
+
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      Response response = await cartServiceInterface.updateBundleQuantityOnline(
+        cart.bundleDetails!.bundleGroupId, quantity, guestId,
+      );
+      final bool isSuccess = ApiClient.isSuccessCode(response.statusCode);
+      if(isSuccess) {
+        await getAllCarts(notify: false);
+      } else {
+        ApiChecker.checkApi(response);
+      }
+      return isSuccess;
+    } finally {
+      _isLoading = false;
+      update();
+    }
+  }
+
+  /// `DELETE /customer/cart/bundle/remove`
+  Future<void> removeBundle(CartModel cart) async {
+    if(_isLoading || !cart.isBundle) return;
+
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      await cartServiceInterface.removeBundleItemOnline(
+        cart.bundleDetails!.bundleGroupId, guestId,
+      );
+      await getAllCarts(notify: false);
+    } finally {
+      _isLoading = false;
+      update();
+    }
+  }
+
+  /// Bundle mode of `/customer/cart/remove-item`
+  Future<void> removeBogoBundle(CartModel cart, {required int storeId}) async {
+    if(_isLoading || !cart.isBogoBundle) return;
+
+    _isLoading = true;
+    update();
+    try {
+      final String? guestId = await _resolveGuestId();
+      await cartServiceInterface.removeBogoBundleItemOnline(
+        cart.bogoDetails!.bogoGroupId, guestId, storeId: storeId,
+      );
+      await getAllCarts(notify: false);
+    } finally {
+      _isLoading = false;
+      update();
     }
   }
 }

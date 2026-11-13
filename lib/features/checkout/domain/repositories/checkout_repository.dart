@@ -1,3 +1,5 @@
+import 'package:Oxygen_Mart/features/checkout/domain/models/checkout_summary_body_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/coverage_list_model.dart';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:get/get_connect/connect.dart';
@@ -194,6 +196,24 @@ class CheckoutRepository implements CheckoutRepositoryInterface {
   Future<Response> getOrderTax(PlaceOrderBodyModel orderBody) async {
     Response response = await apiClient.postData(AppConstants.getOrderTaxUri, orderBody.toJson());
     return response;
+  }
+
+  @override
+  Future<Response> getCheckoutSummary(CheckoutSummaryBodyModel body) async {
+    return await apiClient.postData(AppConstants.checkoutSummaryUri, body.toJson(), handleError: false);
+  }
+
+  @override
+  Future<CoverageListModel?> getCoverageList({required int zoneId, int? moduleId}) async {
+    final String moduleQuery = moduleId != null ? '&module_id=$moduleId' : '';
+    final Response response = await apiClient.getData(
+      '${AppConstants.deliveryChargeCoverageListUri}?zone_id=$zoneId$moduleQuery',
+      handleError: false,
+    );
+    if (response.statusCode == 200 && response.body is Map) {
+      return CoverageListModel.fromJson(Map<String, dynamic>.from(response.body as Map));
+    }
+    return null;
   }
 
   @override

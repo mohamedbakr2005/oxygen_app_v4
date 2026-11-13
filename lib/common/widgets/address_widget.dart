@@ -82,9 +82,14 @@ class AddressWidget extends StatelessWidget {
           onTap: onTap as void Function()?,
           radius: Dimensions.radiusLarge,
           child: Padding(
-            padding: EdgeInsets.all(
-              fromCheckout
+            padding: EdgeInsets.symmetric(
+              horizontal: fromCheckout
                   ? Dimensions.paddingSizeSmall
+                  : isDesktop
+                      ? Dimensions.paddingSizeDefault
+                      : Dimensions.paddingSizeDefault - 2,
+              vertical: fromCheckout
+                  ? 4
                   : isDesktop
                       ? Dimensions.paddingSizeDefault
                       : Dimensions.paddingSizeDefault - 2,
@@ -93,25 +98,26 @@ class AddressWidget extends StatelessWidget {
               children: [
                 // Modern Rounded Icon Badge
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: fromCheckout ? 36 : 44,
+                  height: fromCheckout ? 36 : 44,
                   decoration: BoxDecoration(
                     color: iconBgColor,
-                    borderRadius: BorderRadius.circular(13),
+                    borderRadius: BorderRadius.circular(fromCheckout ? 10 : 13),
                   ),
                   child: Icon(
                     _getAddressIcon(address?.addressType),
                     color: iconColor,
-                    size: 22,
+                    size: fromCheckout ? 18 : 22,
                   ),
                 ),
-                const SizedBox(width: Dimensions.paddingSizeDefault),
+                SizedBox(width: fromCheckout ? Dimensions.paddingSizeSmall : Dimensions.paddingSizeDefault),
 
                 // Address Title and Subtitle
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
                         children: [

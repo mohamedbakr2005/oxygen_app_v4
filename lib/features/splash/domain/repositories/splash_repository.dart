@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
@@ -168,8 +169,9 @@ class SplashRepository implements SplashRepositoryInterface {
         headers: requestHeaders,
       );
 
-      if (response.statusCode == 200 && response.body is List) {
-        for (final item in response.body) {
+      if (ApiClient.isSuccessCode(response.statusCode)) {
+        final List<dynamic> modulesJson = ResponseParser.listOrEmpty(response.body);
+        for (final item in modulesJson) {
           try {
             moduleList.add(
               ModuleModel.fromJson(Map<String, dynamic>.from(item)),
@@ -182,7 +184,7 @@ class SplashRepository implements SplashRepositoryInterface {
         await LocalClient.organize(
           DataSourceEnum.client,
           cacheId,
-          jsonEncode(response.body),
+          jsonEncode(modulesJson),
           requestHeaders,
         );
       }
@@ -200,15 +202,12 @@ class SplashRepository implements SplashRepositoryInterface {
 
     if (cache != null) {
       final decoded = jsonDecode(cache);
-
-      if (decoded is List) {
-        for (final item in decoded) {
-          try {
-            moduleList.add(
-              ModuleModel.fromJson(Map<String, dynamic>.from(item)),
-            );
-          } catch (_) {}
-        }
+      for (final item in ResponseParser.listOrEmpty(decoded)) {
+        try {
+          moduleList.add(
+            ModuleModel.fromJson(Map<String, dynamic>.from(item)),
+          );
+        } catch (_) {}
       }
     }
 

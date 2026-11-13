@@ -1,3 +1,5 @@
+import 'package:Oxygen_Mart/features/checkout/domain/models/checkout_summary_body_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/coverage_list_model.dart';
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
@@ -125,6 +127,16 @@ class CheckoutService implements CheckoutServiceInterface {
   @override
   Future<Response> getOrderTax(PlaceOrderBodyModel placeOrderBody) async {
     return await checkoutRepositoryInterface.getOrderTax(placeOrderBody);
+  }
+
+  @override
+  Future<Response> getCheckoutSummary(CheckoutSummaryBodyModel body) async {
+    return await checkoutRepositoryInterface.getCheckoutSummary(body);
+  }
+
+  @override
+  Future<CoverageListModel?> getCoverageList({required int zoneId, int? moduleId}) async {
+    return await checkoutRepositoryInterface.getCoverageList(zoneId: zoneId, moduleId: moduleId);
   }
 
   @override

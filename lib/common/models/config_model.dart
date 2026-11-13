@@ -1,3 +1,4 @@
+import 'package:Oxygen_Mart/common/models/measurement_unit_model.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
 import 'package:Oxygen_Mart/helper/type_converter_helper.dart';
 
@@ -38,6 +39,16 @@ class ConfigModel {
   int? digitAfterDecimalPoint;
   double? parcelPerKmShippingCharge;
   double? parcelMinimumShippingCharge;
+  MeasurementUnitModel? distanceUnit;
+  String? distanceUnitLabel;
+  String get distanceUnitSuffix {
+    final String? label = distanceUnitLabel ?? distanceUnit?.label;
+    return (label != null && label.trim().isNotEmpty) ? label.trim() : 'km';
+  }
+  MeasurementUnitModel? weightUnit;
+  MeasurementUnitModel? dimensionUnit;
+  bool? productBundleStatus;
+  List<String>? productBundleModuleTypes;
   ModuleModel? module;
   ModuleConfig? moduleConfig;
   LandingPageSettings? landingPageSettings;
@@ -174,6 +185,12 @@ class ConfigModel {
     this.moduleConfig,
     this.parcelPerKmShippingCharge,
     this.parcelMinimumShippingCharge,
+    this.distanceUnit,
+    this.distanceUnitLabel,
+    this.weightUnit,
+    this.dimensionUnit,
+    this.productBundleStatus,
+    this.productBundleModuleTypes,
     this.landingPageSettings,
     this.socialMedia,
     this.footerText,
@@ -312,6 +329,20 @@ class ConfigModel {
     moduleConfig = json['module_config'] != null ? ModuleConfig.fromJson(json['module_config']) : null;
     parcelPerKmShippingCharge = json['parcel_per_km_shipping_charge']?.toDouble();
     parcelMinimumShippingCharge = json['parcel_minimum_shipping_charge']?.toDouble();
+    distanceUnitLabel = json['distance_unit_label'];
+    final dynamic units = json['units'];
+    if (units is Map) {
+      distanceUnit = MeasurementUnitModel.maybeFrom(units['distance']);
+      weightUnit = MeasurementUnitModel.maybeFrom(units['weight']);
+      dimensionUnit = MeasurementUnitModel.maybeFrom(units['dimension']);
+    }
+    productBundleStatus = TypeConverterHelper.getBool(json['product_bundle_status']);
+    if (json['product_bundle_module_types'] != null) {
+      productBundleModuleTypes = <String>[];
+      json['product_bundle_module_types'].forEach((v) {
+        productBundleModuleTypes!.add(v.toString());
+      });
+    }
     landingPageSettings = json['landing_page_settings'] != null ? LandingPageSettings.fromJson(json['landing_page_settings']) : null;
     if (json['social_media'] != null) {
       socialMedia = <SocialMedia>[];
@@ -567,6 +598,9 @@ class ConfigModel {
       data['service_module'] = serviceModule!.toJson();
     }
     data['verified_store_status'] = verifiedStoreStatus;
+    data['distance_unit_label'] = distanceUnitLabel;
+    data['product_bundle_status'] = productBundleStatus;
+    data['product_bundle_module_types'] = productBundleModuleTypes;
     return data;
   }
 }
@@ -720,8 +754,8 @@ class DefaultLocation {
   DefaultLocation({this.lat, this.lng});
 
   DefaultLocation.fromJson(Map<String, dynamic> json) {
-    lat = json['lat'];
-    lng = json['lng'];
+    lat = json['lat']?.toString();
+    lng = json['lng']?.toString();
   }
 
   Map<String, dynamic> toJson() {

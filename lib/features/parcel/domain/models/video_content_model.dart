@@ -1,3 +1,5 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+
 class VideoContentModel {
   List<BannerContents>? bannerContents;
   String? sectionTitle;
@@ -16,11 +18,12 @@ class VideoContentModel {
   });
 
   VideoContentModel.fromJson(Map<String, dynamic> json) {
-    if (json['banner_contents'] != null) {
+    final List<dynamic>? entries = ResponseParser.listOf(json, legacyKey: 'banner_contents');
+    if (entries != null) {
       bannerContents = <BannerContents>[];
-      json['banner_contents'].forEach((v) {
+      for (final dynamic v in entries) {
         bannerContents!.add(BannerContents.fromJson(v));
-      });
+      }
     }
     sectionTitle = json['section_title'];
     bannerType = json['banner_type'];

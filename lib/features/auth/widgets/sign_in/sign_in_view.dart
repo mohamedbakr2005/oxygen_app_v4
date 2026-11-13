@@ -378,10 +378,10 @@ class _SignInViewState extends State<SignInView> {
       String phone,
       String countryDialCode,
       String normalizedNumber) async {
-    if (authController.isActiveRememberMe) {
-      authController.saveUserNumberAndPassword(phone, '', countryDialCode);
+    if (authController.isActiveRememberMeOtp) {
+      authController.saveOtpUserNumber(phone, countryDialCode);
     } else {
-      authController.clearUserNumberAndPassword();
+      authController.clearOtpUserNumber();
     }
     if (GetPlatform.isWeb && response.authResponseModel == null) {
       await Get.find<FavouriteController>().getFavouriteList();

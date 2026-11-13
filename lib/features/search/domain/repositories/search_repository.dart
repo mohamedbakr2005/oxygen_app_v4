@@ -1,12 +1,17 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/features/brands/domain/models/brands_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/top_category_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/trending_search_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/repositories/search_repository_interface.dart';
+import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class SearchRepository implements SearchRepositoryInterface {
@@ -50,28 +55,51 @@ class SearchRepository implements SearchRepositoryInterface {
       {int? offset,
       String? query,
       bool? isStore,
-      bool isSuggestedItems = false}) async {
+      bool isSuggestedItems = false,
+      int? moduleId,
+      Map<String, String>? filterParams}) async {
     if (isSuggestedItems) {
       return await _getSuggestedItems();
     } else {
-      return await _getSearchData(query, isStore!);
+      return await _getSearchData(query, isStore!, offset ?? 1, moduleId: moduleId, filterParams: filterParams);
     }
   }
 
   Future<List<Item>?> _getSuggestedItems() async {
     List<Item>? suggestedItemList;
     Response response = await apiClient.getData(AppConstants.suggestedItemUri);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       suggestedItemList = [];
-      response.body.forEach((suggestedItem) =>
-          suggestedItemList!.add(Item.fromJson(suggestedItem)));
+      for (final dynamic suggestedItem in ResponseParser.listOrEmpty(response.body)) {
+        suggestedItemList.add(Item.fromJson(suggestedItem));
+      }
     }
     return suggestedItemList;
   }
 
-  Future<Response> _getSearchData(String? query, bool isStore) async {
-    return await apiClient.getData(
-        '${AppConstants.searchUri}${isStore ? 'stores' : 'items'}/search?name=$query&offset=1&limit=50');
+  Future<Response> _getSearchData(
+    String? query,
+    bool isStore,
+    int offset, {
+    int? moduleId,
+    Map<String, String>? filterParams,
+  }) async {
+    final Map<String, String>? headers = moduleId != null
+        ? {...apiClient.getHeader(), AppConstants.moduleId: moduleId.toString()}
+        : null;
+    final bool isServiceModule = Get.isRegistered<SplashController>() &&
+        Get.find<SplashController>().module?.moduleType == AppConstants.service;
+    final String searchPath = (isServiceModule && !isStore)
+        ? AppConstants.serviceSearchUri
+        : '${AppConstants.searchUri}${isStore ? 'stores' : 'items'}/search';
+    final StringBuffer uri = StringBuffer(
+      '$searchPath?name=${Uri.encodeQueryComponent(query ?? '')}&offset=$offset&limit=10',
+    );
+    filterParams?.forEach((String key, String value) {
+      uri.write('&$key=$value');
+    });
+
+    return await apiClient.getData(uri.toString(), headers: headers);
   }
 
   @override
@@ -80,10 +108,19 @@ class SearchRepository implements SearchRepositoryInterface {
   }
 
   @override
-  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText) async {
+  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText, {bool isGlobal = false}) async {
     SearchSuggestionModel? searchSuggestionModel;
-    Response response = await apiClient
-        .getData('${AppConstants.searchSuggestionsUri}?name=$searchText');
+    final Map<String, String> headers = {...apiClient.getHeader()};
+    if (isGlobal) {
+      headers.remove(AppConstants.moduleId);
+    }
+    final bool isServiceModule = Get.isRegistered<SplashController>() &&
+        Get.find<SplashController>().module?.moduleType == AppConstants.service;
+    final String baseUri = isServiceModule ? AppConstants.serviceItemOrStoreSearchUri : AppConstants.searchSuggestionsUri;
+    Response response = await apiClient.getData(
+      '$baseUri?name=${Uri.encodeQueryComponent(searchText)}&is_global=${isGlobal ? 1 : 0}',
+      headers: headers,
+    );
     if (response.statusCode == 200) {
       searchSuggestionModel = SearchSuggestionModel.fromJson(response.body);
     }
@@ -95,13 +132,48 @@ class SearchRepository implements SearchRepositoryInterface {
     List<PopularCategoryModel?>? popularCategoryList;
     Response response =
         await apiClient.getData(AppConstants.searchPopularCategoriesUri);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       popularCategoryList = [];
-      response.body.forEach((category) {
-        popularCategoryList!.add(PopularCategoryModel.fromJson(category));
-      });
+      for (final dynamic category in ResponseParser.listOrEmpty(response.body)) {
+        popularCategoryList.add(PopularCategoryModel.fromJson(category));
+      }
     }
     return popularCategoryList;
+  }
+
+  @override
+  Future<List<BrandModel>?> getBrandList({
+    required int moduleId,
+    required List<int> zoneIds,
+  }) async {
+    List<BrandModel>? brandList;
+    final Map<String, String> headers = {
+      ...apiClient.getHeader(),
+      AppConstants.moduleId: moduleId.toString(),
+      AppConstants.zoneId: jsonEncode(zoneIds),
+      'top': '1',
+    };
+    Response response = await apiClient.getData(
+      AppConstants.brandListUri,
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      brandList = [];
+      for (final dynamic brand in ResponseParser.listOrEmpty(response.body)) {
+        brandList.add(BrandModel.fromJson(brand));
+      }
+    }
+    return brandList;
+  }
+
+  @override
+  Future<List<Store>?> getExclusiveDeals() async {
+    List<Store>? stores;
+    Response response = await apiClient.getData(AppConstants.exclusiveDealsUri);
+    if (response.statusCode == 200) {
+      stores = StoreModel.fromJson(response.body).stores;
+    }
+    return stores;
   }
 
   @override
@@ -134,4 +206,3 @@ class SearchRepository implements SearchRepositoryInterface {
     return categories;
   }
 }
-

@@ -1,3 +1,6 @@
+import 'package:Oxygen_Mart/features/checkout/domain/models/checkout_summary_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/checkout_summary_body_model.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/coverage_list_model.dart';
 import 'package:Oxygen_Mart/core/services/meta/meta_analytics_service.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'dart:io';
@@ -239,6 +242,41 @@ class CheckoutController extends GetxController implements GetxService {
   SurgePriceModel? _surgePrice;
   SurgePriceModel? get surgePrice => _surgePrice;
 
+  CheckoutSummaryModel? _checkoutSummary;
+  CheckoutSummaryModel? get checkoutSummary => _checkoutSummary;
+
+  int _summaryRequestId = 0;
+  String? _lastSummarySignature;
+  CheckoutSummaryBodyModel? _lastSummaryBody;
+
+  bool _summaryLoading = false;
+  bool get summaryLoading => _summaryLoading;
+
+  String? _summaryError;
+  String? get summaryError => _summaryError;
+
+  bool get isOutsideDeliveryZone => _checkoutSummary != null && _checkoutSummary!.delivery == null;
+
+  CoverageListModel? _coverageList;
+  CoverageListModel? get coverageList => _coverageList;
+
+  int? _selectedAreaId;
+  int? get selectedAreaId => _selectedAreaId;
+
+  int? _selectedZipCodeId;
+  int? get selectedZipCodeId => _selectedZipCodeId;
+
+  CoverageOption? get selectedCoverageOption {
+    final int? id = _coverageList?.isZipCode == true ? _selectedZipCodeId : _selectedAreaId;
+    if (id == null || _coverageList == null) return null;
+    for (final CoverageOption option in _coverageList!.coverage) {
+      if (option.id == id) return option;
+    }
+    return null;
+  }
+
+  bool get isZipCodeWiseDelivery => _coverageList?.isZipCode ?? false;
+
   bool  _isFirstTimeCodActive = true;
   bool get isFirstTimeCodActive => _isFirstTimeCodActive;
 
@@ -360,15 +398,7 @@ class CheckoutController extends GetxController implements GetxService {
       );
 
       if(Get.find<SplashController>().module == null) {
-        await Get.find<SplashController>().getModules();
-
-        int i = 0;
-        for(i = 0; i < Get.find<SplashController>().moduleList!.length; i++){
-          if(_store!.moduleId == Get.find<SplashController>().moduleList![i].id){
-            break;
-          }
-        }
-        Get.find<SplashController>().setModule(Get.find<SplashController>().moduleList![i]);
+        await Get.find<SplashController>().activateModuleById(_store!.moduleId);
       }
 
       initializeTimeSlot(_store!);
@@ -1122,6 +1152,23 @@ class CheckoutController extends GetxController implements GetxService {
     ));
   }
 
+  /// One field off a place-order body, whatever envelope it arrived in.
+  dynamic _bodyValue(Response response, String key) {
+    final dynamic body = response.body;
+    return body is Map ? body[key] : null;
+  }
+
+  /// The order id as a string, or '' when the response didn't carry one.
+  String _orderIdOf(Response response) => _bodyValue(response, 'order_id')?.toString() ?? '';
+
+  /// The success message the user is shown.
+  String? _successMessageOf(Response response) {
+    final String? statusText = response.statusText;
+    if (statusText != null && statusText.isNotEmpty) return statusText;
+    final dynamic message = _bodyValue(response, 'message');
+    return message?.toString();
+  }
+
   Future<String> placeOrder(PlaceOrderBodyModel placeOrderBody, int? zoneID, double amount, double? maximumCodOrderAmount, bool fromCart,
       bool isCashOnDeliveryActive, List<XFile>? orderAttachment, {bool isOfflinePay = false}) async {
     List<MultipartBody>? multiParts = [];
@@ -1143,11 +1190,12 @@ class CheckoutController extends GetxController implements GetxService {
     String userID = '';
     Response response = await checkoutServiceInterface.placeOrder(placeOrderBody, multiParts, savedImages);
     _isLoading = false;
-    if (response.statusCode == 200) {
-      String? message = response.body['message'];
-      orderID = response.body['order_id'].toString();
-      if(response.body['user_id'] != null) {
-        userID = response.body['user_id'].toString();
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      String? message = _successMessageOf(response);
+      orderID = _orderIdOf(response);
+      final dynamic userId = _bodyValue(response, 'user_id');
+      if(userId != null) {
+        userID = userId.toString();
       }
       Get.find<ItemController>().cartIndexSet();
 
@@ -1246,9 +1294,9 @@ class CheckoutController extends GetxController implements GetxService {
     update();
     Response response = await checkoutServiceInterface.placePrescriptionOrder(storeId, distance, address,longitude, latitude, note, multiParts, resolvedSavedImages, dmTips, deliveryInstruction);
     _isLoading = false;
-    if (response.statusCode == 200) {
-      String? message = response.body['message'];
-      String orderID = response.body['order_id'].toString();
+    if (ApiClient.isSuccessCode(response.statusCode)) {
+      String? message = _successMessageOf(response);
+      String orderID = _orderIdOf(response);
       _saveRecentDeliveryAddress(orderType: 'delivery', address: address, latitude: latitude, longitude: longitude);
       callback(true, message, orderID, zoneID, orderAmount, maxCodAmount, fromCart, isCashOnDeliveryActive, null, '');
       _orderAttachment = null;
@@ -1532,5 +1580,110 @@ class CheckoutController extends GetxController implements GetxService {
     houseController.text = _address?.house ?? '';
     floorController.text = _address?.floor ?? '';
     if (notify) update();
+  }
+
+
+  static const List<String> _actionableSummaryCodes = <String>[
+    'coupon', 'area_id', 'zip_code_id', 'order_time', 'schedule_at', 'store',
+    'receiverZone',
+  ];
+
+  Future<void> getCheckoutSummary(CheckoutSummaryBodyModel body, {bool notify = true, bool force = false}) async {
+    final String signature = body.signature;
+    if(!force && signature == _lastSummarySignature) return;
+    _lastSummarySignature = signature;
+    _lastSummaryBody = body;
+
+    final int requestId = ++_summaryRequestId;
+    _summaryLoading = true;
+    if(notify) update();
+
+    final Response response = await checkoutServiceInterface.getCheckoutSummary(body);
+    if(requestId != _summaryRequestId) return;
+    _summaryLoading = false;
+
+    if(response.statusCode == 200 && response.body is Map) {
+      _checkoutSummary = CheckoutSummaryModel.fromJson(Map<String, dynamic>.from(response.body as Map));
+      _summaryError = null;
+      _isFirstTime = false;
+      final CheckoutSummaryTax? tax = _checkoutSummary!.tax;
+      if(tax != null) {
+        _orderTax = tax.taxAmount ?? 0.0;
+        _taxIncluded = tax.taxIncluded;
+      }
+      _surgePrice = _checkoutSummary!.surge;
+    } else {
+      _lastSummarySignature = null;
+      final String? code = _summaryErrorCode(response);
+      _summaryError = code != null ? response.statusText : null;
+      if(code != null && _actionableSummaryCodes.contains(code)) {
+        showCustomSnackBar(response.statusText ?? 'something_went_wrong'.tr);
+      }
+    }
+    update();
+  }
+
+  String? _summaryErrorCode(Response response) {
+    final dynamic body = response.body;
+    if(body is! Map) return null;
+    final dynamic errors = body['errors'];
+    if(errors is List && errors.isNotEmpty) {
+      final dynamic first = errors.first;
+      if(first is Map && first['code'] != null) return first['code'].toString();
+    } else if(errors is Map && errors.isNotEmpty) {
+      return errors.keys.first.toString();
+    }
+    return null;
+  }
+
+  Future<void> getCoverageList({required int zoneId, int? moduleId, bool notify = true}) async {
+    final int? previousAreaId = _selectedAreaId;
+    final int? previousZipCodeId = _selectedZipCodeId;
+
+    _coverageList = null;
+    if(notify) update();
+
+    _coverageList = await checkoutServiceInterface.getCoverageList(zoneId: zoneId, moduleId: moduleId);
+
+    final List<CoverageOption> options = _coverageList?.coverage ?? const <CoverageOption>[];
+    final bool isZip = _coverageList?.isZipCode ?? false;
+    final int? previousId = isZip ? previousZipCodeId : previousAreaId;
+    final bool stillOffered = previousId != null
+        && options.any((CoverageOption option) => option.id == previousId);
+
+    _selectedAreaId = (stillOffered && !isZip) ? previousId : null;
+    _selectedZipCodeId = (stillOffered && isZip) ? previousId : null;
+    if(!stillOffered) _lastSummarySignature = null;
+
+    update();
+  }
+
+  Future<void> setCoverageSelection(int? optionId) async {
+    if(_coverageList?.isZipCode ?? false) {
+      _selectedZipCodeId = optionId;
+      _selectedAreaId = null;
+    } else {
+      _selectedAreaId = optionId;
+      _selectedZipCodeId = null;
+    }
+    _lastSummarySignature = null;
+    update();
+
+    final CheckoutSummaryBodyModel? last = _lastSummaryBody;
+    if(last == null) return;
+    await getCheckoutSummary(
+      last.copyWithCoverage(areaId: _selectedAreaId, zipCodeId: _selectedZipCodeId),
+      force: true,
+    );
+  }
+
+  void resetCheckoutSummary() {
+    _checkoutSummary = null;
+    _summaryError = null;
+    _surgePrice = null;
+    _lastSummarySignature = null;
+    _lastSummaryBody = null;
+    _summaryLoading = false;
+    _summaryRequestId++;
   }
 }

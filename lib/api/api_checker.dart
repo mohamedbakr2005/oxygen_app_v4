@@ -3,6 +3,7 @@ import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
+import 'package:Oxygen_Mart/helper/zone_error_handler.dart';
 
 class ApiChecker {
   static void checkApi(Response response, {bool getXSnackBar = false}) {
@@ -13,6 +14,8 @@ class ApiChecker {
         Get.find<FavouriteController>().removeFavourite();
         Get.offAllNamed(RouteHelper.getInitialRoute());
       });
+    } else if (ZoneErrorHandler.isZoneUnavailable(response)) {
+      ZoneErrorHandler.sendToSetLocation(response.statusText);
     } else {
       if (response.statusText != 'The guest id field is required.') {
         showCustomSnackBar(response.statusText, getXSnackBar: getXSnackBar);

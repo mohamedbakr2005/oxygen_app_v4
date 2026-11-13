@@ -72,13 +72,25 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.item != null) {
-        Get.find<ItemController>().getProductDetails(widget.item!, notify: false);
-        Get.find<ItemController>().setSelect(0, false);
-        Get.find<ItemController>().getDiscountedItemList(false, false, 'all');
-      }
-    });
+    if (widget.item != null) {
+      final itemController = Get.find<ItemController>();
+      itemController.resetItemDetails(widget.item!, notify: false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          itemController.getProductDetails(widget.item!, notify: false);
+          itemController.setSelect(0, false);
+          itemController.getDiscountedItemList(false, false, 'all');
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<ItemController>()) {
+      Get.find<ItemController>().clearItemDetails(notify: false);
+    }
+    super.dispose();
   }
 
   @override
@@ -521,7 +533,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
                           ),
                       ],
                     )
-                  : (itemController.detailsError || (!itemController.isDetailsLoading && itemController.item == null))
+                  : itemController.detailsError
                       ? Center(child: NoDataScreen(text: 'item_not_found'.tr))
                       : const Center(child: CircularProgressIndicator()),
             ),
@@ -643,7 +655,7 @@ class _ItemDetailsScreenState extends State<ItemDetailsScreen> {
           Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(30),
-              onTap: (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0)
+              onTap: (cartController.isLoading || cartController.isItemAdding(widget.item?.id) || ((Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) && (stock ?? 0) <= 0)) ? null : (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0)
                   ? () async {
                       if (!(Get.find<SplashController>().configModel?.moduleConfig?.module?.stock ?? false) || (stock ?? 0) > 0) {
                         if (itemController.item?.availableDateStarts != null) {

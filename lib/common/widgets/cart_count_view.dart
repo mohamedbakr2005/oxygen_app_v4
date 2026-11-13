@@ -119,16 +119,18 @@ class _CartCountViewState extends State<CartCountView> {
                                   cartController.cartList[cartIndex].stock,
                                   cartController.cartList[cartIndex].item?.quantityLimit);
 
-                              FirebaseAnalytics.instance.logEvent(
-                                name: 'add_to_cart',
-                                parameters: {
-                                  'item_id': widget.item.id.toString(),
-                                  'item_name': widget.item.name.toString(),
-                                  'currency': 'EGP',
-                                  'value': widget.item.price.toString(),
-                                  'quantity': (widget.item.quantityLimit ?? 1).toString(),
-                                },
-                              );
+                              try {
+                                FirebaseAnalytics.instance.logEvent(
+                                  name: 'add_to_cart',
+                                  parameters: {
+                                    'item_id': widget.item.id.toString(),
+                                    'item_name': widget.item.name.toString(),
+                                    'currency': 'EGP',
+                                    'value': widget.item.price.toString(),
+                                    'quantity': (widget.item.quantityLimit ?? 1).toString(),
+                                  },
+                                );
+                              } catch (_) {}
                             }
                           },
                     child: Padding(
@@ -145,7 +147,7 @@ class _CartCountViewState extends State<CartCountView> {
             )
           // Add to Cart Initial Button (When quantity is 0)
           : InkWell(
-              onTap: _isAdding
+              onTap: (_isAdding || cartController.isItemAdding(widget.item.id))
                   ? null
                   : () async {
                       if (AddressHelper.getUserAddressFromSharedPref() == null) {
@@ -153,57 +155,78 @@ class _CartCountViewState extends State<CartCountView> {
                         return;
                       }
                       setState(() => _isAdding = true);
-                      await Get.find<ItemController>().itemDirectlyAddToCart(widget.item, context);
-                      if (mounted) setState(() => _isAdding = false);
+                      try {
+                        await Get.find<ItemController>().itemDirectlyAddToCart(widget.item, context);
+                      } finally {
+                        if (mounted) setState(() => _isAdding = false);
+                      }
 
-                      FirebaseAnalytics.instance.logEvent(
-                        name: 'add_to_cart',
-                        parameters: {
-                          'currency': 'EGP',
-                          'value': widget.item.price ?? 0.0,
-                          'items': [
-                            {
-                              'item_id': widget.item.id.toString(),
-                              'item_name': widget.item.name,
-                              'price': widget.item.price ?? 0.0,
-                              'quantity': 1,
-                            }
-                          ]
-                        },
-                      );
-                    },
-              child: widget.child ??
-                  Container(
-                    height: 36,
-                    width: 36,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      borderRadius: BorderRadius.circular(10), // Matches squircle
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: Center(
-                      child: _isAdding
-                          ? SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(
-                                color: Theme.of(context).cardColor,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Icon(
-                              Icons.add_rounded,
-                              size: 20,
-                              color: Theme.of(context).cardColor,
+                      try {
+                        FirebaseAnalytics.instance.logAddToCart(
+                          currency: 'EGP',
+                          value: widget.item.price?.toDouble() ?? 0.0,
+                          items: [
+                            AnalyticsEventItem(
+                              itemId: widget.item.id?.toString(),
+                              itemName: widget.item.name,
+                              price: widget.item.price?.toDouble(),
+                              quantity: 1,
                             ),
-                    ),
-                  ),
+                          ],
+                        );
+                      } catch (e) {
+                        debugPrint('FirebaseAnalytics logAddToCart error: $e');
+                      }
+                    },
+              child: (_isAdding || cartController.isItemAdding(widget.item.id))
+                  ? Container(
+                      height: 36,
+                      width: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            color: Theme.of(context).cardColor,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                    )
+                  : (widget.child ??
+                      Container(
+                        height: 36,
+                        width: 36,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.add_rounded,
+                            size: 20,
+                            color: Theme.of(context).cardColor,
+                          ),
+                        ),
+                      )),
             );
     });
   }

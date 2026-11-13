@@ -1,23 +1,21 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart' as drift;
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/helper/db_helper.dart';
 import 'package:Oxygen_Mart/local/cache_response.dart';
+import 'package:Oxygen_Mart/util/app_constants.dart';
 
 class LocalClient {
+  static String _versionedId(String cacheId) => '${AppConstants.appVersion}|$cacheId';
+
   static Future<String?> organize(DataSourceEnum source, String cacheId,
       String? responseBody, Map<String, String>? header) async {
     SharedPreferences sharedPreferences = Get.find();
+    cacheId = _versionedId(cacheId);
     switch (source) {
       case DataSourceEnum.client:
         try {
-          // print('==========cache data : endpoint banner=${cacheId}, '
-          //     'header= ${header.toString()}, '
-          //     'response= ${responseBody}');
-
           if (GetPlatform.isWeb) {
             await sharedPreferences.setString(cacheId, responseBody ?? '');
           } else {

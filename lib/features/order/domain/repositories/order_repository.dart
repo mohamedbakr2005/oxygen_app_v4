@@ -1,6 +1,9 @@
 import 'package:get/get_connect/connect.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/common/models/ongoing_order_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/payment_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/last_order_model.dart';
@@ -12,6 +15,7 @@ import 'package:Oxygen_Mart/features/order/domain/models/refund_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/reorder_response_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/support_model.dart';
 import 'package:Oxygen_Mart/features/order/domain/repositories/order_repository_interface.dart';
+import 'package:Oxygen_Mart/features/order/domain/services/order_service_interface.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
 
@@ -33,6 +37,12 @@ class OrderRepository implements OrderRepositoryInterface {
       '${AppConstants.trackUri}$orderID${guestId != null ? '&guest_id=$guestId' : ''}'
       '${contactNumber != null ? '&contact_number=$contactNumber' : ''}',
     );
+  }
+
+  @override
+  Future<Response?> getDirection({required LatLng origin, required LatLng destination}) async {
+    return await apiClient.getData('${AppConstants.directionUri}?origin_lat=${origin.latitude}&origin_lng=${origin.longitude}'
+        '&destination_lat=${destination.latitude}&destination_lng=${destination.longitude}');
   }
 
   @override
@@ -61,21 +71,25 @@ class OrderRepository implements OrderRepositoryInterface {
 
   @override
   Future<bool> cancelOrder(String orderID, String? reason,
-      {String? guestId}) async {
+      {String? guestId, bool isParcel = false, List<String>? reasons, String? comment}) async {
     bool success = false;
-    Map<String, String> data = {
-      '_method': 'put',
-      'order_id': orderID,
-      'reason': reason!
-    };
+    Map<String, dynamic> data;
+    if (isParcel) {
+      data = {'_method': 'put', 'order_id': orderID, 'reason': reasons ?? [], 'note': comment ?? ''};
+    } else {
+      data = {'_method': 'put', 'order_id': orderID, 'reason': reason ?? '', 'note': comment ?? ''};
+    }
     if (AuthHelper.isGuestLoggedIn() || guestId != null) {
       data.addAll({'guest_id': guestId ?? AuthHelper.getGuestId()});
     }
     Response response =
         await apiClient.postData(AppConstants.orderCancelUri, data);
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       success = true;
-      showCustomSnackBar(response.body['message'], isError: false);
+      final String? message = (response.body is Map ? response.body['message'] : null) ?? response.statusText;
+      if (message != null) {
+        showCustomSnackBar(message, isError: false);
+      }
     }
     return success;
   }
@@ -92,10 +106,24 @@ class OrderRepository implements OrderRepositoryInterface {
         '${AppConstants.orderDetailsUri}$orderID${guestId != null ? '&guest_id=$guestId' : ''}');
     if (response.statusCode == 200) {
       orderDetails = [];
-      response.body.forEach((orderDetail) =>
-          orderDetails!.add(OrderDetailsModel.fromJson(orderDetail)));
+      for (final dynamic orderDetail in ResponseParser.listOrEmpty(response.body)) {
+        orderDetails.add(OrderDetailsModel.fromJson(orderDetail));
+      }
     }
     return orderDetails;
+  }
+
+  @override
+  Future<PaginatedOrderModel?> getOrderList(OrderListType type, int offset, {bool fromDashboard = false, int? moduleId}) async {
+    PaginatedOrderModel? orderModel;
+    final String moduleParam = moduleId != null ? '&module_id=$moduleId' : '';
+    Response response = await apiClient.getData(
+      '${AppConstants.allOrderList}?type=${type.queryValue}&offset=$offset&limit=${fromDashboard ? 50 : 10}$moduleParam',
+    );
+    if (response.statusCode == 200) {
+      orderModel = PaginatedOrderModel.fromJson(response.body);
+    }
+    return orderModel;
   }
 
   @override
@@ -122,23 +150,23 @@ class OrderRepository implements OrderRepositoryInterface {
 
   Future<PaginatedOrderModel?> _getRunningOrderList(
       int offset, bool fromDashboard) async {
-    PaginatedOrderModel? runningOrderModel;
+    PaginatedOrderModel? paginatedOrderModel;
     Response response = await apiClient.getData(
         '${AppConstants.runningOrderListUri}?offset=$offset&limit=${fromDashboard ? 50 : 10}');
     if (response.statusCode == 200) {
-      runningOrderModel = PaginatedOrderModel.fromJson(response.body);
+      paginatedOrderModel = PaginatedOrderModel.fromJson(response.body);
     }
-    return runningOrderModel;
+    return paginatedOrderModel;
   }
 
   Future<PaginatedOrderModel?> _getHistoryOrderList(int offset) async {
-    PaginatedOrderModel? historyOrderModel;
+    PaginatedOrderModel? paginatedOrderModel;
     Response response = await apiClient
         .getData('${AppConstants.historyOrderListUri}?offset=$offset&limit=10');
     if (response.statusCode == 200) {
-      historyOrderModel = PaginatedOrderModel.fromJson(response.body);
+      paginatedOrderModel = PaginatedOrderModel.fromJson(response.body);
     }
-    return historyOrderModel;
+    return paginatedOrderModel;
   }
 
   Future<List<CancellationData>?> _getCancelReasons() async {
@@ -149,7 +177,7 @@ class OrderRepository implements OrderRepositoryInterface {
       OrderCancellationBody orderCancellationBody =
           OrderCancellationBody.fromJson(response.body);
       orderCancelReasons = [];
-      for (var element in orderCancellationBody.reasons!) {
+      for (var element in orderCancellationBody.reasons ?? <CancellationData>[]) {
         orderCancelReasons.add(element);
       }
     }
@@ -163,7 +191,7 @@ class OrderRepository implements OrderRepositoryInterface {
       RefundModel refundModel = RefundModel.fromJson(response.body);
       refundReasons = [];
       refundReasons.insert(0, 'select_an_option');
-      for (var element in refundModel.refundReasons!) {
+      for (var element in refundModel.refundReasons ?? <RefundReasons>[]) {
         refundReasons.add(element.reason);
       }
     }
@@ -176,8 +204,10 @@ class OrderRepository implements OrderRepositoryInterface {
     if (response.statusCode == 200) {
       SupportModel supportModel = SupportModel.fromJson(response.body);
       supportReasons = [];
-      for (var element in supportModel.data!) {
-        supportReasons.add(element.message);
+      if (supportModel.data != null) {
+        for (var element in supportModel.data!) {
+          supportReasons.add(element.message);
+        }
       }
     }
     return supportReasons;
@@ -206,10 +236,12 @@ class OrderRepository implements OrderRepositoryInterface {
 
   @override
   Future<ReorderResponseModel?> reorder(int orderId) async {
-    ReorderResponseModel? reorderResponse;
     Response response = await apiClient.postData(AppConstants.reorderUri, {'order_id': orderId}, handleError: false);
-    reorderResponse = ReorderResponseModel.fromJson(response.body);
-    return reorderResponse;
+    final dynamic payload = ResponseParser.payloadOf(response.body);
+    if (payload is! Map<String, dynamic>) {
+      return ReorderResponseModel(message: response.statusText);
+    }
+    return ReorderResponseModel.fromJson(payload)..message = response.statusText;
   }
 
   @override
@@ -234,8 +266,11 @@ class OrderRepository implements OrderRepositoryInterface {
 
     final String uri = storeId != null ? '${AppConstants.lastOrdersUri}?store_id=$storeId' : AppConstants.lastOrdersUri;
     final Response response = await apiClient.getData(uri, headers: header);
-    if (response.statusCode == 200 && response.body is List) {
-      return (response.body as List).whereType<Map<String, dynamic>>().map(LastOrderModel.fromJson).toList();
+    if (response.statusCode == 200) {
+      return ResponseParser.listOrEmpty(response.body)
+          .whereType<Map<String, dynamic>>()
+          .map(LastOrderModel.fromJson)
+          .toList();
     }
     return null;
   }
@@ -259,10 +294,22 @@ class OrderRepository implements OrderRepositoryInterface {
     );
     if (response.statusCode == 200) {
       try {
-        paymentModel = PaymentModel.fromJson(response.body);
+        final PaymentModel parsed = PaymentModel.fromJson(response.body);
+        if (parsed.orderID != null) {
+          paymentModel = parsed;
+        }
       } catch (_) {}
     }
     return paymentModel;
   }
-}
 
+  @override
+  Future<OngoingOrderModel?> getDashboardOrders() async {
+    OngoingOrderModel? ongoingOrderModel;
+    Response response = await apiClient.getData(AppConstants.dashboardOrderUri);
+    if (response.statusCode == 200) {
+      ongoingOrderModel = OngoingOrderModel.fromJson(response.body);
+    }
+    return ongoingOrderModel;
+  }
+}

@@ -22,6 +22,21 @@ class ApiClient extends GetxService {
   String? token;
   late Map<String, String> _mainHeaders;
 
+  String? _cachedModuleIdRaw;
+  int? _cachedModuleIdValue;
+
+  int? _moduleIdFromCachePref(String raw) {
+    if (raw != _cachedModuleIdRaw) {
+      try {
+        _cachedModuleIdValue = ModuleModel.fromJson(jsonDecode(raw)).id;
+        _cachedModuleIdRaw = raw;
+      } catch (_) {
+        return null;
+      }
+    }
+    return _cachedModuleIdValue;
+  }
+
   ApiClient({required this.appBaseUrl, required this.sharedPreferences}) {
     token = sharedPreferences.getString(AppConstants.token);
     if (kDebugMode) {
@@ -70,14 +85,12 @@ class ApiClient extends GetxService {
 
     if (effectiveModuleId != null) {
       header[AppConstants.moduleId] = effectiveModuleId;
-    } else if (!fromModule && sharedPreferences.getString(AppConstants.cacheModuleId) != null) {
-      try {
-        int? cacheId = ModuleModel.fromJson(
-            jsonDecode(sharedPreferences.getString(AppConstants.cacheModuleId)!)).id;
-        if (cacheId != null) {
-          header[AppConstants.moduleId] = '$cacheId';
-        }
-      } catch (_) {}
+    } else if (sharedPreferences.getString(AppConstants.cacheModuleId) != null) {
+      int? cacheId = _moduleIdFromCachePref(
+          sharedPreferences.getString(AppConstants.cacheModuleId)!);
+      if (cacheId != null) {
+        header[AppConstants.moduleId] = '$cacheId';
+      }
     }
 
     List<int>? activeZoneIDs = zoneIDs;
@@ -131,6 +144,7 @@ class ApiClient extends GetxService {
     Map<String, String>? headers,
     bool handleError = true,
     bool moduleScoped = false,
+    bool rawBody = false,
   }) async {
     try {
       final Map<String, String> requestHeaders = headers ?? _mainHeaders;
@@ -157,7 +171,7 @@ class ApiClient extends GetxService {
         return const Response(statusCode: 499, statusText: 'stale module response');
       }
 
-      return handleResponse(response, uri, handleError);
+      return handleResponse(response, uri, handleError, rawBody: rawBody);
     } catch (e) {
       if (kDebugMode) {
         print('------------${e.toString()}');
@@ -171,15 +185,18 @@ class ApiClient extends GetxService {
       int? timeout,
       bool handleError = true}) async {
     try {
+      final Map<String, String> requestHeaders = headers != null
+          ? <String, String>{..._mainHeaders, ...headers}
+          : _mainHeaders;
       if (kDebugMode) {
-        print('====> API Call: $uri\nHeader: ${headers ?? _mainHeaders}');
+        print('====> API Call: $uri\nHeader: $requestHeaders');
         print('====> API Body: $body');
       }
       http.Response response = await http
           .post(
             Uri.parse(appBaseUrl + uri),
             body: jsonEncode(body),
-            headers: headers ?? _mainHeaders,
+            headers: requestHeaders,
           )
           .timeout(Duration(seconds: timeout ?? timeoutInSeconds));
       return handleResponse(response, uri, handleError);
@@ -198,7 +215,9 @@ class ApiClient extends GetxService {
       }
       http.MultipartRequest request =
           http.MultipartRequest('POST', Uri.parse(appBaseUrl + uri));
-      request.headers.addAll(headers ?? _mainHeaders);
+      final Map<String, String> multipartHeaders = Map<String, String>.from(headers ?? _mainHeaders);
+      multipartHeaders.removeWhere((key, value) => key.toLowerCase() == 'content-type');
+      request.headers.addAll(multipartHeaders);
       for (MultipartBody multipart in multipartBody) {
         if (multipart.file != null) {
           Uint8List list = await multipart.file!.readAsBytes();
@@ -222,15 +241,18 @@ class ApiClient extends GetxService {
   Future<Response> putData(String uri, dynamic body,
       {Map<String, String>? headers, bool handleError = true}) async {
     try {
+      final Map<String, String> requestHeaders = headers != null
+          ? <String, String>{..._mainHeaders, ...headers}
+          : _mainHeaders;
       if (kDebugMode) {
-        print('====> API Call: $uri\nHeader: ${headers ?? _mainHeaders}');
+        print('====> API Call: $uri\nHeader: $requestHeaders');
         print('====> API Body: $body');
       }
       http.Response response = await http
           .put(
             Uri.parse(appBaseUrl + uri),
             body: jsonEncode(body),
-            headers: headers ?? _mainHeaders,
+            headers: requestHeaders,
           )
           .timeout(Duration(seconds: timeoutInSeconds));
       return handleResponse(response, uri, handleError);
@@ -240,15 +262,19 @@ class ApiClient extends GetxService {
   }
 
   Future<Response> deleteData(String uri,
-      {Map<String, String>? headers, bool handleError = true}) async {
+      {dynamic body, Map<String, String>? headers, bool handleError = true}) async {
     try {
+      final Map<String, String> requestHeaders = headers != null
+          ? <String, String>{..._mainHeaders, ...headers}
+          : _mainHeaders;
       if (kDebugMode) {
-        print('====> API Call: $uri\nHeader: ${headers ?? _mainHeaders}');
+        print('====> API Call: $uri\nHeader: $requestHeaders');
       }
       http.Response response = await http
           .delete(
             Uri.parse(appBaseUrl + uri),
-            headers: headers ?? _mainHeaders,
+            headers: requestHeaders,
+            body: body != null ? jsonEncode(body) : null,
           )
           .timeout(Duration(seconds: timeoutInSeconds));
       return handleResponse(response, uri, handleError);
@@ -258,38 +284,60 @@ class ApiClient extends GetxService {
   }
 
   Response handleResponse(
-      http.Response response, String uri, bool handleError) {
+      http.Response response, String uri, bool handleError, {bool rawBody = false}) {
+    final String bodyText = response.body;
     dynamic body;
-    try {
-      body = jsonDecode(response.body);
-    } catch (_) {}
+    final bool skipDecode = rawBody && isSuccessCode(response.statusCode);
+    if (!skipDecode) {
+      try {
+        body = jsonDecode(bodyText);
+      } catch (_) {}
+    }
+    final String? envelopeMessage = envelopeMessageOf(body, response.statusCode);
+    body = unwrapEnvelope(body, response.statusCode);
+
     Response response0 = Response(
-      body: body ?? response.body,
-      bodyString: response.body.toString(),
+      body: body ?? bodyText,
+      bodyString: bodyText,
       request: Request(
           headers: response.request!.headers,
           method: response.request!.method,
           url: response.request!.url),
       headers: response.headers,
       statusCode: response.statusCode,
-      statusText: response.reasonPhrase,
+      statusText: envelopeMessage ?? response.reasonPhrase,
     );
-    if (response0.statusCode != 200 &&
+    if (!isSuccessCode(response0.statusCode) &&
         response0.body != null &&
         response0.body is! String) {
-      if (response0.body.toString().startsWith('{errors: [{code:')) {
+      final String? envelopeError = envelopeErrorMessageOf(response0.body);
+      if (envelopeError != null) {
+        response0 = Response(
+          statusCode: response0.statusCode,
+          body: response0.body,
+          statusText: envelopeError,
+        );
+      } else if (response0.body.toString().startsWith('{errors: [{code:')) {
         ErrorResponse errorResponse = ErrorResponse.fromJson(response0.body);
         response0 = Response(
             statusCode: response0.statusCode,
             body: response0.body,
             statusText: errorResponse.errors![0].message);
+      } else if (response0.body.toString().startsWith('{response_code: zone_404, message:')) {
+        response0 = Response(statusCode: response0.statusCode, body: response0.body, statusText: response0.body['message']);
+      } else if(response0.body.toString().startsWith('{response_code: route_404, message:')) {
+        response0 = Response(statusCode: response0.statusCode, body: response0.body, statusText: response0.body['message']);
+      } else if(response0.body.toString().startsWith('{response_code: incomplete_ride_403, message:')) {
+        response0 = Response(statusCode: response0.statusCode, body: response0.body, statusText: response0.body['message']);
+      } else if(response0.body.toString().startsWith('{errors: [{code: interest, message:')) {
+        response0 = Response(statusCode: response0.statusCode, body: response0.body, statusText: response0.body['message']);
       } else if (response0.body.toString().startsWith('{message')) {
         response0 = Response(
             statusCode: response0.statusCode,
             body: response0.body,
             statusText: response0.body['message']);
       }
-    } else if (response0.statusCode != 200 && response0.body == null) {
+    } else if (!isSuccessCode(response0.statusCode) && response0.body == null) {
       response0 = Response(statusCode: 0, statusText: noInternetMessage);
     }
     if (kDebugMode) {
@@ -299,7 +347,7 @@ class ApiClient extends GetxService {
       }
     }
     if (handleError) {
-      if (response0.statusCode == 200) {
+      if (isSuccessCode(response0.statusCode)) {
         return response0;
       } else {
         ApiChecker.checkApi(response0);
@@ -308,6 +356,45 @@ class ApiClient extends GetxService {
     } else {
       return response0;
     }
+  }
+
+  static bool isSuccessCode(int? statusCode) =>
+      statusCode != null && statusCode >= 200 && statusCode < 300;
+
+  static dynamic unwrapEnvelope(dynamic body, int? statusCode) {
+    if (!isSuccessCode(statusCode) || body is! Map) return body;
+    if (!body.containsKey('identical_code') || body['content'] == null) return body;
+    return body['content'];
+  }
+
+  static String? envelopeMessageOf(dynamic body, int? statusCode) {
+    if (!isSuccessCode(statusCode) || body is! Map) return null;
+    if (!body.containsKey('identical_code') || body['content'] == null) return null;
+    final dynamic message = body['message'];
+    return message is String ? message : null;
+  }
+
+  static String? envelopeErrorMessageOf(dynamic body) {
+    if (body is! Map || !body.containsKey('identical_code')) return null;
+
+    final dynamic errors = body['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      final dynamic first = errors.first;
+      if (first is Map && first['message'] is String && (first['message'] as String).isNotEmpty) {
+        return first['message'] as String;
+      }
+    } else if (errors is Map && errors.isNotEmpty) {
+      final dynamic first = errors.values.first;
+      if (first is List) {
+        if (first.isNotEmpty) return first.first?.toString();
+      } else if (first != null) {
+        return first.toString();
+      }
+    }
+
+    final dynamic message = body['message'];
+    if (message is String && message.isNotEmpty) return message;
+    return null;
   }
 }
 

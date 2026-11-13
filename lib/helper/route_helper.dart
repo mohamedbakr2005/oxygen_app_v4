@@ -130,6 +130,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/screen/bogo_offer_details_screen.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/screen/bogo_offer_screen.dart';
+
 
 class RouteHelper {
   static const String initial = '/';
@@ -209,6 +212,9 @@ class RouteHelper {
 
   static const String offlinePaymentScreen = '/offline-payment-screen';
   static const String flashSaleDetailsScreen = '/flash-sale-details-screen';
+  static const String bogoOfferScreen = '/bogo-offer';
+  static const String bogoOfferDetailsScreen = '/bogo-offer-details';
+
   static const String guestTrackOrderScreen = '/guest-track-order-screen';
   static const String favourite = '/favourite';
   static const String brands = '/brands';
@@ -393,6 +399,12 @@ class RouteHelper {
   static String getUpdateRoute(bool isUpdate) =>
       '$update?update=${isUpdate.toString()}';
   static String getCartRoute({int? storeId}) => '$cart?module=${ModuleHelper.getModule()?.slug ?? ModuleHelper.getModule()?.id}${storeId != null ? '&store_id=$storeId' : ''}';
+  static void openCart({int? storeId}) {
+    if (Get.currentRoute.startsWith(cart)) {
+      return;
+    }
+    Get.toNamed(getCartRoute(storeId: storeId));
+  }
   static String getGlobalCartRoute({bool fromNav = false, int? initialModuleId}) => '$globalCart?from_nav=$fromNav${initialModuleId != null ? '&module_id=$initialModuleId' : ''}';
   static String getAddAddressRoute(
           bool fromCheckout, bool fromRide, int? zoneId,
@@ -485,6 +497,10 @@ class RouteHelper {
     }
     return '$messages?notification=$notificationBody0&user=$user0&conversation_id=$conversationID&index=$index&from=${fromNotification.toString()}&order-chat=$orderChat';
   }
+
+  static String getBogoOfferRoute({int? moduleId}) => moduleId != null ? '$bogoOfferScreen?module_id=$moduleId' : bogoOfferScreen;
+  static String getBogoOfferDetailsRoute(String idOrSlug, {int? moduleId}) =>
+      '$bogoOfferDetailsScreen?id=$idOrSlug${moduleId != null ? '&module_id=$moduleId' : ''}';
 
   static String getConversationRoute() => conversation;
   static String getRestaurantRegistrationRoute() => restaurantRegistration;
@@ -1098,7 +1114,7 @@ class RouteHelper {
             Get.parameters['module'], fromDeeplink: Get.parameters['from_deeplink'] == 'true',
             Get.arguments ??
                 ItemDetailsScreen(
-                  item: Item(id: int.parse(Get.parameters['id']!)),
+                  item: Item(id: int.tryParse(Get.parameters['id'] ?? '') ?? 0),
                   inStorePage: Get.parameters['page'] == 'restaurant',
                 ),
           ),
@@ -1199,6 +1215,12 @@ class RouteHelper {
         name: flashSaleDetailsScreen,
         page: () =>
             FlashSaleDetailsScreen(id: int.parse(Get.parameters['id']!))),
+    GetPage(name: bogoOfferScreen, page: () => getRoute(BogoOfferScreen(moduleId: int.tryParse(Get.parameters['module_id'] ?? '')))),
+    GetPage(name: bogoOfferDetailsScreen, page: () => getRoute(BogoOfferDetailsScreen(
+      offerIdOrSlug: Get.parameters['id'],
+      moduleId: int.tryParse(Get.parameters['module_id'] ?? ''),
+    ))),
+
     GetPage(
         name: guestTrackOrderScreen,
         page: () => GuestTrackOrderScreen(
@@ -1365,7 +1387,7 @@ class RouteHelper {
   }
 
   static Widget _waitForModule(String? moduleId, Widget child, {bool fromDeeplink = false}) {
-    if (moduleId != null && moduleId.isNotEmpty && moduleId != 'null') {
+    if ((fromDeeplink || GetPlatform.isWeb) && moduleId != null && moduleId.isNotEmpty && moduleId != 'null') {
       return FutureBuilder(
         future: checkModuleId(moduleId, fromDeeplink: fromDeeplink),
         builder: (context, snapshot) {

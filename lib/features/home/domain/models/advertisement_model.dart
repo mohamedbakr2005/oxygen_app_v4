@@ -25,6 +25,7 @@ class AdvertisementModel {
   String? videoAttachmentFullUrl;
   double? averageRating;
   int? reviewsCommentsCount;
+  StoreDetails? store;
 
   AdvertisementModel({
     this.id,
@@ -53,6 +54,7 @@ class AdvertisementModel {
     this.videoAttachmentFullUrl,
     this.averageRating,
     this.reviewsCommentsCount,
+    this.store,
   });
 
   AdvertisementModel.fromJson(Map<String, dynamic> json) {
@@ -81,8 +83,10 @@ class AdvertisementModel {
     coverImageFullUrl = json['cover_image_full_url'];
     profileImageFullUrl = json['profile_image_full_url'];
     videoAttachmentFullUrl = json['video_attachment_full_url'];
-    averageRating = json['average_rating']?.toDouble();
-    reviewsCommentsCount = json['reviews_comments_count'];
+    final Map<String, dynamic>? storeJson = json['store'];
+    averageRating = (json['average_rating'] ?? storeJson?['avg_rating'])?.toDouble();
+    reviewsCommentsCount = json['reviews_comments_count'] ?? storeJson?['rating_count'];
+    store = storeJson != null ? StoreDetails.fromJson(storeJson) : null;
   }
 
   Map<String, dynamic> toJson() {
@@ -114,6 +118,110 @@ class AdvertisementModel {
     data['video_attachment_full_url'] = videoAttachmentFullUrl;
     data['average_rating'] = averageRating;
     data['reviews_comments_count'] = reviewsCommentsCount;
+    if (store != null) {
+      data['store'] = store!.toJson();
+    }
+    return data;
+  }
+}
+
+class StoreDetails {
+  int? id;
+  String? name;
+  String? slug;
+  String? logoFullUrl;
+  String? coverPhotoFullUrl;
+  int? moduleId;
+  String? moduleType;
+  List<TopItems>? topItems;
+  int? itemCount;
+
+  StoreDetails({
+    this.id,
+    this.name,
+    this.slug,
+    this.logoFullUrl,
+    this.coverPhotoFullUrl,
+    this.moduleId,
+    this.moduleType,
+    this.topItems,
+    this.itemCount,
+  });
+
+  StoreDetails.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    name = json['name'];
+    slug = json['slug'];
+    logoFullUrl = json['logo_full_url'];
+    coverPhotoFullUrl = json['cover_photo_full_url'];
+    moduleId = json['module_id'];
+    moduleType = json['module_type'];
+    final List<dynamic>? topItemsJson = json['top_items'] ?? json['top_services'];
+    if (topItemsJson != null) {
+      topItems = topItemsJson.map((v) => TopItems.fromJson(v)).toList();
+    }
+    itemCount = json['item_count'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['name'] = name;
+    data['slug'] = slug;
+    data['logo_full_url'] = logoFullUrl;
+    data['cover_photo_full_url'] = coverPhotoFullUrl;
+    data['module_id'] = moduleId;
+    data['module_type'] = moduleType;
+    if (topItems != null) {
+      data['top_items'] = topItems!.map((v) => v.toJson()).toList();
+    }
+    data['item_count'] = itemCount;
+    return data;
+  }
+}
+
+class TopItems {
+  int? id;
+  String? name;
+  String? imageFullUrl;
+  double? price;
+  double? discount;
+  String? discountType;
+  int? orderCount;
+  double? avgRating;
+
+  TopItems({
+    this.id,
+    this.name,
+    this.imageFullUrl,
+    this.price,
+    this.discount,
+    this.discountType,
+    this.orderCount,
+    this.avgRating,
+  });
+
+  TopItems.fromJson(Map<String, dynamic> json) {
+    id = json['id'];
+    name = json['name'];
+    imageFullUrl = json['image_full_url'] ?? json['thumbnail_full_url'];
+    price = (json['price'] ?? json['base_price'])?.toDouble();
+    discount = json['discount']?.toDouble();
+    discountType = json['discount_type'];
+    orderCount = json['order_count'];
+    avgRating = json['avg_rating']?.toDouble();
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['id'] = id;
+    data['name'] = name;
+    data['image_full_url'] = imageFullUrl;
+    data['price'] = price;
+    data['discount'] = discount;
+    data['discount_type'] = discountType;
+    data['order_count'] = orderCount;
+    data['avg_rating'] = avgRating;
     return data;
   }
 }

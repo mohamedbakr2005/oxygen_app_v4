@@ -1,4 +1,5 @@
 import 'package:get/get_connect/http/src/response/response.dart';
+import 'package:Oxygen_Mart/features/brands/domain/models/brands_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
@@ -7,7 +8,7 @@ import 'package:Oxygen_Mart/features/search/domain/models/trending_search_model.
 import 'package:Oxygen_Mart/features/store/domain/models/store_model.dart';
 
 abstract class SearchServiceInterface {
-  Future<Response> getSearchData(String? query, bool isStore);
+  Future<Response> getSearchData(String? query, bool isStore, {int offset = 1, int? moduleId, Map<String, String>? filterParams});
   Future<List<Item>?> getSuggestedItems();
   Future<bool> saveSearchHistory(List<String> searchHistories);
   List<String> getSearchAddress();
@@ -30,9 +31,10 @@ abstract class SearchServiceInterface {
       bool isAvailableStore,
       bool isDiscountedStore,
       int storeSortIndex);
-  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText);
+  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText, {bool isGlobal = false});
   Future<List<PopularCategoryModel?>?> getPopularCategories();
+  Future<List<BrandModel>?> getBrandList({required int moduleId, required List<int> zoneIds});
+  Future<List<Store>?> getExclusiveDeals();
   Future<List<TopCategory>?> getTopCategories({int offset = 1});
   Future<List<TrendingSearch>?> getTrendingSearches({bool isGlobal = false});
 }
-

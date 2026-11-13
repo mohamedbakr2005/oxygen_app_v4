@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get_connect.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/all_carts_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/cart/domain/models/online_cart_model.dart';
@@ -53,9 +54,11 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
       data['store_id'] = storeId;
     }
     Response response = await apiClient.postData('${AppConstants.addCartUri}${_buildCartMutationQuery(storeId)}', data);
-    if(response.statusCode == 200) {
+    if(ApiClient.isSuccessCode(response.statusCode)) {
       onlineCartList = [];
-      response.body.forEach((cart) => onlineCartList!.add(OnlineCartModel.fromJson(cart)));
+      for (final dynamic c in ResponseParser.listOrEmpty(response.body)) {
+        onlineCartList.add(OnlineCartModel.fromJson(c));
+      }
     }
     return onlineCartList;
   }
@@ -104,7 +107,7 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
 
   @override
   Future getList({int? offset}) async {
-    return [];
+    return await _getCartDataOnline();
   }
 
   @override
@@ -113,6 +116,20 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   }
 
   Future<List<OnlineCartModel>?> _getCartDataOnline({int? storeId}) async {
+    // `cart/list` now rejects a request that carries no `store_id` with a 422
+    // ("The store id field is required.").
+    // `cart/get-all` is the unscoped equivalent: every store group at once.
+    // Flattening its groups reproduces exactly what a store-less `cart/list` returned.
+    if (storeId == null) {
+      final List<AllCartsModel>? groups = await getAllCarts();
+      if (groups == null) {
+        return null;
+      }
+      return groups
+          .expand((AllCartsModel group) => group.onlineCarts ?? const <OnlineCartModel>[])
+          .toList();
+    }
+
     List<OnlineCartModel>? onlineCartList;
     final String? token = sharedPreferences.getString(AppConstants.token);
     final int? cacheModuleId = ModuleHelper.getCacheModule()?.id;
@@ -127,19 +144,19 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
     if(!AuthHelper.isLoggedIn()) {
       queryParams.add('guest_id=${AuthHelper.getGuestId()}');
     }
-    if(storeId != null) {
-      queryParams.add('store_id=$storeId');
-    }
-    final String querySuffix = queryParams.isEmpty ? '' : '?${queryParams.join('&')}';
+    queryParams.add('store_id=$storeId');
+    final String querySuffix = '?${queryParams.join('&')}';
 
     Response response = await apiClient.getData(
       '${AppConstants.getCartListUri}$querySuffix',
       headers: ModuleHelper.getModule()?.id == null ? header : null,
       handleError: false,
     );
-    if(response.statusCode == 200 && response.body is List) {
+    if(ApiClient.isSuccessCode(response.statusCode)) {
       onlineCartList = [];
-      response.body.forEach((cart) => onlineCartList!.add(OnlineCartModel.fromJson(cart)));
+      for (final dynamic cart in ResponseParser.listOrEmpty(response.body)) {
+        onlineCartList.add(OnlineCartModel.fromJson(cart));
+      }
     }
     return onlineCartList;
   }
@@ -147,7 +164,11 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   @override
   Future update(Map<String, dynamic> body, int? id, {double? price, int? quantity, bool isUpdateQty = false, int? storeId}) async {
     if(isUpdateQty) {
-      return await _updateCartQuantityOnline(id!, price!, quantity!, storeId: storeId);
+      if (body.isNotEmpty) {
+        return await _updateCartQuantityOnlineBody(body, storeId: storeId);
+      } else {
+        return await _updateCartQuantityOnlineLegacy(id!, price!, quantity!, storeId: storeId);
+      }
     } else {
       return await _updateCartOnline(body, storeId: storeId);
     }
@@ -159,14 +180,21 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
     }
     List<OnlineCartModel>? onlineCartList;
     Response response = await apiClient.postData('${AppConstants.updateCartUri}${_buildCartMutationQuery(storeId)}', body);
-    if(response.statusCode == 200) {
+    if(ApiClient.isSuccessCode(response.statusCode)) {
       onlineCartList = [];
-      response.body.forEach((cart) => onlineCartList!.add(OnlineCartModel.fromJson(cart)));
+      for (final dynamic cart in ResponseParser.listOrEmpty(response.body)) {
+        onlineCartList.add(OnlineCartModel.fromJson(cart));
+      }
     }
     return onlineCartList;
   }
 
-  Future<bool> _updateCartQuantityOnline(int cartId, double price, int quantity, {int? storeId}) async {
+  Future<bool> _updateCartQuantityOnlineBody(Map<String, dynamic> body, {int? storeId}) async {
+    Response response = await apiClient.postData('${AppConstants.updateCartUri}${_buildCartMutationQuery(storeId)}', body);
+    return ApiClient.isSuccessCode(response.statusCode);
+  }
+
+  Future<bool> _updateCartQuantityOnlineLegacy(int cartId, double price, int quantity, {int? storeId}) async {
     Map<String, dynamic> data = {
       "cart_id": cartId,
       "price": price,
@@ -198,9 +226,11 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
       '${AppConstants.getAllCartsUri}${!AuthHelper.isLoggedIn() ? '?guest_id=${AuthHelper.getGuestId()}' : ''}',
       headers: ModuleHelper.getModule()?.id == null ? header : null,
     );
-    if(response.statusCode == 200) {
+    if(ApiClient.isSuccessCode(response.statusCode)) {
       allCarts = [];
-      response.body.forEach((group) => allCarts!.add(AllCartsModel.fromJson(group)));
+      for (final dynamic group in ResponseParser.listOrEmpty(response.body)) {
+        allCarts.add(AllCartsModel.fromJson(group));
+      }
     }
     return allCarts;
   }
@@ -209,6 +239,89 @@ class CartRepository implements CartRepositoryInterface<OnlineCart> {
   Future<bool> removeStoreCart(int storeId) async {
     final String guestSuffix = !AuthHelper.isLoggedIn() ? '&guest_id=${AuthHelper.getGuestId()}' : '';
     Response response = await apiClient.deleteData('${AppConstants.removeAllCartUri}?store_id=$storeId$guestSuffix');
+    return (response.statusCode == 200);
+  }
+
+  Map<String, String>? _headersForModule(int? moduleId) {
+    if (moduleId == null) {
+      return null;
+    }
+    final Map<String, String> headers = Map<String, String>.from(apiClient.getHeader());
+    headers[AppConstants.moduleId] = '$moduleId';
+    headers['Content-Type'] = 'application/json; charset=UTF-8';
+    return headers;
+  }
+
+  @override
+  Future<Response> addBogoToCartOnline(int bogoId, int quantity, String? guestId, {String? contactPersonNumber, int? moduleId}) async {
+    Map<String, dynamic> body = {
+      'bundle_id': bogoId,
+      'quantity': quantity,
+      if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+      if (contactPersonNumber != null && contactPersonNumber.isNotEmpty) 'contact_person_number': contactPersonNumber,
+    };
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    return await apiClient.postData('${AppConstants.addBogoCartUri}$guestQuery', body, handleError: false, headers: _headersForModule(moduleId));
+  }
+
+  @override
+  Future<Response> updateBogoBundleQuantityOnline(String bogoGroupId, int quantity, String? guestId, {int? moduleId}) async {
+    Map<String, dynamic> data = {
+      'bogo_group_id': bogoGroupId,
+      'quantity': quantity,
+      if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+    };
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    return await apiClient.postData('${AppConstants.updateBogoCartUri}$guestQuery', data, handleError: false, headers: _headersForModule(moduleId));
+  }
+
+  @override
+  Future<bool> removeBogoBundleItemOnline(String bogoGroupId, String? guestId, {required int storeId}) async {
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    Response response = await apiClient.deleteData(
+      '${AppConstants.removeBogoCartUri}$guestQuery',
+      body: {
+        'bogo_group_id': bogoGroupId,
+        if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+      },
+      handleError: false,
+    );
+    return (response.statusCode == 200);
+  }
+
+  @override
+  Future<Response> addBundleToCartOnline(int bundleId, int quantity, String? guestId) async {
+    Map<String, dynamic> body = {
+      'bundle_id': bundleId,
+      'quantity': quantity,
+      if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+    };
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    return await apiClient.postData('${AppConstants.addBundleCartUri}$guestQuery', body, handleError: false);
+  }
+
+  @override
+  Future<Response> updateBundleQuantityOnline(String bundleGroupId, int quantity, String? guestId) async {
+    Map<String, dynamic> body = {
+      'bundle_group_id': bundleGroupId,
+      'quantity': quantity,
+      if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+    };
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    return await apiClient.postData('${AppConstants.updateBundleCartUri}$guestQuery', body, handleError: false);
+  }
+
+  @override
+  Future<bool> removeBundleItemOnline(String bundleGroupId, String? guestId) async {
+    final String guestQuery = (guestId != null && guestId.isNotEmpty) ? '?guest_id=$guestId' : '';
+    Response response = await apiClient.deleteData(
+      '${AppConstants.removeBundleCartUri}$guestQuery',
+      body: {
+        'bundle_group_id': bundleGroupId,
+        if (guestId != null && guestId.isNotEmpty) 'guest_id': guestId,
+      },
+      handleError: false,
+    );
     return (response.statusCode == 200);
   }
 }

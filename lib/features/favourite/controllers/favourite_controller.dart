@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/favourite/domain/services/favourite_service_interface.dart';
@@ -142,30 +143,29 @@ class FavouriteController extends GetxController implements GetxService {
       _wishStoreIdList = [];
       _wishItemIdList = [];
 
-      if (response.body['item'] != null) {
-        response.body['item'].forEach((item) async {
-          if (item['module_type'] == null ||
-              !Get.find<SplashController>()
-                  .getModuleConfig(item['module_type'])
-                  .newVariation! ||
-              item['variations'] == null ||
-              item['variations'].isEmpty ||
-              (item['food_variations'] != null &&
-                  item['food_variations'].isNotEmpty)) {
-            Item i = Item.fromJson(item);
-            if (Get.find<SplashController>().module == null) {
-              _wishItemList!.addAll(favouriteServiceInterface.wishItemList(i));
-              _wishItemIdList
-                  .addAll(favouriteServiceInterface.wishItemIdList(i));
-            } else {
-              _wishItemList!.add(i);
-              _wishItemIdList.add(i.id);
-            }
+      for (final dynamic item in ResponseParser.namedListOf(response.body, 'item')) {
+        if (item is Map &&
+            (item['module_type'] == null ||
+            !Get.find<SplashController>()
+                .getModuleConfig(item['module_type'])
+                .newVariation! ||
+            item['variations'] == null ||
+            item['variations'].isEmpty ||
+            (item['food_variations'] != null &&
+                item['food_variations'].isNotEmpty))) {
+          Item i = Item.fromJson(Map<String, dynamic>.from(item));
+          if (Get.find<SplashController>().module == null) {
+            _wishItemList!.addAll(favouriteServiceInterface.wishItemList(i));
+            _wishItemIdList
+                .addAll(favouriteServiceInterface.wishItemIdList(i));
+          } else {
+            _wishItemList!.add(i);
+            _wishItemIdList.add(i.id);
           }
-        });
+        }
       }
 
-      response.body['store'].forEach((store) async {
+      for (final dynamic store in ResponseParser.namedListOf(response.body, 'store')) {
         if (Get.find<SplashController>().module == null) {
           _wishStoreList!
               .addAll(favouriteServiceInterface.wishStoreList(store));
@@ -184,7 +184,7 @@ class FavouriteController extends GetxController implements GetxService {
             _wishStoreIdList.add(s.id);
           }
         }
-      });
+      }
     }
     update();
   }

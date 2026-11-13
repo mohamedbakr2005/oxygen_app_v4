@@ -11,6 +11,8 @@ import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/language/controllers/language_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/cart/widgets/bogo_bundle_cart_tile.dart';
+import 'package:Oxygen_Mart/features/cart/widgets/bundle_cart_tile.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
@@ -34,6 +36,14 @@ class CartItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (cart.isBogoBundle) {
+      return BogoBundleCartTile(cart: cart, cartIndex: cartIndex, isAvailable: isAvailable);
+    }
+
+    if (cart.isBundle) {
+      return BundleCartTile(cart: cart, cartIndex: cartIndex, isAvailable: isAvailable);
+    }
+
     final double? startingPrice = _calculatePriceWithVariation(item: cart.item);
     final double? endingPrice =
         _calculatePriceWithVariation(item: cart.item, isStartingPrice: false);

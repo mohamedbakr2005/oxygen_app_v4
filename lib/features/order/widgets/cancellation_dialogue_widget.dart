@@ -109,21 +109,28 @@ class CancellationDialogueWidget extends StatelessWidget {
                           child: CustomButton(
                         buttonText: 'submit'.tr,
                         radius: 50,
-                        onPressed: () {
+                        onPressed: () async {
                           if (orderController.cancelReason != '' &&
                               orderController.cancelReason != null) {
-                            orderController
-                                .cancelOrder(
-                                    orderId, orderController.cancelReason)
-                                .then((success) {
-                              if (success) {
-                                orderController.trackOrder(
-                                    orderId.toString(), null, true,
-                                    contactNumber: contactNumber);
-                              }
-                            });
+                            if (Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                            } else if (Get.isDialogOpen ?? false) {
+                              Get.back();
+                            }
+                            bool success = await orderController.cancelOrder(
+                              orderId, orderController.cancelReason,
+                            );
+                            if (success) {
+                              await orderController.getOrderDetails(orderId.toString());
+                              await orderController.trackOrder(
+                                orderId.toString(), null, true,
+                                contactNumber: contactNumber,
+                              );
+                            }
                           } else {
-                            if (Get.isDialogOpen!) {
+                            if (Navigator.canPop(context)) {
+                              Navigator.pop(context);
+                            } else if (Get.isDialogOpen ?? false) {
                               Get.back();
                             }
 

@@ -9,10 +9,10 @@ import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
-import 'package:Oxygen_Mart/features/pro/domain/models/pro_active_offer_model.dart';
 // import 'package:Oxygen_Mart/features/pro/widgets/pro_cart_banner_widget.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
+import 'package:Oxygen_Mart/helper/bundle_amount_helper.dart';
 import 'package:Oxygen_Mart/common/models/config_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
@@ -39,6 +39,8 @@ import 'package:Oxygen_Mart/features/checkout/widgets/checkout_screen_shimmer_vi
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/bottom_section.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/top_section.dart';
+import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_milestone_banner_widget.dart';
 import 'package:flutter/material.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -151,14 +153,14 @@ class CheckoutScreenState extends State<CheckoutScreen> {
       }
       widget.fromCart ? _cartList!.addAll(Get.find<CartController>().cartList) : _cartList!.addAll(widget.cartList!);
       if(_cartList != null && _cartList!.isNotEmpty) {
-        Get.find<CheckoutController>().initCheckoutData(_cartList![0]!.item!.storeId);
+        Get.find<CheckoutController>().initCheckoutData(_storeIdFromCart());
       }
     }
 
     if(isLoggedIn) {
       Get.find<CouponController>().getCouponList(
         customerId: Get.find<ProfileController>().userInfoModel?.id,
-        storeId: widget.storeId ?? (_cartList != null && _cartList!.isNotEmpty ? _cartList![0]!.item!.storeId : null),
+        storeId: widget.storeId ?? _storeIdFromCart(),
       );
     }
 
@@ -227,7 +229,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
         Pivot? moduleData = _getModuleData(store: checkoutController.store);
         _isCashOnDeliveryActive = _checkCODActive(store: checkoutController.store);
         _isDigitalPaymentActive = _checkDigitalPaymentActive(store: checkoutController.store);
-        _isOfflinePaymentActive = Get.find<SplashController>().configModel!.offlinePaymentStatus! && _checkZoneOfflinePaymentOnOff(addressModel: AddressHelper.getUserAddressFromSharedPref(), checkoutController: checkoutController);
+        _isOfflinePaymentActive = (Get.find<SplashController>().configModel?.offlinePaymentStatus ?? false) && _checkZoneOfflinePaymentOnOff(addressModel: AddressHelper.getUserAddressFromSharedPref(), checkoutController: checkoutController);
         print('====> COD : $_isCashOnDeliveryActive, Digital : $_isDigitalPaymentActive, Offline : $_isOfflinePaymentActive');
 
         if(checkoutController.isFirstTimeCodActive && (_isCashOnDeliveryActive ?? false)){
@@ -235,11 +237,12 @@ class CheckoutScreenState extends State<CheckoutScreen> {
         }
 
         if(checkoutController.store != null) {
-          todayClosed = checkoutController.isStoreClosed(true, checkoutController.store!.active!, checkoutController.store!.schedules);
-          tomorrowClosed = checkoutController.isStoreClosed(false, checkoutController.store!.active!, checkoutController.store!.schedules);
+          todayClosed = checkoutController.isStoreClosed(true, checkoutController.store!.active ?? false, checkoutController.store!.schedules);
+          tomorrowClosed = checkoutController.isStoreClosed(false, checkoutController.store!.active ?? false, checkoutController.store!.schedules);
           _taxPercent = checkoutController.store!.tax;
         }
         return GetBuilder<CouponController>(builder: (couponController) {
+          return GetBuilder<HappyHourController>(builder: (happyHourController) {
           double? maxCodOrderAmount;
 
           if(moduleData != null) {
@@ -251,14 +254,19 @@ class CheckoutScreenState extends State<CheckoutScreen> {
           double? itemDiscountPrice = _calculateDiscountPrice(store: checkoutController.store, cartList: _cartList, price: price, addOns: addOns, calStoreDiscount: false);
           double? storeDiscountPrice = _calculateDiscountPrice(store: checkoutController.store, cartList: _cartList, price: price, addOns: addOns, calStoreDiscount: true);
 
-          double? discount = _getDiscountPrice(storeDiscountPrice, itemDiscountPrice);
-          double couponDiscount = PriceConverter.toFixed(couponController.discount!);
+          double subTotal = _calculateSubTotal(price: price, addOns: addOns, variations: variations, cartList: _cartList);
+
+          double? discount = happyHourController.discountAmountFor(
+            storeId: checkoutController.store?.id,
+            fallback: _getDiscountPrice(storeDiscountPrice, itemDiscountPrice),
+          );
+          double couponDiscount = PriceConverter.toFixed(couponController.discount ?? 0);
 
           print('========coupon discount: $couponDiscount');
 
-          double subTotal = _calculateSubTotal(price: price, addOns: addOns, variations: variations, cartList: _cartList);
-
-          double referralDiscount = _calculateReferralDiscount(subTotal, discount, couponDiscount);
+          double referralDiscount = _calculateReferralDiscount(
+            subTotal - BundleAmountHelper.netAmount(_cartList), discount, couponDiscount,
+          );
 
           double orderAmount = _calculateOrderAmount(
             price: price, variations: variations, discount: discount, addOns: addOns,
@@ -278,19 +286,22 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                   if(cart.isCampaign ?? false) {
                     isCampaign = true;
                   }
+                  if(cart.isAtomicBundle || cart.item == null) {
+                    continue;
+                  }
                   List<int?> addOnIdList = [];
                   List<int?> addOnQtyList = [];
-                  for (var addOn in cart.addOnIds!) {
+                  for (var addOn in cart.addOnIds ?? <AddOn>[]) {
                     addOnIdList.add(addOn.id);
                     addOnQtyList.add(addOn.quantity);
                   }
 
                   List<OrderVariation> variations = [];
-                  if(Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation!) {
-                    for(int i=0; i<cart.item!.foodVariations!.length; i++) {
+                  if(Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation!) {
+                    for(int i=0; i<(cart.item?.foodVariations?.length ?? 0); i++) {
                       if(cart.foodVariations![i].contains(true)) {
                         variations.add(OrderVariation(name: cart.item!.foodVariations![i].name, values: OrderVariationValue(label: [])));
-                        for(int j=0; j<cart.item!.foodVariations![i].variationValues!.length; j++) {
+                        for(int j=0; j<(cart.item?.foodVariations![i].variationValues?.length ?? 0); j++) {
                           if(cart.foodVariations![i][j]!) {
                             variations[variations.length-1].values!.label!.add(cart.item!.foodVariations![i].variationValues![j].level);
                           }
@@ -299,10 +310,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                     }
                   }
                   carts.add(OnlineCart(
-                    cart.id, cart.item!.id, cart.isCampaign! ? cart.item!.id : null,
+                    cart.id, cart.item?.id, cart.isCampaign! ? cart.item!.id : null,
                     cart.discountedPrice.toString(), '',
-                    Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation! ? null : cart.variation,
-                    Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation! ? variations : null,
+                    Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation! ? null : cart.variation,
+                    Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation! ? variations : null,
                     cart.quantity, addOnIdList, cart.addOns, addOnQtyList, 'Item', itemType: !widget.fromCart ? "AppModelsItemCampaign" : null,
                   ));
                 }
@@ -316,7 +327,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                       : checkoutController.paymentMethodIndex == 2 ? 'digital_payment' : 'offline_payment',
                   couponCode: (Get.find<CouponController>().discount! > 0 || (Get.find<CouponController>().coupon != null
                       && Get.find<CouponController>().freeDelivery)) ? Get.find<CouponController>().coupon!.code : null,
-                  storeId: (widget.storeId == null) ? _cartList![0]!.item!.storeId : widget.storeId,
+                  storeId: (widget.storeId == null) ? _storeIdFromCart() : widget.storeId,
                   discountAmount: discount, receiverDetails: null, parcelCategoryId: null,
                   chargePayer: null, dmTips: (checkoutController.orderType == 'take_away' || checkoutController.tipController.text == 'not_now') ? '' : checkoutController.tipController.text.trim(),
                   cutlery: Get.find<CartController>().addCutlery ? 1 : 0,
@@ -339,15 +350,16 @@ class CheckoutScreenState extends State<CheckoutScreen> {
             });
           }
 
-          double additionalCharge =  Get.find<SplashController>().configModel!.additionalChargeStatus! ? Get.find<SplashController>().configModel!.additionCharge! : 0;
+          AddressModel addressForDelivery = AddressHelper.getUserAddressFromSharedPref() ?? AddressModel();
+          double additionalCharge = (Get.find<SplashController>().configModel?.additionalChargeStatus ?? false) ? (Get.find<SplashController>().configModel?.additionCharge ?? 0) : 0;
           double originalCharge = _calculateOriginalDeliveryCharge(
-            store: checkoutController.store, address: AddressHelper.getUserAddressFromSharedPref()!,
+            store: checkoutController.store, address: addressForDelivery,
             distance: checkoutController.distance, extraCharge: checkoutController.extraCharge,
             surgePrice: checkoutController.surgePrice?.price, surgePriceType: checkoutController.surgePrice?.priceType,
           );
           double deliveryCharge = _calculateDeliveryCharge(
-            store: checkoutController.store, address: AddressHelper.getUserAddressFromSharedPref()!, distance: checkoutController.distance,
-            extraCharge: checkoutController.extraCharge, orderType: checkoutController.orderType!, orderAmount: orderAmount,
+            store: checkoutController.store, address: addressForDelivery, distance: checkoutController.distance,
+            extraCharge: checkoutController.extraCharge, orderType: checkoutController.orderType ?? 'delivery', orderAmount: orderAmount,
             surgePrice: checkoutController.surgePrice?.price, surgePriceType: checkoutController.surgePrice?.priceType,
           );
 
@@ -365,7 +377,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
           double total = _calculateTotal(
             subTotal: subTotal, deliveryCharge: deliveryCharge, discount: discount,
-            couponDiscount: couponDiscount, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax!, orderType: checkoutController.orderType!,
+            couponDiscount: couponDiscount, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax ?? 0.0, orderType: checkoutController.orderType ?? 'delivery',
             tips: checkoutController.tips, additionalCharge: additionalCharge, extraPackagingCharge: extraPackagingCharge,
           );
 
@@ -399,7 +411,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                   color: Theme.of(context)
                       .colorScheme
                       .primaryContainer
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -424,8 +436,8 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                         checkoutController: checkoutController, charge: originalCharge, deliveryCharge: deliveryCharge,
                         addressList: addressList,
                         tomorrowClosed: tomorrowClosed, todayClosed: todayClosed, module: module, price: price,
-                        discount: discount, addOns: addOns, address: address, cartList: _cartList, isCashOnDeliveryActive: _isCashOnDeliveryActive!,
-                        isDigitalPaymentActive: _isDigitalPaymentActive!, isWalletActive: _isWalletActive, storeId: widget.storeId,
+                        discount: discount, addOns: addOns, address: address, cartList: _cartList, isCashOnDeliveryActive: _isCashOnDeliveryActive ?? false,
+                        isDigitalPaymentActive: _isDigitalPaymentActive ?? false, isWalletActive: _isWalletActive, storeId: widget.storeId,
                         total: total, isOfflinePaymentActive: _isOfflinePaymentActive, isPrescriptionRequired: isPrescriptionRequired, guestNameTextEditingController: guestContactPersonNameController,
                         guestNumberTextEditingController: guestContactPersonNumberController, guestNumberNode: guestNumberNode,
                         guestEmailController: guestEmailController, guestEmailNode: guestEmailNode,
@@ -437,14 +449,14 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                       const SizedBox(width: Dimensions.paddingSizeLarge),
 
                       Expanded(flex: 4, child: BottomSection(
-                        checkoutController: checkoutController, total: total, module: module!, subTotal: subTotal,
-                        discount: discount, couponController: couponController, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax!,
+                        checkoutController: checkoutController, total: total, module: module ?? Module(), subTotal: subTotal,
+                        discount: discount, couponController: couponController, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax ?? 0.0,
                         deliveryCharge: deliveryCharge,
                         todayClosed: todayClosed, tomorrowClosed: tomorrowClosed, orderAmount: orderAmount,
                         maxCodOrderAmount: maxCodOrderAmount, storeId: widget.storeId, taxPercent: _taxPercent, price: price, addOns: addOns,
                         isPrescriptionRequired: isPrescriptionRequired, checkoutButton: _orderPlaceButton(
                           checkoutController, todayClosed, tomorrowClosed, orderAmount,
-                          deliveryCharge, checkoutController.orderTax!, discount, total, maxCodOrderAmount, isPrescriptionRequired,
+                          deliveryCharge, checkoutController.orderTax ?? 0.0, discount, total, maxCodOrderAmount, isPrescriptionRequired,
                         ),
                         referralDiscount: referralDiscount, variationPrice: isPassedVariationPrice ? variations : 0,
                       )),
@@ -455,8 +467,8 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                       checkoutController: checkoutController, charge: originalCharge, deliveryCharge: deliveryCharge,
                       addressList: addressList,
                       tomorrowClosed: tomorrowClosed, todayClosed: todayClosed, module: module, price: price,
-                      discount: discount, addOns: addOns, address: address, cartList: _cartList, isCashOnDeliveryActive: _isCashOnDeliveryActive!,
-                      isDigitalPaymentActive: _isDigitalPaymentActive!, isWalletActive: _isWalletActive, storeId: widget.storeId,
+                      discount: discount, addOns: addOns, address: address, cartList: _cartList, isCashOnDeliveryActive: _isCashOnDeliveryActive ?? false,
+                      isDigitalPaymentActive: _isDigitalPaymentActive ?? false, isWalletActive: _isWalletActive, storeId: widget.storeId,
                       total: total, isOfflinePaymentActive: _isOfflinePaymentActive, isPrescriptionRequired: isPrescriptionRequired, guestNameTextEditingController: guestContactPersonNameController,
                       guestNumberTextEditingController: guestContactPersonNumberController, guestNumberNode: guestNumberNode,
                       guestEmailController: guestEmailController, guestEmailNode: guestEmailNode,
@@ -467,14 +479,14 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                     ),
 
                     BottomSection(
-                      checkoutController: checkoutController, total: total, module: module!, subTotal: subTotal,
-                      discount: discount, couponController: couponController, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax!,
+                      checkoutController: checkoutController, total: total, module: module ?? Module(), subTotal: subTotal,
+                      discount: discount, couponController: couponController, taxIncluded: (checkoutController.taxIncluded == 1), tax: checkoutController.orderTax ?? 0.0,
                       deliveryCharge: deliveryCharge,
                       todayClosed: todayClosed, tomorrowClosed: tomorrowClosed, orderAmount: orderAmount,
                       maxCodOrderAmount: maxCodOrderAmount, storeId: widget.storeId, taxPercent: _taxPercent, price: price, addOns: addOns,
                       isPrescriptionRequired: isPrescriptionRequired, checkoutButton: _orderPlaceButton(
                         checkoutController, todayClosed, tomorrowClosed, orderAmount, deliveryCharge,
-                      checkoutController.orderTax!, discount, total, maxCodOrderAmount, isPrescriptionRequired,
+                      checkoutController.orderTax ?? 0.0, discount, total, maxCodOrderAmount, isPrescriptionRequired,
                       ),
                       referralDiscount: referralDiscount, variationPrice: isPassedVariationPrice ? variations : 0,
                     )
@@ -504,6 +516,11 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    HappyHourMilestoneBannerWidget(
+                      subtotal: subTotal,
+                      isHappyHourRunning: checkoutController.store?.isHappyHourRunning,
+                      storeId: checkoutController.store?.id,
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         Dimensions.paddingSizeLarge,
@@ -546,7 +563,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                       tomorrowClosed,
                       orderAmount,
                       deliveryCharge,
-                      checkoutController.orderTax!,
+                      checkoutController.orderTax ?? 0.0,
                       discount,
                       total,
                       maxCodOrderAmount,
@@ -558,6 +575,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
             ],
           ) : const CheckoutScreenShimmerView();
+          });
         });
       }) : NotLoggedInScreen(callBack: (value){
         initCall();
@@ -598,12 +616,15 @@ class CheckoutScreenState extends State<CheckoutScreen> {
             scheduleEndDate = DateTime(date.year, date.month, date.day, endTime.hour, endTime.minute+1);
             if(_cartList != null){
               for (CartModel? cart in _cartList!) {
+                if (cart == null || cart.isAtomicBundle || cart.item == null) {
+                  continue;
+                }
                 if (!DateConverter.isAvailable(
-                  cart!.item!.availableTimeStarts, cart.item!.availableTimeEnds,
-                  time: checkoutController.store!.scheduleOrder! ? scheduleStartDate : null,
+                  cart.item!.availableTimeStarts, cart.item!.availableTimeEnds,
+                  time: (checkoutController.store?.scheduleOrder ?? false) ? scheduleStartDate : null,
                 ) && !DateConverter.isAvailable(
                   cart.item!.availableTimeStarts, cart.item!.availableTimeEnds,
-                  time: checkoutController.store!.scheduleOrder! ? scheduleEndDate : null,
+                  time: (checkoutController.store?.scheduleOrder ?? false) ? scheduleEndDate : null,
                 )) {
                   isAvailable = false;
                   break;
@@ -746,19 +767,22 @@ class CheckoutScreenState extends State<CheckoutScreen> {
               List<OnlineCart> carts = [];
               for (int index = 0; index < _cartList!.length; index++) {
                 CartModel cart = _cartList![index]!;
+                if(cart.isAtomicBundle || cart.item == null) {
+                  continue;
+                }
                 List<int?> addOnIdList = [];
                 List<int?> addOnQtyList = [];
-                for (var addOn in cart.addOnIds!) {
+                for (var addOn in cart.addOnIds ?? <AddOn>[]) {
                   addOnIdList.add(addOn.id);
                   addOnQtyList.add(addOn.quantity);
                 }
 
                 List<OrderVariation> variations = [];
-                if(Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation!) {
-                  for(int i=0; i<cart.item!.foodVariations!.length; i++) {
+                if(Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation!) {
+                  for(int i=0; i<(cart.item?.foodVariations?.length ?? 0); i++) {
                     if(cart.foodVariations![i].contains(true)) {
                       variations.add(OrderVariation(name: cart.item!.foodVariations![i].name, values: OrderVariationValue(label: [])));
-                      for(int j=0; j<cart.item!.foodVariations![i].variationValues!.length; j++) {
+                      for(int j=0; j<(cart.item?.foodVariations![i].variationValues?.length ?? 0); j++) {
                         if(cart.foodVariations![i][j]!) {
                           variations[variations.length-1].values!.label!.add(cart.item!.foodVariations![i].variationValues![j].level);
                         }
@@ -767,17 +791,17 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                   }
                 }
                 carts.add(OnlineCart(
-                  cart.id, cart.item!.id, cart.isCampaign! ? cart.item!.id : null,
+                  cart.id, cart.item?.id, cart.isCampaign! ? cart.item?.id : null,
                   cart.discountedPrice.toString(), '',
-                  Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation! ? null : cart.variation,
-                  Get.find<SplashController>().getModuleConfig(cart.item!.moduleType).newVariation! ? variations : null,
+                  Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation! ? null : cart.variation,
+                  Get.find<SplashController>().getModuleConfig(cart.item?.moduleType).newVariation! ? variations : null,
                   cart.quantity, addOnIdList, cart.addOns, addOnQtyList, 'Item', itemType: !widget.fromCart ? "AppModelsItemCampaign" : null,
                 ));
               }
 
               PlaceOrderBodyModel placeOrderBody = PlaceOrderBodyModel(
                 cart: carts, couponDiscountAmount: Get.find<CouponController>().discount, distance: checkoutController.distance,
-                scheduleAt: !checkoutController.store!.scheduleOrder! ? null : (checkoutController.selectedDateSlot == 0
+                scheduleAt: !(checkoutController.store?.scheduleOrder ?? false) ? null : (checkoutController.selectedDateSlot == 0
                     && checkoutController.selectedTimeSlot == 0) ? null : DateConverter.dateToDateAndTime(scheduleEndDate),
                 orderAmount: total, orderNote: checkoutController.noteController.text, orderType: checkoutController.orderType,
                 paymentMethod: checkoutController.paymentMethodIndex == 0 ? 'cash_on_delivery'
@@ -785,7 +809,7 @@ class CheckoutScreenState extends State<CheckoutScreen> {
                     : checkoutController.paymentMethodIndex == 2 ? 'digital_payment' : 'offline_payment',
                 couponCode: (Get.find<CouponController>().discount! > 0 || (Get.find<CouponController>().coupon != null
                     && Get.find<CouponController>().freeDelivery)) ? Get.find<CouponController>().coupon!.code : null,
-                storeId: _cartList![0]!.item!.storeId,
+                storeId: _storeIdFromCart(),
                 address: finalAddress!.address, latitude: finalAddress.latitude, longitude: finalAddress.longitude,
                 senderZoneId: null, addressType: finalAddress.addressType,
                 contactPersonName: finalAddress.contactPersonName ?? '${Get.find<ProfileController>().userInfoModel!.fName} '
@@ -920,10 +944,11 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
   bool _checkCODActive({required Store? store}) {
     bool isCashOnDeliveryActive = false;
-    if(store != null){
-      for(ZoneData zData in AddressHelper.getUserAddressFromSharedPref()!.zoneData!) {
+    final AddressModel? address = AddressHelper.getUserAddressFromSharedPref();
+    if(store != null && address?.zoneData != null){
+      for(ZoneData zData in address!.zoneData!) {
         if(zData.id ==  store.zoneId) {
-          isCashOnDeliveryActive = zData.cashOnDelivery! && Get.find<SplashController>().configModel!.cashOnDelivery!;
+          isCashOnDeliveryActive = (zData.cashOnDelivery ?? false) && (Get.find<SplashController>().configModel?.cashOnDelivery ?? false);
         }
       }
     }
@@ -932,22 +957,76 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
   bool _checkDigitalPaymentActive({required Store? store}) {
     bool isDigitalPaymentActive = false;
-    if(store != null){
-      for(ZoneData zData in AddressHelper.getUserAddressFromSharedPref()!.zoneData!) {
+    final AddressModel? address = AddressHelper.getUserAddressFromSharedPref();
+    if(store != null && address?.zoneData != null){
+      for(ZoneData zData in address!.zoneData!) {
         if(zData.id ==  store.zoneId) {
-          isDigitalPaymentActive = zData.digitalPayment! && Get.find<SplashController>().configModel!.digitalPayment!;
+          isDigitalPaymentActive = (zData.digitalPayment ?? false) && (Get.find<SplashController>().configModel?.digitalPayment ?? false);
         }
       }
     }
     return isDigitalPaymentActive;
   }
 
+  /// The first cart row that actually carries an item — a BOGO bundle row has none,
+  /// so it can never stand in for the cart's store or module.
+  CartModel? _firstItemCart(List<CartModel?>? cartList) {
+    for(final CartModel? cart in cartList ?? const <CartModel?>[]) {
+      if(cart != null && !cart.isBogoBundle && cart.item != null) {
+        return cart;
+      }
+    }
+    return null;
+  }
+
+  int? _storeIdFromCart() {
+    final CartModel? cart = _firstItemCart(_cartList);
+    if(cart != null) {
+      return cart.item!.storeId;
+    }
+    for(final CartModel? bundle in _cartList ?? const <CartModel?>[]) {
+      if(bundle != null && bundle.isAtomicBundle && bundle.storeId != null) {
+        return bundle.storeId;
+      }
+    }
+    return null;
+  }
+
+  /// The earliest moment any bundle in the cart stops being valid.
+  static DateTime? bundleOfferEndsAt(List<CartModel?>? cartList) {
+    DateTime? endsAt;
+    for(final CartModel? cart in cartList ?? const <CartModel?>[]) {
+      final String? offerEnd = cart?.bogoDetails?.offerEndDate;
+      if(offerEnd == null || offerEnd.isEmpty) {
+        continue;
+      }
+      final DateTime? parsed = DateTime.tryParse(offerEnd);
+      if(parsed == null) {
+        continue;
+      }
+      if(endsAt == null || parsed.isBefore(endsAt)) {
+        endsAt = parsed;
+      }
+    }
+    return endsAt;
+  }
+
   double _calculatePrice({required Store? store, required List<CartModel?>? cartList}) {
     double price = 0;
     if(cartList != null) {
       for (var cartModel in cartList) {
-        if(Get.find<SplashController>().getModuleConfig(cartModel!.item!.moduleType).newVariation!){
-          price = price + (cartModel.item!.price! * cartModel.quantity!);
+        if(cartModel == null) continue;
+        if(cartModel.isBogoBundle) {
+          price = price + (cartModel.bogoDetails?.totalPrice ?? 0);
+          continue;
+        }
+        if(cartModel.isBundle) {
+          price = price + (cartModel.bundleDetails?.totalFinalPrice ?? 0);
+          continue;
+        }
+        if(cartModel.item == null) continue;
+        if(Get.find<SplashController>().getModuleConfig(cartModel.item!.moduleType).newVariation!){
+          price = price + (cartModel.item!.price! * (cartModel.quantity ?? 1));
         } else {
           price = _calculateVariationPrice(store: store, cartList: cartList);
         }
@@ -960,9 +1039,12 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     double addOns = 0;
     if(store != null && cartList != null) {
       for (var cartModel in cartList) {
+        if(cartModel == null || cartModel.isAtomicBundle || cartModel.item == null) {
+          continue;
+        }
         List<AddOns> addOnList = [];
-        for (var addOnId in cartModel!.addOnIds!) {
-          for (AddOns addOns in cartModel.item!.addOns!) {
+        for (var addOnId in cartModel.addOnIds ?? <AddOn>[]) {
+          for (AddOns addOns in cartModel.item?.addOns ?? <AddOns>[]) {
             if (addOns.id == addOnId.id) {
               addOnList.add(addOns);
               break;
@@ -982,7 +1064,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     double variationDiscount = 0;
     if(store != null && cartList != null) {
       for (var cartModel in cartList) {
-        double? discount = cartModel!.item!.discount;
+        if(cartModel == null || cartModel.isAtomicBundle || cartModel.item == null) {
+          continue;
+        }
+        double? discount = cartModel.item!.discount;
         String? discountType = cartModel.item!.discountType;
 
         if(Get.find<SplashController>().getModuleConfig(cartModel.item!.moduleType).newVariation!) {
@@ -1030,15 +1115,26 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     double discount = 0;
     if (store != null && cartList != null && cartList.isNotEmpty) {
       for (var cartModel in cartList) {
+        if(cartModel == null) continue;
+        if(cartModel.isAtomicBundle) {
+          if(cartModel.isBogoBundle){
+            if(cartModel.bogoDetails?.isHappyHour == true) {
+              discount = discount + cartModel.bogoDetails!.totalDiscountAmount;
+            }
+          }
+          continue;
+        }
+        if(cartModel.item == null) continue;
+
         double? dis = (store.discount != null
             && DateConverter.isAvailable(store.discount!.startTime, store.discount!.endTime))
-            && calStoreDiscount ? store.discount!.discount : cartModel!.item!.discount;
+            && calStoreDiscount ? store.discount!.discount : cartModel.item!.discount;
 
         String? disType = (store.discount != null
             && DateConverter.isAvailable(store.discount!.startTime, store.discount!.endTime))
-            && calStoreDiscount ? 'percent' : cartModel?.item!.discountType;
+            && calStoreDiscount ? 'percent' : cartModel.item!.discountType;
 
-        if(Get.find<SplashController>().getModuleConfig(cartModel!.item!.moduleType).newVariation!) {
+        if(Get.find<SplashController>().getModuleConfig(cartModel.item!.moduleType).newVariation!) {
           double d = ((cartModel.item!.price! - PriceConverter.convertWithDiscount(cartModel.item!.price!, dis, disType)!) * cartModel.quantity!);
           discount = discount + d;
           if(disType == 'percent' && discount != 0) {
@@ -1072,10 +1168,12 @@ class CheckoutScreenState extends State<CheckoutScreen> {
 
     if(calStoreDiscount){
       if (store != null && store.discount != null) {
-        if (store.discount!.maxDiscount != 0 && store.discount!.maxDiscount! < discount) {
-          discount = store.discount!.maxDiscount!;
+        final double? maxDiscount = store.discount!.maxDiscount;
+        final double? minPurchase = store.discount!.minPurchase;
+        if (maxDiscount != null && maxDiscount != 0 && maxDiscount < discount) {
+          discount = maxDiscount;
         }
-        if (store.discount!.minPurchase != 0 && store.discount!.minPurchase! > (price + addOns)) {
+        if (minPurchase != null && minPurchase != 0 && minPurchase > (price + addOns)) {
           discount = 0;
         }
       }
@@ -1095,22 +1193,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     return discountPrice;
   }
 
-  double _getExtraDiscountPrice(double storeDiscountPrice, double itemDiscountPrice) {
-    double extraDiscount = 0;
-    if(storeDiscountPrice > itemDiscountPrice) {
-      extraDiscount = storeDiscountPrice - itemDiscountPrice;
-    } else if(itemDiscountPrice > storeDiscountPrice) {
-      extraDiscount = 0;
-    } else {
-      extraDiscount = 0;
-    }
-    return extraDiscount;
-  }
-
   double _calculateFoodVariationDiscount({required CartModel? cartModel}) {
     double variationPrice = 0;
     double variationDiscount = 0;
-    if(cartModel != null) {
+    if(cartModel != null && !cartModel.isAtomicBundle && cartModel.item != null) {
       double? discount = cartModel.item!.discount;
       String? discountType = cartModel.item!.discountType;
       for (int index = 0; index < cartModel.item!.foodVariations!.length; index++) {
@@ -1130,7 +1216,9 @@ class CheckoutScreenState extends State<CheckoutScreen> {
   double _calculateOrderAmount({required double price, required double variations, required double discount, required double addOns, required double couponDiscount, required List<CartModel?>? cartList, required double referralDiscount}) {
     double orderAmount = 0;
     double variationPrice = 0;
-    if(cartList != null && cartList.isNotEmpty && Get.find<SplashController>().getModuleConfig(cartList[0]?.item?.moduleType).newVariation!){
+    final CartModel? sample = _firstItemCart(cartList);
+    final String? sampleModuleType = sample?.item?.moduleType ?? Get.find<CartController>().cartModuleType;
+    if(sampleModuleType != null && Get.find<SplashController>().getModuleConfig(sampleModuleType).newVariation!){
       variationPrice = variations;
     }
     orderAmount = (price + variationPrice - discount) + addOns - couponDiscount - referralDiscount;
@@ -1142,7 +1230,10 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     bool isFoodVariation = false;
 
     if(cartList != null && cartList.isNotEmpty) {
-      isFoodVariation = Get.find<SplashController>().getModuleConfig(cartList[0]!.item!.moduleType).newVariation!;
+      final CartModel? sample = _firstItemCart(cartList);
+      final String? sampleModuleType = sample?.item?.moduleType ?? Get.find<CartController>().cartModuleType;
+      isFoodVariation = sampleModuleType == null ? false
+          : Get.find<SplashController>().getModuleConfig(sampleModuleType).newVariation!;
     }
     if(isFoodVariation){
       subTotal = price + addOns + variations;
@@ -1262,10 +1353,12 @@ class CheckoutScreenState extends State<CheckoutScreen> {
   bool _checkZoneOfflinePaymentOnOff({required AddressModel? addressModel, required CheckoutController checkoutController}) {
     bool? status = false;
     ZoneData? zoneData;
-    for (var data in addressModel!.zoneData!) {
-      if(data.id == checkoutController.store?.zoneId) {
-        zoneData = data;
-        break;
+    if(addressModel?.zoneData != null) {
+      for (var data in addressModel!.zoneData!) {
+        if(data.id == checkoutController.store?.zoneId) {
+          zoneData = data;
+          break;
+        }
       }
     }
     status = zoneData?.offlinePayment ?? false;
@@ -1273,9 +1366,12 @@ class CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   bool _checkPrescriptionRequired() {
-    if(widget.storeId == null && Get.find<SplashController>().configModel!.moduleConfig!.module!.orderAttachment!) {
-      for (var cart in _cartList!) {
-        if(cart!.item!.isPrescriptionRequired!) {
+    if(widget.storeId == null && (Get.find<SplashController>().configModel?.moduleConfig?.module?.orderAttachment ?? false)) {
+      for (var cart in _cartList ?? const <CartModel?>[]) {
+        if(cart == null || cart.isAtomicBundle || cart.item == null) {
+          continue;
+        }
+        if(cart.item!.isPrescriptionRequired ?? false) {
           return true;
         }
       }
@@ -1302,38 +1398,16 @@ class CheckoutScreenState extends State<CheckoutScreen> {
     return PriceConverter.toFixed(referralDiscount);
   }
 
-  double _calculateProDiscount(double subTotal, double discount, double couponDiscount, ProActiveBenefit? benefit) {
-    if (benefit == null || benefit.type != ProBenefitType.discount) return 0;
-    final bool meetsMinOrder = benefit.minOrderStatus != true || subTotal >= (benefit.minOrderAmount ?? 0);
-    if (!meetsMinOrder) return 0;
-    final double base = subTotal - discount - couponDiscount;
-    if (base < 0) return 0;
-    double proDiscount = base * ((benefit.percentage ?? 0) / 100);
-    if (benefit.maxAmount != null && benefit.maxAmount! > 0 && proDiscount > benefit.maxAmount!) {
-      proDiscount = benefit.maxAmount!;
-    }
-    if (proDiscount > base) proDiscount = base;
-    return PriceConverter.toFixed(proDiscount);
-  }
-
-  double _calculateProDeliveryDiscount(double base, double deliveryCharge, ProActiveBenefit? benefit) {
-    if (benefit == null || benefit.type != ProBenefitType.deliveryFee) return 0;
-    if (deliveryCharge <= 0) return 0;
-    final bool meetsMinOrder = benefit.minOrderStatus != true || base >= (benefit.minOrderAmount ?? 0);
-    if (!meetsMinOrder) return 0;
-    if (benefit.offerType == ProOfferType.fullFree) return PriceConverter.toFixed(deliveryCharge);
-    double discount = deliveryCharge * ((benefit.chargeDiscountPercentage ?? 0) / 100);
-    return PriceConverter.toFixed(discount);
-  }
-
   Future<void> showCashBackSnackBar(double amount) async {
-    await Get.find<HomeController>().getCashBackData(amount);
-    double? cashBackAmount = Get.find<HomeController>().cashBackData?.cashbackAmount ?? 0;
-    String? cashBackType = Get.find<HomeController>().cashBackData?.cashbackType ?? '';
-    String text = '${'you_will_get'.tr} ${cashBackType == 'amount' ? PriceConverter.convertPrice(cashBackAmount) : '${cashBackAmount.toStringAsFixed(0)}%'} ${'cash_back_after_completing_order'.tr}';
-    if(cashBackAmount > 0) {
-      showCustomSnackBar(text, isError: false);
-    }
+    try {
+      await Get.find<HomeController>().getCashBackData(amount);
+      double? cashBackAmount = Get.find<HomeController>().cashBackData?.cashbackAmount ?? 0;
+      String? cashBackType = Get.find<HomeController>().cashBackData?.cashbackType ?? '';
+      String text = '${'you_will_get'.tr} ${cashBackType == 'amount' ? PriceConverter.convertPrice(cashBackAmount) : '${cashBackAmount.toStringAsFixed(0)}%'} ${'cash_back_after_completing_order'.tr}';
+      if(cashBackAmount > 0) {
+        showCustomSnackBar(text, isError: false);
+      }
+    } catch (_) {}
   }
 
 }

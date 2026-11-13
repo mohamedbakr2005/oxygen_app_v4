@@ -525,4 +525,34 @@ class DateConverter {
     }
   }
 
+
+  static DateTime? apiStringToDateOrNull(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(dateTime);
+  }
+
+  static int secondsUntil(String? dateTime) {
+    if (dateTime == null || dateTime.isEmpty) return 0;
+    final DateTime? target = DateTime.tryParse(dateTime);
+    if (target == null) return 0;
+    final int seconds = target.difference(DateTime.now()).inSeconds;
+    return seconds > 0 ? seconds : 0;
+  }
+
+  static String dateToTodayTomorrowLabel(DateTime date) {
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final DateTime tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final DateTime target = DateTime(date.year, date.month, date.day);
+    if (target == today) return 'today'.tr;
+    if (target == tomorrow) return 'tomorrow'.tr;
+    return dateToReadableDate(date);
+  }
+
+  static bool isSameCalendarDay(DateTime date) {
+    final DateTime now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
 }

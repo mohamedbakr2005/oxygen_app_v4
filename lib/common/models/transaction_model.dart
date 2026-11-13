@@ -1,3 +1,6 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/common/models/pagination_model.dart';
+
 class TransactionModel {
   int? totalSize;
   String? limit;
@@ -7,14 +10,16 @@ class TransactionModel {
   TransactionModel({this.totalSize, this.limit, this.offset, this.data});
 
   TransactionModel.fromJson(Map<String, dynamic> json) {
-    totalSize = json["total_size"];
-    limit = json["limit"].toString();
-    offset = json["offset"].toString();
-    if (json['data'] != null) {
+    final PaginationModel pagination = PaginationModel.fromJson(json);
+    totalSize = pagination.totalSize;
+    limit = pagination.limit?.toString();
+    offset = pagination.offset?.toString();
+    final List<dynamic>? entries = ResponseParser.listOf(json);
+    if (entries != null) {
       data = [];
-      json['data'].forEach((v) {
+      for (final dynamic v in entries) {
         data!.add(Transaction.fromJson(v));
-      });
+      }
     }
   }
 

@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -15,8 +14,9 @@ import 'package:Oxygen_Mart/features/auth/domain/models/social_log_in_body.dart'
 import 'package:Oxygen_Mart/features/auth/screens/new_user_setup_screen.dart';
 import 'package:Oxygen_Mart/features/auth/widgets/sign_in/existing_user_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
-import 'package:Oxygen_Mart/features/profile/controllers/profile_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/facebook_login_helper.dart';
+import 'package:Oxygen_Mart/helper/keyboard_helper.dart';
 import 'package:Oxygen_Mart/helper/responsive_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
@@ -271,6 +271,7 @@ class SocialLoginWidget extends StatelessWidget {
     ]) : const SizedBox();
   }
   void _googleLogin(GoogleSignIn googleSignIn) async {
+    KeyboardHelper.dismiss();
     if(kIsWeb) {
       await _googleWebSignIn();
 
@@ -282,11 +283,23 @@ class SocialLoginWidget extends StatelessWidget {
             googleSignIn.signOut();
             GoogleSignInAccount googleAccount = await googleSignIn.authenticate();
             const List<String> scopes = <String>['email'];
-            GoogleSignInClientAuthorization? auth = await googleAccount.authorizationClient.authorizationForScopes(scopes);
+            String? token;
+            int accessTokenFlag = 1;
+            try {
+              GoogleSignInClientAuthorization? auth = await googleAccount.authorizationClient.authorizationForScopes(scopes);
+              token = auth?.accessToken;
+            } catch (authError) {
+              debugPrint('authorizationForScopes error, fallback to idToken: $authError');
+            }
+
+            if (token == null || token.isEmpty) {
+              token = googleAccount.authentication.idToken;
+              accessTokenFlag = 0;
+            }
 
             SocialLogInBody googleBodyModel = SocialLogInBody(
-              email: googleAccount.email, token: auth?.accessToken, uniqueId: googleAccount.id,
-              medium: 'google', accessToken: 1, loginType: CentralizeLoginType.social.name,
+              email: googleAccount.email, token: token, uniqueId: googleAccount.id,
+              medium: 'google', accessToken: accessTokenFlag, loginType: CentralizeLoginType.social.name,
             );
 
             Get.find<AuthController>().loginWithSocialMedia(googleBodyModel).then((response) {
@@ -299,9 +312,11 @@ class SocialLoginWidget extends StatelessWidget {
           });
         }else {
           debugPrint("Google Sign-In not supported on this device.");
+          showCustomSnackBar('google_sign_in_not_supported_on_device'.tr);
         }
       }catch(e){
         debugPrint('Error in google sign in: $e');
+        showCustomSnackBar(e.toString());
       }
     }
   }
@@ -336,29 +351,14 @@ class SocialLoginWidget extends StatelessWidget {
   }
 
   void _facebookLogin() async {
-    LoginResult result = await FacebookAuth.instance.login(
-      permissions: ["public_profile", "email"],
-      loginTracking: LoginTracking.enabled,
+    KeyboardHelper.dismiss();
+    await FacebookLoginHelper.login(
+      onSuccess: (response, facebookBodyModel) => _processSocialSuccessSetup(response, null, null, facebookBodyModel),
     );
-    if (result.status == LoginStatus.success) {
-      Map userData = await FacebookAuth.instance.getUserData();
-
-      SocialLogInBody facebookBodyModel = SocialLogInBody(
-        email: userData['email'], token: result.accessToken!.tokenString, uniqueId: userData['id'],
-        medium: 'facebook', loginType: CentralizeLoginType.social.name,
-      );
-
-      Get.find<AuthController>().loginWithSocialMedia(facebookBodyModel).then((response) {
-        if (response.isSuccess) {
-          _processSocialSuccessSetup(response, null, null, facebookBodyModel);
-        } else {
-          showCustomSnackBar(response.message);
-        }
-      });
-    }
   }
 
   void _appleLogin() async {
+    KeyboardHelper.dismiss();
     String clientID = Get.find<SplashController>().configModel!.appleLogin![0].clientId!;
     String redirectURL = Get.find<SplashController>().configModel!.appleLogin![0].redirectUrl!;
 
@@ -388,9 +388,8 @@ class SocialLoginWidget extends StatelessWidget {
   }
 
   Future<void> _processSocialSuccessSetup(ResponseModel response, SocialLogInBody? googleBodyModel, SocialLogInBody? appleBodyModel, SocialLogInBody? facebookBodyModel) async {
+    KeyboardHelper.dismiss();
     String? email = googleBodyModel != null ? googleBodyModel.email : appleBodyModel != null ? appleBodyModel.email : facebookBodyModel?.email;
-    String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
-
     if(response.isSuccess && response.authResponseModel != null && response.authResponseModel!.isExistUser != null) {
       if(appleBodyModel != null) {
         email = response.authResponseModel!.email;
@@ -410,36 +409,29 @@ class SocialLoginWidget extends StatelessWidget {
           socialLogInBodyModel: googleBodyModel ?? appleBodyModel ?? facebookBodyModel, email: email, backFromThis: backFromThis,
         ));
       }
-    } else if(response.isSuccess) {
-      await Get.find<ProfileController>().getUserInfo(reload: true);
-      final userInfo = Get.find<ProfileController>().userInfoModel;
-      final bool hasNoPhone = userInfo?.phone == null || userInfo!.phone!.isEmpty;
-      final bool needsSetup = response.authResponseModel?.requiresProfileCompletion == true ||
-          response.authResponseModel?.isPersonalInfo == false ||
-          response.authResponseModel?.isPhoneVerified == false ||
-          hasNoPhone;
+    } else if(response.isSuccess && response.authResponseModel != null && !response.authResponseModel!.isPersonalInfo!) {
 
-      if(needsSetup) {
-        if(appleBodyModel != null && response.authResponseModel?.email != null) {
-          email = response.authResponseModel!.email;
-        }
+      String? displayName = googleBodyModel != null ? googleBodyModel.email?.split('@')[0] : appleBodyModel != null ? appleBodyModel.email?.split('@')[0] : facebookBodyModel?.email?.split('@')[0];
+
+      if(appleBodyModel != null) {
+        email = response.authResponseModel!.email;
+      }
+      if(ResponsiveHelper.isDesktop(Get.context)){
+        Get.back();
+        Get.dialog(NewUserSetupScreen(name: displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email, backFromThis: backFromThis));
+      } else {
+        Get.toNamed(RouteHelper.getNewUserSetupScreen(name: displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email, backFromThis: backFromThis));
+      }
+    } else {
+      if(backFromThis) {
+        await Get.find<LocationController>().syncZoneData();
         if(ResponsiveHelper.isDesktop(Get.context)){
-          Get.back();
-          Get.dialog(NewUserSetupScreen(name: userInfo?.fName ?? displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
+          Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: false));
         } else {
-          Get.toNamed(RouteHelper.getNewUserSetupScreen(name: userInfo?.fName ?? displayName ?? '', loginType: CentralizeLoginType.social.name, phone: '', email: email ?? userInfo?.email, backFromThis: backFromThis));
+          Get.back();
         }
       } else {
-        if(backFromThis) {
-          await Get.find<LocationController>().syncZoneData();
-          if(ResponsiveHelper.isDesktop(Get.context)){
-            Get.offAllNamed(RouteHelper.getInitialRoute(fromSplash: false));
-          } else {
-            Get.back();
-          }
-        } else {
-          Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
-        }
+        Get.find<LocationController>().navigateToLocationScreen('sign-in', offNamed: true);
       }
     }
   }

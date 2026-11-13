@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:Oxygen_Mart/common/controllers/theme_controller.dart';
@@ -277,7 +277,7 @@ class _MyAppState extends State<MyApp> {
                           }
                         },
                         defaultTransition: GetPlatform.isWeb ? Transition.fadeIn : Transition.cupertino,
-                        transitionDuration: const Duration(milliseconds: 10),
+                        transitionDuration: const Duration(milliseconds: 1),
                         builder: (BuildContext context, widget) {
                           return MediaQuery(
                             data: MediaQuery.of(
@@ -292,10 +292,7 @@ class _MyAppState extends State<MyApp> {
                                       if (!splashController.savedCookiesData &&
                                           !splashController
                                               .getAcceptCookiesStatus(
-                                            splashController.configModel != null
-                                                ? splashController
-                                                    .configModel!.cookiesText!
-                                                : '',
+                                            splashController.configModel?.cookiesText ?? '',
                                           )) {
                                         return ResponsiveHelper.isWeb()
                                             ? const Align(

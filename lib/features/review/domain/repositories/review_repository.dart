@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/models/response_model.dart';
 import 'package:Oxygen_Mart/features/review/domain/models/review_body_model.dart';
 import 'package:Oxygen_Mart/features/review/domain/models/review_model.dart';
@@ -15,10 +16,11 @@ class ReviewRepository implements ReviewRepositoryInterface {
     List<ReviewModel>? storeReviewList;
     Response response = await apiClient
         .getData('${AppConstants.storeReviewUri}?store_id=$storeID');
-    if (response.statusCode == 200) {
+    if (ApiClient.isSuccessCode(response.statusCode)) {
       storeReviewList = [];
-      response.body.forEach(
-          (review) => storeReviewList!.add(ReviewModel.fromJson(review)));
+      for (final dynamic review in ResponseParser.listOrEmpty(response.body)) {
+        storeReviewList.add(ReviewModel.fromJson(review));
+      }
     }
     return storeReviewList;
   }

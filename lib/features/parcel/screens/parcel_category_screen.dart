@@ -60,11 +60,9 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
           : const ParcelAppBarWidget(),
       body: GetBuilder<ParcelController>(builder: (parcelController) {
         return GetBuilder<BannerController>(builder: (bannerController) {
-          bool showVideoAndServices = parcelController.videoContentDetails !=
-                  null &&
-              (parcelController.videoContentDetails!.bannerVideo != null ||
-                  parcelController.videoContentDetails!.bannerImageFullUrl !=
-                      null);
+          bool showVideoAndServices = parcelController.videoContentDetails != null &&
+              ((parcelController.videoContentDetails!.bannerVideo != null && parcelController.videoContentDetails!.bannerVideo!.isNotEmpty) ||
+               (parcelController.videoContentDetails!.bannerImageFullUrl != null && parcelController.videoContentDetails!.bannerImageFullUrl!.isNotEmpty));
           return Stack(clipBehavior: Clip.none, children: [
             RefreshIndicator(
               onRefresh: () async {
@@ -87,45 +85,44 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                     ? CrossAxisAlignment.center
                                     : CrossAxisAlignment.start,
                             children: [
-                              bannerController.parcelOtherBannerModel != null
-                                  ? bannerController.parcelOtherBannerModel!
-                                          .banners!.isNotEmpty
-                                      ? CarouselSlider.builder(
-                                          itemCount: bannerController
-                                              .parcelOtherBannerModel!
-                                              .banners!
-                                              .length,
-                                          options: CarouselOptions(
-                                            autoPlay: true,
-                                            height: ResponsiveHelper.isDesktop(
-                                                    context)
-                                                ? 395
-                                                : 120,
-                                            enlargeCenterPage: true,
-                                            disableCenter: true,
-                                            viewportFraction: 1,
-                                            autoPlayInterval:
-                                                const Duration(seconds: 5),
-                                            onPageChanged: (index, reason) {
-                                              bannerController.setCurrentIndex(
-                                                  index, false);
-                                            },
+                              (bannerController.parcelOtherBannerModel != null && (bannerController.parcelOtherBannerModel!.banners?.isNotEmpty ?? false))
+                                  ? CarouselSlider.builder(
+                                      itemCount: bannerController
+                                          .parcelOtherBannerModel!
+                                          .banners!
+                                          .length,
+                                      options: CarouselOptions(
+                                        autoPlay: true,
+                                        height: ResponsiveHelper.isDesktop(
+                                                context)
+                                            ? 395
+                                            : 120,
+                                        enlargeCenterPage: true,
+                                        disableCenter: true,
+                                        viewportFraction: 1,
+                                        autoPlayInterval:
+                                            const Duration(seconds: 5),
+                                        onPageChanged: (index, reason) {
+                                          bannerController.setCurrentIndex(
+                                              index, false);
+                                        },
+                                      ),
+                                      itemBuilder:
+                                          (context, index, realIndex) {
+                                        final banner = bannerController.parcelOtherBannerModel!.banners![index];
+                                        return ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                                  Dimensions.radiusDefault),
+                                          child: CustomImage(
+                                            image:
+                                                '${banner.imageFullUrl ?? ''}',
                                           ),
-                                          itemBuilder:
-                                              (context, index, realIndex) {
-                                            return ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(
-                                                      Dimensions.radiusDefault),
-                                              child: CustomImage(
-                                                image:
-                                                    '${bannerController.parcelOtherBannerModel!.banners![index].imageFullUrl}',
-                                              ),
-                                            );
-                                          },
-                                        )
-                                      : const SizedBox()
-                                  : Shimmer.fromColors(
+                                        );
+                                      },
+                                    )
+                                  : bannerController.parcelOtherBannerModel == null
+                                      ? Shimmer.fromColors(
                                       period:
                                           const Duration(milliseconds: 2000),
                                       baseColor: Colors.grey,
@@ -146,7 +143,7 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                               Dimensions.radiusDefault),
                                         ),
                                       ),
-                                    ),
+                                    ) : const SizedBox(),
                               SizedBox(
                                   height: ResponsiveHelper.isDesktop(context)
                                       ? Dimensions.paddingSizeExtraLarge
@@ -237,11 +234,11 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                               const SizedBox(
                                   height: Dimensions.paddingSizeLarge),
 
-                              parcelController.whyChooseDetails != null
+                              (parcelController.whyChooseDetails != null && (parcelController.whyChooseDetails!.banners?.isNotEmpty ?? false))
                                   ? Container(
                                       color: Theme.of(context)
                                           .primaryColor
-                                          .withOpacity(0.02),
+                                          .withValues(alpha: 0.02),
                                       child: GridView.builder(
                                         controller: ScrollController(),
                                         gridDelegate:
@@ -275,26 +272,23 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                             const NeverScrollableScrollPhysics(),
                                         padding: EdgeInsets.zero,
                                         itemBuilder: (context, index) {
+                                          final banner = parcelController.whyChooseDetails!.banners![index];
                                           return DeliverItemCardWidget(
                                             image:
-                                                '${parcelController.whyChooseDetails!.banners![index].imageFullUrl}',
-                                            itemName: parcelController
-                                                .whyChooseDetails!
-                                                .banners![index]
-                                                .title!,
-                                            description: parcelController
-                                                .whyChooseDetails!
-                                                .banners![index]
-                                                .shortDescription!,
+                                                '${banner.imageFullUrl ?? ''}',
+                                            itemName: banner.title ?? '',
+                                            description: banner.shortDescription ?? '',
                                           );
                                         },
                                       ),
                                     )
-                                  : ParcelShimmer(
-                                      isEnabled:
-                                          parcelController.parcelCategoryList ==
-                                              null,
-                                      isDeliveryItem: false),
+                                  : parcelController.whyChooseDetails == null
+                                      ? ParcelShimmer(
+                                          isEnabled:
+                                              parcelController.parcelCategoryList ==
+                                                  null,
+                                          isDeliveryItem: false)
+                                      : const SizedBox(),
                               const SizedBox(
                                   height: Dimensions.paddingSizeLarge),
 
@@ -330,7 +324,7 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                                               child:
                                                                   CustomImage(
                                                                 image:
-                                                                    '${parcelController.videoContentDetails!.bannerImageFullUrl}',
+                                                                    '${parcelController.videoContentDetails!.bannerImageFullUrl ?? ''}',
                                                               ),
                                                             )
                                                           : parcelController
@@ -350,11 +344,11 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                                                   youtubeVideoUrl:
                                                                       '',
                                                                   fileVideoUrl:
-                                                                      '${parcelController.videoContentDetails!.bannerVideoContentFullUrl}',
+                                                                      '${parcelController.videoContentDetails!.bannerVideoContentFullUrl ?? ''}',
                                                                 ),
                                                     )
                                                   : const SizedBox(),
-                                              const SizedBox(width: 125),
+                                              if (showVideoAndServices) const SizedBox(width: 125),
                                               Expanded(
                                                 child: ServiceInfoListWidget(
                                                   parcelController:
@@ -362,44 +356,49 @@ class _ParcelCategoryScreenState extends State<ParcelCategoryScreen> {
                                                 ),
                                               ),
                                             ])
-                                      : Column(children: [
-                                          parcelController.videoContentDetails!
-                                                      .bannerType ==
-                                                  'image'
-                                              ? ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          Dimensions
-                                                              .radiusSmall),
-                                                  child: CustomImage(
-                                                    image:
-                                                        '${parcelController.videoContentDetails!.bannerImageFullUrl}',
-                                                  ),
-                                                )
-                                              : parcelController
-                                                          .videoContentDetails!
-                                                          .bannerType ==
-                                                      'video'
-                                                  ? GetServiceVideoWidget(
-                                                      youtubeVideoUrl:
-                                                          parcelController
-                                                                  .videoContentDetails!
-                                                                  .bannerVideo ??
-                                                              '',
-                                                      fileVideoUrl: '',
-                                                    )
-                                                  : GetServiceVideoWidget(
-                                                      youtubeVideoUrl: '',
-                                                      fileVideoUrl:
-                                                          '${parcelController.videoContentDetails!.bannerVideoContentFullUrl}',
-                                                    ),
-                                          const SizedBox(
-                                              height:
-                                                  Dimensions.paddingSizeLarge),
-                                          ServiceInfoListWidget(
-                                              parcelController:
-                                                  parcelController),
-                                        ])
+                                      : (showVideoAndServices || (parcelController.videoContentDetails!.bannerContents?.isNotEmpty ?? false))
+                                          ? Column(children: [
+                                              if (showVideoAndServices) ...[
+                                                parcelController.videoContentDetails!
+                                                            .bannerType ==
+                                                        'image'
+                                                    ? ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                Dimensions
+                                                                    .radiusSmall),
+                                                        child: CustomImage(
+                                                          image:
+                                                              '${parcelController.videoContentDetails!.bannerImageFullUrl ?? ''}',
+                                                        ),
+                                                      )
+                                                    : parcelController
+                                                                .videoContentDetails!
+                                                                .bannerType ==
+                                                            'video'
+                                                        ? GetServiceVideoWidget(
+                                                            youtubeVideoUrl:
+                                                                parcelController
+                                                                        .videoContentDetails!
+                                                                        .bannerVideo ??
+                                                                    '',
+                                                            fileVideoUrl: '',
+                                                          )
+                                                        : GetServiceVideoWidget(
+                                                            youtubeVideoUrl: '',
+                                                            fileVideoUrl:
+                                                                '${parcelController.videoContentDetails!.bannerVideoContentFullUrl ?? ''}',
+                                                          ),
+                                                const SizedBox(
+                                                    height:
+                                                        Dimensions.paddingSizeLarge),
+                                              ],
+                                              if (parcelController.videoContentDetails!.bannerContents?.isNotEmpty ?? false)
+                                                ServiceInfoListWidget(
+                                                    parcelController:
+                                                        parcelController),
+                                            ])
+                                          : const SizedBox()
                                   : const VideoContentDetailsShimmer(),
 
                               SizedBox(

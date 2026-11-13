@@ -63,18 +63,21 @@ class WebCardItemsWidget extends StatelessWidget {
                           left: Dimensions.paddingSizeExtraSmall),
                       child: TextButton.icon(
                         onPressed: () {
-                          cartController.forcefullySetModule(
-                              cartController.cartList[0].item!.moduleId!);
-                          Get.toNamed(
-                            RouteHelper.getStoreRoute(
-                                id: cartController.cartList[0].item!.storeId,
-                                page: 'item'),
-                            arguments: StoreScreen(
-                                store: Store(
-                                    id: cartController
-                                        .cartList[0].item!.storeId),
-                                fromModule: false),
-                          );
+                          final int? targetModuleId = cartController.cartList[0].item?.moduleId ?? cartController.cartModuleId;
+                          final int? targetStoreId = cartController.cartList[0].item?.storeId ?? cartController.cartStoreId;
+                          if (targetModuleId != null) {
+                            cartController.forcefullySetModule(targetModuleId);
+                          }
+                          if (targetStoreId != null) {
+                            Get.toNamed(
+                              RouteHelper.getStoreRoute(
+                                  id: targetStoreId,
+                                  page: 'item'),
+                              arguments: StoreScreen(
+                                  store: Store(id: targetStoreId),
+                                  fromModule: false),
+                            );
+                          }
                         },
                         icon: Icon(Icons.add_circle_outline_sharp,
                             color: Theme.of(context).primaryColor),

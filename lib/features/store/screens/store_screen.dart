@@ -17,6 +17,13 @@ import 'package:Oxygen_Mart/features/category/controllers/category_controller.da
 import 'package:Oxygen_Mart/features/category/domain/models/category_model.dart';
 import 'package:Oxygen_Mart/features/checkout/screens/checkout_screen.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/controllers/bogo_offer_controller.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/widgets/bogo_store_section_widget.dart';
+import 'package:Oxygen_Mart/features/dashboard/widgets/bogo_offer_card_widget.dart';
+import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_milestone_banner_widget.dart';
+import 'package:Oxygen_Mart/features/store/widgets/store_bogo_offer_list_sheet.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/pro/controllers/pro_controller.dart';
 import 'package:Oxygen_Mart/features/pro/screens/subscription_plan_screen.dart';
@@ -187,6 +194,8 @@ class _StoreScreenState extends State<StoreScreen> {
     // 4. Parallel fetch for other store-specific data
     final int? targetStoreId = widget.store!.id ?? Get.find<StoreController>().store?.id;
     if (targetStoreId != null) {
+      Get.find<StoreController>().getStoreBogoOffers(targetStoreId);
+      Get.find<BogoOfferController>().getBogoHomeData();
       await Future.wait([
         Get.find<StoreController>().getStoreBannerList(targetStoreId),
         Get.find<StoreController>().getRestaurantRecommendedItemList(targetStoreId, false),
@@ -1377,6 +1386,24 @@ class _StoreScreenState extends State<StoreScreen> {
                                     : const SizedBox(),
                                 StoreBannerWidget(
                                     storeController: storeController),
+                                GetBuilder<BogoOfferController>(builder: (bogoOfferController) {
+                                  final List<StoreBogoOfferModel> storeOffers = storeController.bogoOfferList ?? const <StoreBogoOfferModel>[];
+                                  if (!bogoOfferController.showHomeCard || storeOffers.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: Dimensions.paddingSizeExtraSmall, bottom: Dimensions.paddingSizeSmall),
+                                    child: BogoOfferCardWidget(
+                                      bordered: true,
+                                      onTap: () => StoreBogoOfferListSheet.show(context, offers: storeOffers),
+                                    ),
+                                  );
+                                }),
+                                // if (storeController.bogoOfferList?.isNotEmpty ?? false)
+                                //   BogoStoreSectionWidget(
+                                //     offers: storeController.bogoOfferList!,
+                                //     storeId: store?.id,
+                                //   ),
                                 const SizedBox(
                                     height: Dimensions.paddingSizeLarge),
                                 (!ResponsiveHelper.isDesktop(context) &&
@@ -1388,65 +1415,65 @@ class _StoreScreenState extends State<StoreScreen> {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text('recommended_for_you'.tr,
-                                              style: robotoMedium),
-                                          const SizedBox(
-                                              height: Dimensions
-                                                  .paddingSizeExtraSmall),
-                                          SizedBox(
-                                            height: ResponsiveHelper.isDesktop(
-                                                    context)
-                                                ? 150
-                                                : 130,
-                                            child: ListView.builder(
-                                              scrollDirection: Axis.horizontal,
-                                              itemCount: storeController
-                                                  .recommendedItemModel!
-                                                  .items!
-                                                  .length,
-                                              physics:
-                                                  const BouncingScrollPhysics(),
-                                              itemBuilder: (context, index) {
-                                                return Padding(
-                                                  padding: ResponsiveHelper
-                                                          .isDesktop(context)
-                                                      ? const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 20)
-                                                      : const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 10),
-                                                  child: Container(
-                                                    width: ResponsiveHelper
-                                                            .isDesktop(context)
-                                                        ? 500
-                                                        : 300,
-                                                    padding: const EdgeInsets
-                                                        .only(
-                                                        right: Dimensions
-                                                            .paddingSizeSmall,
-                                                        left: Dimensions
-                                                            .paddingSizeExtraSmall),
-                                                    margin: const EdgeInsets
-                                                        .only(
-                                                        right: Dimensions
-                                                            .paddingSizeSmall),
-                                                    child: ItemWidget(
-                                                      isStore: false,
-                                                      item: storeController
-                                                          .recommendedItemModel!
-                                                          .items![index],
-                                                      store: null,
-                                                      index: index,
-                                                      length: null,
-                                                      isCampaign: false,
-                                                      inStore: true,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
+                                          // Text('recommended_for_you'.tr,
+                                          //     style: robotoMedium),
+                                          // const SizedBox(
+                                          //     height: Dimensions
+                                          //         .paddingSizeExtraSmall),
+                                          // SizedBox(
+                                          //   height: ResponsiveHelper.isDesktop(
+                                          //           context)
+                                          //       ? 150
+                                          //       : 130,
+                                          //   child: ListView.builder(
+                                          //     scrollDirection: Axis.horizontal,
+                                          //     itemCount: storeController
+                                          //         .recommendedItemModel!
+                                          //         .items!
+                                          //         .length,
+                                          //     physics:
+                                          //         const BouncingScrollPhysics(),
+                                          //     itemBuilder: (context, index) {
+                                          //       return Padding(
+                                          //         padding: ResponsiveHelper
+                                          //                 .isDesktop(context)
+                                          //             ? const EdgeInsets
+                                          //                 .symmetric(
+                                          //                 vertical: 20)
+                                          //             : const EdgeInsets
+                                          //                 .symmetric(
+                                          //                 vertical: 10),
+                                          //         child: Container(
+                                          //           width: ResponsiveHelper
+                                          //                   .isDesktop(context)
+                                          //               ? 500
+                                          //               : 300,
+                                          //           padding: const EdgeInsets
+                                          //               .only(
+                                          //               right: Dimensions
+                                          //                   .paddingSizeSmall,
+                                          //               left: Dimensions
+                                          //                   .paddingSizeExtraSmall),
+                                          //           margin: const EdgeInsets
+                                          //               .only(
+                                          //               right: Dimensions
+                                          //                   .paddingSizeSmall),
+                                          //           child: ItemWidget(
+                                          //             isStore: false,
+                                          //             item: storeController
+                                          //                 .recommendedItemModel!
+                                          //                 .items![index],
+                                          //             store: null,
+                                          //             index: index,
+                                          //             length: null,
+                                          //             isCampaign: false,
+                                          //             inStore: true,
+                                          //           ),
+                                          //         ),
+                                          //       );
+                                          //     },
+                                          //   ),
+                                          // ),
                                         ],
                                       )
                                     : const SizedBox(),
@@ -1683,12 +1710,35 @@ class _StoreScreenState extends State<StoreScreen> {
             ),
           );
         }),
-        bottomNavigationBar:
-            GetBuilder<CartController>(builder: (cartController) {
-          return cartController.cartList.isNotEmpty &&
-                  !ResponsiveHelper.isDesktop(context)
-              ? const BottomCartWidget()
-              : const SizedBox();
+        bottomNavigationBar: GetBuilder<StoreController>(builder: (storeController) {
+          return GetBuilder<CartController>(builder: (cartController) {
+            if (ResponsiveHelper.isDesktop(context)) return const SizedBox();
+            final Store? currentStore = storeController.store ?? widget.store;
+            final int? currentStoreId = widget.store?.id ?? currentStore?.id;
+            final bool hasCart = cartController.cartList.isNotEmpty;
+            final bool? isHappyHourRunning = currentStore?.isHappyHourRunning;
+
+            return GetBuilder<HappyHourController>(builder: (happyHourController) {
+              final bool bannerVisible = currentStoreId != null && happyHourController.showStoreBanner(isHappyHourRunning);
+              if (!hasCart && !bannerVisible) return const SizedBox();
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (bannerVisible)
+                    HappyHourMilestoneBannerWidget(
+                      subtotal: cartController.subTotal,
+                      isHappyHourRunning: isHappyHourRunning,
+                      storeId: currentStoreId,
+                      bottomInset: !hasCart ? MediaQuery.of(context).padding.bottom : 0,
+                      tappable: false,
+                    ),
+                  if (hasCart)
+                    const BottomCartWidget(),
+                ],
+              );
+            });
+          });
         }),
       ),
     );

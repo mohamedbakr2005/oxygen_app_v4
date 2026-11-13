@@ -15,6 +15,7 @@ import 'package:Oxygen_Mart/features/cart/widgets/extra_packaging_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_cart_items_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_suggested_item_view_widget.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
+import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_milestone_banner_widget.dart';
 import 'package:Oxygen_Mart/features/home/screens/home_screen.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/best_reviewed_item_view.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
@@ -119,15 +120,10 @@ class _CartScreenState extends State<CartScreen> {
       await cartController.getCartDataOnline(storeId: lockedStoreId);
     }
     if (Get.find<SplashController>().module == null && Get.find<CartController>().cartList.isNotEmpty) {
-      await Get.find<SplashController>().getModules();
-      int i = 0;
-      for (i = 0; i < Get.find<SplashController>().moduleList!.length; i++) {
-        if (Get.find<CartController>().cartList[0].item?.moduleId == Get.find<SplashController>().moduleList![i].id) {
-          break;
-        }
-      }
-      if (i < Get.find<SplashController>().moduleList!.length) {
-        Get.find<SplashController>().setModule(Get.find<SplashController>().moduleList![i]);
+      final bool activated = await Get.find<SplashController>()
+          .activateModuleById(Get.find<CartController>().cartModuleId);
+      if (activated && !GetPlatform.isWeb) {
+        HomeScreen.loadData(true);
       }
     }
     if (Get.find<CartController>().cartList.isNotEmpty) {
@@ -139,10 +135,10 @@ class _CartScreenState extends State<CartScreen> {
       }
       Get.find<CartController>().setAvailableIndex(-1, willUpdate: false);
       Get.find<StoreController>().getCartStoreSuggestedItemList(
-          Get.find<CartController>().cartList[0].item!.storeId);
+          Get.find<CartController>().cartStoreId);
       Get.find<StoreController>().getStoreDetails(
           Store(
-              id: Get.find<CartController>().cartList[0].item!.storeId,
+              id: Get.find<CartController>().cartStoreId,
               name: null),
           false,
           fromCart: true);
@@ -526,20 +522,19 @@ class _CartScreenState extends State<CartScreen> {
                                 ),
                                 child: InkWell(
                                   onTap: () {
-                                    cartController.forcefullySetModule(
-                                      cartController
-                                          .cartList[0].item!.moduleId!,
-                                    );
+                                    if (cartController.cartModuleId != null) {
+                                      cartController.forcefullySetModule(
+                                        cartController.cartModuleId!,
+                                      );
+                                    }
                                     Get.toNamed(
                                       RouteHelper.getStoreRoute(
-                                        id: cartController
-                                            .cartList[0].item!.storeId,
+                                        id: cartController.cartStoreId,
                                         page: 'item',
                                       ),
                                       arguments: StoreScreen(
                                         store: Store(
-                                          id: cartController
-                                              .cartList[0].item!.storeId,
+                                          id: cartController.cartStoreId,
                                         ),
                                         fromModule: false,
                                       ),
@@ -608,7 +603,7 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               pricingView(
                                 cartController,
-                                cartController.cartList[0].item!,
+                                cartController.cartList[0].item,
                               ),
                               SizedBox(height: 110 + _dashboardBottomInset),
                             ],
@@ -682,8 +677,7 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                               if (cartController.variationPrice > 0 &&
                                   ModuleHelper.getModuleConfig(
-                                    cartController
-                                        .cartList.first.item!.moduleType,
+                                    cartController.cartModuleType,
                                   ).newVariation!) ...[
                                 const SizedBox(height: Dimensions.paddingSizeSmall),
                                 _buildReceiptRow(
@@ -796,17 +790,19 @@ class _CartScreenState extends State<CartScreen> {
           ),
           InkWell(
             onTap: () {
-              cartController.forcefullySetModule(
-                cartController.cartList[0].item!.moduleId!,
-              );
+              if (cartController.cartModuleId != null) {
+                cartController.forcefullySetModule(
+                  cartController.cartModuleId!,
+                );
+              }
               Get.toNamed(
                 RouteHelper.getStoreRoute(
-                  id: cartController.cartList[0].item!.storeId,
+                  id: cartController.cartStoreId,
                   page: 'item',
                 ),
                 arguments: StoreScreen(
                   store: Store(
-                    id: cartController.cartList[0].item!.storeId,
+                    id: cartController.cartStoreId,
                   ),
                   fromModule: false,
                 ),
@@ -974,8 +970,9 @@ class _CartScreenState extends State<CartScreen> {
     return Get.locale?.languageCode == 'ar' ? arFallback : enFallback;
   }
 
-  Widget pricingView(CartController cartController, Item item) {
+  Widget pricingView(CartController cartController, Item? item) {
     bool isDesktop = ResponsiveHelper.isDesktop(context);
+    final String? moduleType = item?.moduleType ?? cartController.cartModuleType;
     return Container(
       margin:
           const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeDefault),
@@ -1014,7 +1011,7 @@ class _CartScreenState extends State<CartScreen> {
               : const SizedBox(),
           !isDesktop &&
                   Get.find<SplashController>()
-                      .getModuleConfig(item.moduleType)
+                      .getModuleConfig(moduleType)
                       .newVariation! &&
                   (storeController.store != null &&
                       storeController.store!.cutlery!)
@@ -1109,7 +1106,7 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 if (cartController.variationPrice > 0 &&
                     Get.find<SplashController>()
-                        .getModuleConfig(item.moduleType)
+                        .getModuleConfig(moduleType)
                         .newVariation!) ...[
                   const SizedBox(height: Dimensions.paddingSizeSmall),
                   _buildReceiptRow(
@@ -1239,8 +1236,8 @@ class _CartScreenState extends State<CartScreen> {
   bool _isGroceryOrPharmacy(CartController cartController) {
     String? moduleType = cartController.cartList.isNotEmpty ? cartController.cartList[0].item?.moduleType : null;
     moduleType ??= Get.find<SplashController>().module?.moduleType ?? ModuleHelper.getCacheModule()?.moduleType;
-    if (moduleType == null && cartController.cartList.isNotEmpty && cartController.cartList[0].item?.moduleId != null) {
-      final int? mId = cartController.cartList[0].item!.moduleId;
+    if (moduleType == null && cartController.cartList.isNotEmpty && (cartController.cartList[0].item?.moduleId ?? cartController.cartModuleId) != null) {
+      final int? mId = cartController.cartList[0].item?.moduleId ?? cartController.cartModuleId;
       for (final m in (Get.find<SplashController>().moduleList ?? [])) {
         if (m.id == mId) {
           moduleType = m.moduleType;
@@ -1592,6 +1589,14 @@ class CheckoutButton extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              HappyHourMilestoneBannerWidget(
+                subtotal: cartController.subTotal,
+                isHappyHourRunning: storeController.store?.isHappyHourRunning,
+                storeId: storeController.store?.id,
+                roundedBottom: true,
+                bottomSpacing: Dimensions.paddingSizeSmall,
+                showCountdown: false,
+              ),
               if (showFreeDeliveryProgress && percentage < 1.0)
                 Column(
                   children: [
@@ -1692,7 +1697,7 @@ class CheckoutButton extends StatelessWidget {
                       isBold: true,
                       radius: 16,
                       icon: Icons.arrow_forward_rounded,
-                      onPressed: () {
+                      onPressed: () async {
                         bool isScheduleOrder = cartController.cartList.isNotEmpty &&
                             cartController.cartList.first.item != null &&
                             (cartController.cartList.first.item!.scheduleOrder ?? false);
@@ -1700,24 +1705,14 @@ class CheckoutButton extends StatelessWidget {
                         if (!isScheduleOrder && availableList.contains(false)) {
                           showCustomSnackBar('one_or_more_product_unavailable'.tr);
                         } else {
-                          if (Get.find<SplashController>().module == null &&
-                              cartController.cartList.isNotEmpty &&
-                              cartController.cartList.first.item != null &&
-                              Get.find<SplashController>().moduleList != null) {
-                            int i = 0;
-                            for (i = 0;
-                                i < Get.find<SplashController>().moduleList!.length;
-                                i++) {
-                              if (cartController.cartList[0].item!.moduleId ==
-                                  Get.find<SplashController>().moduleList![i].id) {
-                                break;
-                              }
+                          if (Get.find<SplashController>().module == null) {
+                            final bool activated = await Get.find<SplashController>()
+                                .activateModuleById(cartController.cartModuleId);
+                            if (!activated) {
+                              showCustomSnackBar('no_module_found'.tr);
+                              return;
                             }
-                            if (i < Get.find<SplashController>().moduleList!.length) {
-                              Get.find<SplashController>().setModule(
-                                  Get.find<SplashController>().moduleList![i]);
-                              HomeScreen.loadData(true);
-                            }
+                            HomeScreen.loadData(true);
                           }
                           Get.find<CouponController>().removeCouponData(false);
 

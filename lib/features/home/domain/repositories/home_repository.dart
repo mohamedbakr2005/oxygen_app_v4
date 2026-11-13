@@ -1,6 +1,7 @@
 import 'package:get/get_connect/http/src/response/response.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/features/home/domain/models/cashback_model.dart';
 import 'package:Oxygen_Mart/features/home/domain/models/top_offer_model.dart';
 import 'package:Oxygen_Mart/util/app_constants.dart';
@@ -31,12 +32,12 @@ class HomeRepository implements HomeRepositoryInterface {
   Future getList({int? offset}) async {
     List<CashBackModel>? cashBackModelList;
     Response response =
-        await apiClient.getData(AppConstants.cashBackOfferListUri);
+        await apiClient.getData(AppConstants.cashBackOfferListUri, handleError: false);
     if (response.statusCode == 200) {
       cashBackModelList = [];
-      response.body.forEach((data) {
-        cashBackModelList!.add(CashBackModel.fromJson(data));
-      });
+      for (final dynamic data in ResponseParser.listOrEmpty(response.body)) {
+        cashBackModelList.add(CashBackModel.fromJson(data));
+      }
     }
     return cashBackModelList;
   }
@@ -51,7 +52,7 @@ class HomeRepository implements HomeRepositoryInterface {
     //double cashbackAmount = 0;
     CashBackModel? cashBackModel;
     Response response = await apiClient
-        .getData('${AppConstants.getCashBackAmountUri}?amount=$amount');
+        .getData('${AppConstants.getCashBackAmountUri}?amount=$amount', handleError: false);
     if (response.statusCode == 200) {
       //cashbackAmount = response.body['cashback_amount'] != null ? double.parse(response.body['cashback_amount'].toString()) : 0;
       cashBackModel = CashBackModel.fromJson(response.body);

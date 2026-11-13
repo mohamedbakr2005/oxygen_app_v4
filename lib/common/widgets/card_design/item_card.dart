@@ -13,7 +13,6 @@ import 'package:Oxygen_Mart/common/widgets/not_available_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/organic_tag.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
-import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';

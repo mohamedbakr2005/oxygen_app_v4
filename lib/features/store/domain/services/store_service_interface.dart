@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/models/module_model.dart';
+import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
 import 'package:Oxygen_Mart/features/store/domain/models/cart_suggested_item_model.dart';
@@ -47,4 +48,5 @@ abstract class StoreServiceInterface {
   Future<StoreModel?> getQuickDeliveryStores({int offset, int limit, int? moduleId, String name});
   Future<StoreModel?> getNearbyStores({int offset, int limit, int? moduleId, String name});
   Future<StoreCategoryItemModel?> getStoreCategoryItems(int storeId);
+  Future<StoreBogoOfferListModel?> getStoreBogoOffers(int? storeId, {int offset = 1, int limit = 10, Store? store});
 }

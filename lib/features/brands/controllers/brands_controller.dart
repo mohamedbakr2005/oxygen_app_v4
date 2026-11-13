@@ -23,19 +23,21 @@ class BrandsController extends GetxController implements GetxService {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  void clearBrandList() {
+    _brandList = null;
+  }
+
   Future<void> getBrandList(
       {DataSourceEnum dataSource = DataSourceEnum.local}) async {
     List<BrandModel>? brandList;
     if (dataSource == DataSourceEnum.local) {
       brandList =
           await brandsServiceInterface.getBrandList(DataSourceEnum.local);
-      print('=====brand controller cache : $brandList');
       _prepareBandList(brandList);
       getBrandList(dataSource: DataSourceEnum.client);
     } else {
       brandList =
           await brandsServiceInterface.getBrandList(DataSourceEnum.client);
-      print('=====brand controller api : $brandList');
       _prepareBandList(brandList);
     }
   }
@@ -62,7 +64,7 @@ class BrandsController extends GetxController implements GetxService {
       if (offset == 1) {
         _brandItems = [];
       }
-      _brandItems!.addAll(brandItemModel.items!);
+      _brandItems!.addAll(brandItemModel.items ?? <Item>[]);
       _pageSize = brandItemModel.totalSize;
       _isLoading = false;
     }

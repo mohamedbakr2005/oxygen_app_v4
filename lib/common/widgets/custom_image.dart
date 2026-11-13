@@ -55,15 +55,20 @@ class CustomImage extends StatelessWidget {
           fit: fit,
           color: color,
         ),
-        errorWidget: (context, url, error) => Image.asset(
-          placeholder.isNotEmpty
-              ? placeholder
-              : (isNotification ? Images.notificationPlaceholder : Images.placeholder),
-          height: height,
-          width: width,
-          fit: fit,
-          color: color,
-        ),
+        errorWidget: (context, url, error) {
+          if (url.isNotEmpty) {
+            CachedNetworkImage.evictFromCache(url);
+          }
+          return Image.asset(
+            placeholder.isNotEmpty
+                ? placeholder
+                : (isNotification ? Images.notificationPlaceholder : Images.placeholder),
+            height: height,
+            width: width,
+            fit: fit,
+            color: color,
+          );
+        },
       ),
     );
   }

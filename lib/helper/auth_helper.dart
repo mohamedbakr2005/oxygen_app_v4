@@ -13,4 +13,8 @@ class AuthHelper {
   static bool isLoggedIn() {
     return Get.find<AuthController>().isLoggedIn();
   }
+
+  static Future<void> guestLogin() async {
+    await Get.find<AuthController>().guestLogin();
+  }
 }

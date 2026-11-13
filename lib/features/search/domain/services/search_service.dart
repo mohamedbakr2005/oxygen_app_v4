@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:Oxygen_Mart/features/brands/domain/models/brands_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/popular_categories_model.dart';
 import 'package:Oxygen_Mart/features/search/domain/models/search_suggestion_model.dart';
@@ -14,9 +15,9 @@ class SearchService implements SearchServiceInterface {
   SearchService({required this.searchRepositoryInterface});
 
   @override
-  Future<Response> getSearchData(String? query, bool isStore) async {
+  Future<Response> getSearchData(String? query, bool isStore, {int offset = 1, int? moduleId, Map<String, String>? filterParams}) async {
     return await searchRepositoryInterface.getList(
-        query: query, isStore: isStore);
+        query: query, isStore: isStore, offset: offset, moduleId: moduleId, filterParams: filterParams);
   }
 
   @override
@@ -132,13 +133,23 @@ class SearchService implements SearchServiceInterface {
   }
 
   @override
-  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText) async {
-    return await searchRepositoryInterface.getSearchSuggestions(searchText);
+  Future<SearchSuggestionModel?> getSearchSuggestions(String searchText, {bool isGlobal = false}) async {
+    return await searchRepositoryInterface.getSearchSuggestions(searchText, isGlobal: isGlobal);
   }
 
   @override
   Future<List<PopularCategoryModel?>?> getPopularCategories() async {
     return await searchRepositoryInterface.getPopularCategories();
+  }
+
+  @override
+  Future<List<BrandModel>?> getBrandList({required int moduleId, required List<int> zoneIds}) async {
+    return await searchRepositoryInterface.getBrandList(moduleId: moduleId, zoneIds: zoneIds);
+  }
+
+  @override
+  Future<List<Store>?> getExclusiveDeals() async {
+    return await searchRepositoryInterface.getExclusiveDeals();
   }
 
   @override
@@ -151,4 +162,3 @@ class SearchService implements SearchServiceInterface {
     return await searchRepositoryInterface.getTrendingSearches(isGlobal: isGlobal);
   }
 }
-

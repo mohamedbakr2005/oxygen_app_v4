@@ -1,15 +1,19 @@
 import 'dart:convert';
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/common/models/pagination_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/basic_medicine_model.dart';
 
 class ItemModel {
   int? totalSize;
+  int? minPrice;
+  int? maxPrice;
   String? limit;
   int? offset;
   List<Item>? items;
   List<Categories>? categories;
 
   ItemModel(
-      {this.totalSize, this.limit, this.offset, this.items, this.categories});
+      {this.totalSize, this.minPrice, this.maxPrice, this.limit, this.offset, this.items, this.categories});
 
   ItemModel.fromJson(dynamic json) {
     if (json == null) return;
@@ -24,12 +28,17 @@ class ItemModel {
       return;
     }
     if (json is Map) {
-      totalSize = int.tryParse(json['total_size']?.toString() ?? '') ?? (json['total_size'] as int?);
-      limit = json['limit']?.toString();
-      offset = int.tryParse(json['offset']?.toString() ?? '');
+      final dynamic payload = ResponseParser.payloadOf(json);
+      final Map<String, dynamic> dataMap = payload is Map ? Map<String, dynamic>.from(payload) : Map<String, dynamic>.from(json);
+      final PaginationModel pagination = PaginationModel.fromJson(dataMap);
+      totalSize = pagination.totalSize ?? int.tryParse(dataMap['total_size']?.toString() ?? '') ?? (dataMap['total_size'] as int?);
+      limit = pagination.limit?.toString() ?? dataMap['limit']?.toString();
+      offset = pagination.offset ?? int.tryParse(dataMap['offset']?.toString() ?? '');
+      minPrice = dataMap['min_price'] != null ? int.tryParse(dataMap['min_price'].toString()) : null;
+      maxPrice = dataMap['max_price'] != null ? int.tryParse(dataMap['max_price'].toString()) : null;
       items = [];
 
-      dynamic rawProducts = json['products'] ?? json['items'];
+      dynamic rawProducts = dataMap['products'] ?? dataMap['items'] ?? dataMap['data'];
       if (rawProducts is String) {
         try { rawProducts = jsonDecode(rawProducts); } catch (_) {}
       }
@@ -41,9 +50,9 @@ class ItemModel {
         }
       }
 
-      if (json['categories'] != null) {
+      if (dataMap['categories'] != null) {
         categories = <Categories>[];
-        dynamic rawCategories = json['categories'];
+        dynamic rawCategories = dataMap['categories'];
         if (rawCategories is String) {
           try { rawCategories = jsonDecode(rawCategories); } catch (_) {}
         }
@@ -61,6 +70,8 @@ class ItemModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
     data['total_size'] = totalSize;
+    data['min_price'] = minPrice;
+    data['max_price'] = maxPrice;
     data['limit'] = limit;
     data['offset'] = offset;
     if (items != null) {
@@ -96,6 +107,7 @@ class Item {
   String? offerLabel;
   int? verifiedSeller;
   StoreDetails? storeDetails;
+  int? brandId;
   String? brandName;
   bool? freeDelivery;
   String? slug;
@@ -158,6 +170,7 @@ class Item {
       this.offerLabel,
       this.verifiedSeller,
       this.storeDetails,
+      this.brandId,
       this.brandName,
       this.freeDelivery,
       this.slug,
@@ -198,7 +211,10 @@ class Item {
 
   Item.fromJson(dynamic rawJson) {
     if (rawJson == null) return;
-    final Map<String, dynamic> json = rawJson is Map ? Map<String, dynamic>.from(rawJson) : {};
+    final dynamic payload = ResponseParser.payloadOf(rawJson);
+    final Map<String, dynamic> json = payload is Map
+        ? Map<String, dynamic>.from(payload)
+        : (rawJson is Map ? Map<String, dynamic>.from(rawJson) : {});
     if (json.isEmpty) return;
 
     id = json['id'] != null ? int.tryParse(json['id'].toString()) : null;
@@ -233,6 +249,7 @@ class Item {
     storeLogoFullUrl = json['store_logo_full_url']?.toString();
     offerLabel = json['offer_label']?.toString();
     verifiedSeller = json['verified_seller'] != null ? int.tryParse(json['verified_seller'].toString()) : null;
+    brandId = json['brand_id'] != null ? int.tryParse(json['brand_id'].toString()) : null;
     brandName = json['brand_name']?.toString();
     freeDelivery = json['free_delivery'] == 1 || json['free_delivery'] == true || json['free_delivery'] == '1';
     slug = json['slug']?.toString();
@@ -409,6 +426,7 @@ class Item {
     data['store_logo_full_url'] = storeLogoFullUrl;
     data['offer_label'] = offerLabel;
     data['verified_seller'] = verifiedSeller;
+    data['brand_id'] = brandId;
     data['brand_name'] = brandName;
     data['free_delivery'] = freeDelivery;
     data['slug'] = slug;

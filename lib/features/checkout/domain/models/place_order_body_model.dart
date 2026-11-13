@@ -1,3 +1,4 @@
+import 'package:Oxygen_Mart/api/json_reader.dart';
 import 'dart:convert';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
@@ -45,6 +46,11 @@ class PlaceOrderBodyModel {
   double? _bringChangeAmount;
   bool? _monthlySubscribe;
   String? _saverDeliveryType;
+  int? _areaId;
+  int? _zipCodeId;
+  int? _weightId;
+  int? _dimensionId;
+  int? _deliveryDuration;
 
   PlaceOrderBodyModel({
     int? isGuest,
@@ -88,6 +94,11 @@ class PlaceOrderBodyModel {
     double? bringChangeAmount,
     bool? monthlySubscribe,
     String? saverDeliveryType,
+    int? areaId,
+    int? zipCodeId,
+    int? weightId,
+    int? dimensionId,
+    int? deliveryDuration,
   }) : _isGuest = isGuest {
     _cart = cart;
     _couponDiscountAmount = couponDiscountAmount;
@@ -129,6 +140,11 @@ class PlaceOrderBodyModel {
     _bringChangeAmount = bringChangeAmount;
     _monthlySubscribe = monthlySubscribe;
     _saverDeliveryType = saverDeliveryType;
+    _areaId = areaId;
+    _zipCodeId = zipCodeId;
+    _weightId = weightId;
+    _dimensionId = dimensionId;
+    _deliveryDuration = deliveryDuration;
   }
 
   List<OnlineCart>? get cart => _cart;
@@ -168,6 +184,11 @@ class PlaceOrderBodyModel {
   int? get createNewUser => _createNewUser;
   String? get password => _password;
   bool? get isPrescription => isPrescriptionOrder;
+  int? get areaId => _areaId;
+  int? get zipCodeId => _zipCodeId;
+  int? get weightId => _weightId;
+  int? get dimensionId => _dimensionId;
+  int? get deliveryDuration => _deliveryDuration;
   double? get bringChangeAmount => _bringChangeAmount;
   bool? get monthlySubscribe => _monthlySubscribe;
   String? get saverDeliveryType => _saverDeliveryType;
@@ -219,6 +240,11 @@ class PlaceOrderBodyModel {
     _bringChangeAmount = json['bring_change_amount'] != null ? double.parse(json['bring_change_amount'].toString()) : null;
     _monthlySubscribe = TypeConverterHelper.getBool(json['monthly_subscribe']);
     _saverDeliveryType = json['delivery_type'];
+    _areaId = JsonReader.toInt(json['area_id']);
+    _zipCodeId = JsonReader.toInt(json['zip_code_id']);
+    _weightId = JsonReader.toInt(json['weight_id']);
+    _dimensionId = JsonReader.toInt(json['dimension_id']);
+    _deliveryDuration = JsonReader.toInt(json['delivery_duration']);
   }
 
   Map<String, String> toJson() {
@@ -296,6 +322,21 @@ class PlaceOrderBodyModel {
     }
     if(_saverDeliveryType != null) {
       data['delivery_type'] = _saverDeliveryType!;
+    }
+    if (_weightId != null) {
+      data['weight_id'] = _weightId.toString();
+    }
+    if (_dimensionId != null) {
+      data['dimension_id'] = _dimensionId.toString();
+    }
+    if (_deliveryDuration != null) {
+      data['delivery_duration'] = _deliveryDuration.toString();
+    }
+    if (_areaId != null) {
+      data['area_id'] = _areaId.toString();
+    }
+    if (_zipCodeId != null) {
+      data['zip_code_id'] = _zipCodeId.toString();
     }
     return data;
   }
