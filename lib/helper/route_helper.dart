@@ -709,18 +709,32 @@ class RouteHelper {
         page: () {
           final bool hasModule = Get.isRegistered<SplashController>() &&
               Get.find<SplashController>().module != null;
+          final bool isParcel = hasModule &&
+              Get.find<SplashController>().module?.moduleType.toString() == 'parcel';
           final String? page = Get.parameters['page'];
           int pageIndex = 0;
-          if (page == 'home') {
-            pageIndex = 0;
-          } else if (page == 'categories' || page == 'category') {
-            pageIndex = hasModule ? 1 : 0;
-          } else if (page == 'cart') {
-            pageIndex = hasModule ? 2 : 1;
-          } else if (page == 'favourite' || page == 'offer' || page == 'offers') {
-            pageIndex = hasModule ? 3 : 2;
-          } else if (page == 'menu' || page == 'profile') {
-            pageIndex = hasModule ? 4 : 3;
+          if (isParcel) {
+            if (page == 'home') {
+              pageIndex = 0;
+            } else if (page == 'address' || page == 'addresses') {
+              pageIndex = 1;
+            } else if (page == 'order' || page == 'orders') {
+              pageIndex = 2;
+            } else if (page == 'menu' || page == 'profile') {
+              pageIndex = 3;
+            }
+          } else {
+            if (page == 'home') {
+              pageIndex = 0;
+            } else if (page == 'categories' || page == 'category') {
+              pageIndex = hasModule ? 1 : 0;
+            } else if (page == 'cart') {
+              pageIndex = hasModule ? 2 : 1;
+            } else if (page == 'favourite' || page == 'offer' || page == 'offers') {
+              pageIndex = hasModule ? 3 : 2;
+            } else if (page == 'menu' || page == 'profile') {
+              pageIndex = hasModule ? 4 : 3;
+            }
           }
           return DashboardScreen(pageIndex: pageIndex);
         }),

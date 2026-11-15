@@ -10,14 +10,19 @@ class ConversationsModel {
       {this.totalSize, this.limit, this.offset, this.conversations});
 
   ConversationsModel.fromJson(Map<String, dynamic> json) {
-    totalSize = json['total_size'];
-    limit = json['limit'];
-    offset = json['offset'];
-    if (json['conversations'] != null) {
+    totalSize = json['total_size'] ?? json['pagination']?['total'];
+    limit = json['limit'] ?? json['pagination']?['per_page'];
+    offset = json['offset'] ?? json['pagination']?['current_page'];
+    final dynamic listData = json['conversations'] ?? json['data'];
+    if (listData != null && listData is List) {
       conversations = <Conversation?>[];
-      json['conversations'].forEach((v) {
-        conversations!.add(Conversation.fromJson(v));
-      });
+      for (var v in listData) {
+        if (v != null) {
+          conversations!.add(Conversation.fromJson(v));
+        }
+      }
+    } else {
+      conversations = <Conversation?>[];
     }
   }
 

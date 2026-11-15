@@ -24,26 +24,41 @@ class _ProductWithCategoriesViewState extends State<ProductWithCategoriesView> {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<ItemController>(builder: (itemController) {
-      List<Categories>? categories = [];
-      List<Item>? products = [];
-      if (widget.fromShop
-          ? itemController.reviewedCategoriesList != null &&
-              itemController.reviewedItemList != null
-          : itemController.basicMedicineModel != null) {
-        categories.add(Categories(name: 'all'.tr, id: 0));
-        for (var category in widget.fromShop
-            ? itemController.reviewedCategoriesList!
-            : itemController.basicMedicineModel!.categories!) {
-          categories.add(category);
-        }
-        for (var product in widget.fromShop
-            ? itemController.reviewedItemList!
-            : itemController.basicMedicineModel!.products!) {
-          if (selectedCategory == 0) {
-            products.add(product);
+      List<Categories> categories = [];
+      List<Item> products = [];
+      if (widget.fromShop) {
+        if (itemController.reviewedCategoriesList != null &&
+            itemController.reviewedItemList != null) {
+          categories.add(Categories(name: 'all'.tr, id: 0));
+          categories.addAll(itemController.reviewedCategoriesList!);
+          for (var product in itemController.reviewedItemList!) {
+            if (selectedCategory == 0) {
+              products.add(product);
+            } else if (selectedCategory < categories.length &&
+                product.categoryIds != null &&
+                product.categoryIds!.isNotEmpty &&
+                categories[selectedCategory].id == product.categoryIds![0].id) {
+              products.add(product);
+            }
           }
-          if (categories[selectedCategory].id == product.categoryIds?[0].id) {
-            products.add(product);
+        }
+      } else {
+        if (itemController.basicMedicineModel != null) {
+          categories.add(Categories(name: 'all'.tr, id: 0));
+          if (itemController.basicMedicineModel!.categories != null) {
+            categories.addAll(itemController.basicMedicineModel!.categories!);
+          }
+          if (itemController.basicMedicineModel!.products != null) {
+            for (var product in itemController.basicMedicineModel!.products!) {
+              if (selectedCategory == 0) {
+                products.add(product);
+              } else if (selectedCategory < categories.length &&
+                  product.categoryIds != null &&
+                  product.categoryIds!.isNotEmpty &&
+                  categories[selectedCategory].id == product.categoryIds![0].id) {
+                products.add(product);
+              }
+            }
           }
         }
       }

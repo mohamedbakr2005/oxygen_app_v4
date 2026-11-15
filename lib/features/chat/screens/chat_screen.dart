@@ -8,7 +8,6 @@ import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/common/widgets/hover/text_hover.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
-import 'package:Oxygen_Mart/common/widgets/not_logged_in_screen.dart';
 import 'package:Oxygen_Mart/common/widgets/paginated_list_view.dart';
 import 'package:Oxygen_Mart/common/widgets/web_menu_bar.dart';
 import 'package:Oxygen_Mart/features/chat/controllers/chat_controller.dart';
@@ -97,8 +96,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<ChatController>(builder: (chatController) {
-      bool isLoggedIn = AuthHelper.isLoggedIn();
-
       return PopScope(
         canPop: true,
         onPopInvokedWithResult: (didPop, result) async {

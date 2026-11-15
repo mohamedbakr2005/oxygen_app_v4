@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -19,6 +18,12 @@ import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controlle
 import 'package:Oxygen_Mart/features/home/controllers/advertisement_controller.dart';
 import 'package:Oxygen_Mart/features/home/controllers/home_controller.dart';
 import 'package:Oxygen_Mart/features/home/screens/modules/grocery_home_screen.dart';
+import 'package:Oxygen_Mart/features/home/screens/modules/food_home_screen.dart';
+import 'package:Oxygen_Mart/features/home/screens/modules/pharmacy_home_screen.dart';
+import 'package:Oxygen_Mart/features/home/screens/modules/shop_home_screen.dart';
+import 'package:Oxygen_Mart/features/home/widgets/all_store_filter_widget.dart';
+import 'package:Oxygen_Mart/common/widgets/paginated_list_view.dart';
+import 'package:Oxygen_Mart/common/widgets/item_view.dart';
 import 'package:Oxygen_Mart/features/reels/controllers/reels_controller.dart';
 import 'package:Oxygen_Mart/features/home/widgets/views/module_store_list_view.dart';
 import 'package:Oxygen_Mart/features/home/screens/web_new_home_screen.dart';
@@ -65,44 +70,46 @@ class HomeScreen extends StatefulWidget {
       Get.find<HappyHourController>().getRunningHappyHour();
       final String moduleType = splashCtrl.module!.moduleType.toString();
 
-      if (moduleType == AppConstants.grocery) {
-        if (AuthHelper.isLoggedIn()) {
-          Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
-          if (Get.find<ProfileController>().proStatus) {
-            Get.find<ProController>().getProActiveOffer(moduleType: splashCtrl.module?.moduleType);
-          }
+      if (AuthHelper.isLoggedIn()) {
+        Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
+        if (Get.find<ProfileController>().proStatus) {
+          Get.find<ProController>().getProActiveOffer(moduleType: splashCtrl.module?.moduleType);
         }
+      }
 
-        Get.find<BannerController>().getBannerList(reload);
-        Get.find<BannerController>().getPromotionalBannerList(reload);
-        Get.find<CategoryController>().getCategoryList(reload);
-        Get.find<ReelsController>().getReelsList(offset: 1);
-        Get.find<HomeController>().getTopOffer(notify: false);
-        Get.find<StoreController>().getRecommendedStoreList();
-        Get.find<StoreController>().getPopularStoreList(reload, 'all', false);
-        Get.find<CampaignController>().getBasicCampaignList(reload);
-        Get.find<CampaignController>().getItemCampaignList(reload);
-        Get.find<ItemController>().getDiscountedItemList(reload, false, 'all');
-        Get.find<StoreController>().getLatestStoreList(reload, 'all', false);
-        Get.find<StoreController>().getTopOfferStoreList(reload, false);
-        Get.find<AdvertisementController>().getAdvertisementList();
-        Get.find<StoreController>().getStoreList(1, reload);
+      Get.find<BannerController>().getBannerList(reload);
+      Get.find<BannerController>().getPromotionalBannerList(reload);
+      Get.find<CategoryController>().getCategoryList(reload);
+      Get.find<ReelsController>().getReelsList(offset: 1);
+      Get.find<HomeController>().getTopOffer(notify: false);
+      Get.find<StoreController>().getRecommendedStoreList();
+      Get.find<StoreController>().getPopularStoreList(reload, 'all', false);
+      Get.find<CampaignController>().getBasicCampaignList(reload);
+      Get.find<CampaignController>().getItemCampaignList(reload);
+      Get.find<ItemController>().getDiscountedItemList(reload, false, 'all');
+      Get.find<StoreController>().getLatestStoreList(reload, 'all', false);
+      Get.find<StoreController>().getTopOfferStoreList(reload, false);
+      Get.find<AdvertisementController>().getAdvertisementList();
+      Get.find<StoreController>().getStoreList(1, reload);
+      Get.find<ItemController>().getPopularItemList(reload, 'all', false);
+      Get.find<ItemController>().getReviewedItemList(reload, 'all', false);
+      Get.find<ItemController>().getRecommendedItemList(reload, 'all', false);
+      Get.find<BrandsController>().getBrandList();
+
+      if (moduleType == AppConstants.grocery) {
         Get.find<FlashSaleController>().getFlashSale(reload, false);
-        Get.find<ItemController>().getPopularItemList(reload, 'all', false);
-        Get.find<ItemController>().getReviewedItemList(reload, 'all', false);
-        Get.find<ItemController>().getRecommendedItemList(reload, 'all', false);
-        Get.find<BrandsController>().getBrandList();
-      } else {
-        if (kDebugMode) {
-          print('[MODULE] ENTER: ${splashCtrl.module?.moduleName}');
-          print('[MODULE] CURRENT_ID: ${splashCtrl.module?.id}');
-          print('[MODULE] CURRENT_TYPE: $moduleType');
-          print('[MODULE] ZONE_ID: ${AddressHelper.getUserAddressFromSharedPref()?.zoneIds}');
+      } else if (moduleType == AppConstants.pharmacy) {
+        Get.find<ItemController>().getBasicMedicine(reload, false);
+        Get.find<StoreController>().getFeaturedStoreList();
+        await Get.find<ItemController>().getCommonConditions(false);
+        if (Get.find<ItemController>().commonConditions != null &&
+            Get.find<ItemController>().commonConditions!.isNotEmpty) {
+          Get.find<ItemController>().getConditionsWiseItem(
+              Get.find<ItemController>().commonConditions![0].id!, false);
         }
-        if (AuthHelper.isLoggedIn()) {
-          Get.find<StoreController>().getVisitAgainStoreList(fromModule: fromModule);
-        }
-        Get.find<StoreController>().getStoreList(1, reload);
+      } else if (moduleType == AppConstants.ecommerce) {
+        Get.find<ItemController>().getFeaturedCategoriesItemList(false, false);
+        Get.find<FlashSaleController>().getFlashSale(reload, false);
       }
     }
 
@@ -134,6 +141,7 @@ final sharedPreferences = Get.find<SharedPreferences>();
 
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey _headerKey = GlobalKey();
   bool searchBgShow = false;
   bool _showBackToTop = false;
   static const double _backToTopThreshold = 400;
@@ -263,6 +271,12 @@ class _HomeScreenState extends State<HomeScreen> {
           (splashController.configModel!.moduleConfig?.module?.isParcel ?? false);
       bool isGrocery = splashController.module != null &&
           splashController.module!.moduleType.toString() == AppConstants.grocery;
+      bool isPharmacy = splashController.module != null &&
+          splashController.module!.moduleType.toString() == AppConstants.pharmacy;
+      bool isFood = splashController.module != null &&
+          splashController.module!.moduleType.toString() == AppConstants.food;
+      bool isShop = splashController.module != null &&
+          splashController.module!.moduleType.toString() == AppConstants.ecommerce;
 
       if(splashController.module != null) {
         print('--- ACTIVE MODULE: ${splashController.module!.moduleName} (Type: ${splashController.module!.moduleType}) ---');
@@ -282,28 +296,36 @@ class _HomeScreenState extends State<HomeScreen> {
                     splashController.setRefreshing(true);
                     if (Get.find<SplashController>().module != null) {
                       await Get.find<LocationController>().syncZoneData();
+                      await Get.find<BannerController>().getBannerList(true);
+                      await Get.find<BannerController>().getPromotionalBannerList(true);
+                      await Get.find<CategoryController>().getCategoryList(true);
+                      await Get.find<StoreController>().getPopularStoreList(true, 'all', false);
+                      await Get.find<CampaignController>().getItemCampaignList(true);
+                      Get.find<CampaignController>().getBasicCampaignList(true);
+                      await Get.find<ItemController>().getDiscountedItemList(true, false, 'all');
+                      await Get.find<ItemController>().getPopularItemList(true, 'all', false);
+                      await Get.find<StoreController>().getLatestStoreList(true, 'all', false);
+                      await Get.find<StoreController>().getTopOfferStoreList(true, false);
+                      await Get.find<ItemController>().getReviewedItemList(true, 'all', false);
+                      await Get.find<ItemController>().getRecommendedItemList(true, 'all', false);
+                      await Get.find<StoreController>().getStoreList(1, true);
+                      Get.find<AdvertisementController>().getAdvertisementList();
                       if (isGrocery) {
-                        await Get.find<BannerController>().getBannerList(true);
                         await Get.find<FlashSaleController>().getFlashSale(true, true);
-                        await Get.find<BannerController>().getPromotionalBannerList(true);
-                        await Get.find<ItemController>().getDiscountedItemList(true, false, 'all');
-                        await Get.find<CategoryController>().getCategoryList(true);
-                        await Get.find<StoreController>().getPopularStoreList(true, 'all', false);
-                        await Get.find<CampaignController>().getItemCampaignList(true);
-                        Get.find<CampaignController>().getBasicCampaignList(true);
-                        await Get.find<ItemController>().getPopularItemList(true, 'all', false);
-                        await Get.find<StoreController>().getLatestStoreList(true, 'all', false);
-                        await Get.find<StoreController>().getTopOfferStoreList(true, false);
-                        await Get.find<ItemController>().getReviewedItemList(true, 'all', false);
-                        await Get.find<StoreController>().getStoreList(1, true);
-                        Get.find<AdvertisementController>().getAdvertisementList();
-                        if (AuthHelper.isLoggedIn()) {
-                          await Get.find<ProfileController>().getUserInfo();
-                          await Get.find<NotificationController>().getNotificationList(true);
-                          Get.find<CouponController>().getCouponList();
-                        }
-                      } else {
-                        await Get.find<StoreController>().getStoreList(1, true);
+                      }
+                      if (isPharmacy) {
+                        Get.find<ItemController>().getBasicMedicine(true, true);
+                        Get.find<ItemController>().getCommonConditions(true);
+                      }
+                      if (isShop) {
+                        await Get.find<FlashSaleController>().getFlashSale(true, true);
+                        Get.find<ItemController>().getFeaturedCategoriesItemList(true, true);
+                        Get.find<BrandsController>().getBrandList();
+                      }
+                      if (AuthHelper.isLoggedIn()) {
+                        await Get.find<ProfileController>().getUserInfo();
+                        await Get.find<NotificationController>().getNotificationList(true);
+                        Get.find<CouponController>().getCouponList();
                       }
                     } else {
                       await Get.find<BannerController>().getFeaturedBanner();
@@ -549,10 +571,64 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                         isGrocery
                                             ? const GroceryHomeScreen()
-                                            : const ModuleStoreListView(),
+                                            : isPharmacy
+                                                ? const PharmacyHomeScreen()
+                                                : isFood
+                                                    ? FoodHomeScreen(scrollController: _scrollController)
+                                                    : isShop
+                                                        ? const ShopHomeScreen()
+                                                        : const ModuleStoreListView(),
                                       ])
                                     : ModuleView(splashController: splashController),
                               )),
+                            ),
+
+                            !showMobileModule && !isParcel && !isPharmacy && !isFood && !isGrocery
+                                ? SliverPersistentHeader(
+                                    key: _headerKey,
+                                    pinned: true,
+                                    delegate: SliverDelegate(
+                                      height: 85,
+                                      callback: (val) {
+                                        searchBgShow = val;
+                                      },
+                                      child: const AllStoreFilterWidget(),
+                                    ),
+                                  )
+                                : const SliverToBoxAdapter(),
+
+                            SliverToBoxAdapter(
+                              child: !showMobileModule && !isParcel && !isPharmacy && !isFood && !isGrocery
+                                  ? Center(
+                                      child: GetBuilder<StoreController>(builder: (storeController) {
+                                        return Padding(
+                                          padding: EdgeInsets.only(
+                                              bottom: ResponsiveHelper.isDesktop(context) ? 0 : 100),
+                                          child: PaginatedListView(
+                                            scrollController: _scrollController,
+                                            totalSize: storeController.storeModel?.totalSize,
+                                            offset: storeController.storeModel?.offset,
+                                            onPaginate: (int? offset) async =>
+                                                await storeController.getStoreList(offset!, false),
+                                            itemView: ItemsView(
+                                              isStore: true,
+                                              items: null,
+                                              isFoodOrGrocery: (isFood || isGrocery),
+                                              stores: storeController.storeModel?.stores,
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: ResponsiveHelper.isDesktop(context)
+                                                    ? Dimensions.paddingSizeExtraSmall
+                                                    : Dimensions.paddingSizeSmall,
+                                                vertical: ResponsiveHelper.isDesktop(context)
+                                                    ? Dimensions.paddingSizeExtraSmall
+                                                    : Dimensions.paddingSizeDefault,
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    )
+                                  : const SizedBox(),
                             ),
                           ],
                         ),

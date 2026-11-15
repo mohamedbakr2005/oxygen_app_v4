@@ -1,3 +1,5 @@
+import 'package:Oxygen_Mart/api/response_parser.dart';
+import 'package:Oxygen_Mart/common/models/pagination_model.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
 
 class NewItemListResponse {
@@ -8,14 +10,30 @@ class NewItemListResponse {
 
   NewItemListResponse({this.totalSize, this.limit, this.offset, this.items});
 
-  NewItemListResponse.fromJson(Map<String, dynamic> json) {
-    totalSize = _toInt(json['total_size']);
-    limit = _toInt(json['limit']);
-    offset = _toInt(json['offset']);
-    if (json['items'] != null) {
+  NewItemListResponse.fromJson(dynamic rawJson) {
+    if (rawJson == null) return;
+    final Map<String, dynamic> json = rawJson is Map
+        ? Map<String, dynamic>.from(rawJson)
+        : <String, dynamic>{};
+    final PaginationModel pagination = PaginationModel.fromJson(json);
+    totalSize = pagination.totalSize;
+    limit = pagination.limit;
+    offset = pagination.offset;
+
+    final List<dynamic>? rawList = (json['items'] is List)
+        ? json['items'] as List<dynamic>
+        : (json['products'] is List)
+            ? json['products'] as List<dynamic>
+            : (json['data'] is List)
+                ? json['data'] as List<dynamic>
+                : ResponseParser.listOf(json);
+
+    if (rawList != null) {
       items = <NewItem>[];
-      for (final dynamic v in json['items']) {
-        items!.add(NewItem.fromJson(v));
+      for (final dynamic v in rawList) {
+        if (v is Map) {
+          items!.add(NewItem.fromJson(Map<String, dynamic>.from(v)));
+        }
       }
     }
   }
@@ -53,6 +71,7 @@ class NewItem {
   double? discountedPrice;
   String? storeImage;
   int? wishlist;
+  double? storeDiscount;
 
   NewItem({
     this.id, this.name, this.slug, this.imageFullUrl, this.price,
@@ -61,7 +80,7 @@ class NewItem {
     this.avgRating, this.hasVariant, this.availableTimeStarts, this.availableTimeEnds, this.halalTagStatus,
     this.storeName, this.storeId, this.storeLogoFullUrl, this.storeCategoryId, this.storeCategoryName,
     this.moduleType, this.freeDelivery, this.verifiedSeller, this.discountedPrice, this.storeImage,
-    this.wishlist,
+    this.wishlist, this.storeDiscount,
   });
 
   NewItem.fromJson(Map<String, dynamic> json) {
@@ -98,6 +117,7 @@ class NewItem {
     discountedPrice = _toDouble(json['discounted_price']);
     storeImage = json['store_image']?.toString();
     wishlist = _toInt(json['wishlist']);
+    storeDiscount = _toDouble(json['store_discount']);
   }
 
   Item toItem() {
@@ -126,7 +146,7 @@ class NewItem {
       slug: slug,
       storeImageFullUrl: storeLogoFullUrl ?? storeImage,
       freeDelivery: freeDelivery ?? false,
-      storeDiscount: 0,
+      storeDiscount: storeDiscount ?? 0,
     );
   }
 }

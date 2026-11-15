@@ -6,7 +6,6 @@ import 'package:Oxygen_Mart/common/widgets/custom_button.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/common/widgets/item_view.dart';
-import 'package:Oxygen_Mart/common/widgets/item_widget.dart';
 import 'package:Oxygen_Mart/common/widgets/menu_drawer.dart';
 import 'package:Oxygen_Mart/common/widgets/paginated_list_view.dart';
 import 'package:Oxygen_Mart/common/widgets/web_item_view.dart';
@@ -19,7 +18,6 @@ import 'package:Oxygen_Mart/features/checkout/screens/checkout_screen.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/bogo_offer/controllers/bogo_offer_controller.dart';
 import 'package:Oxygen_Mart/features/bogo_offer/domain/models/bogo_offer_model.dart';
-import 'package:Oxygen_Mart/features/bogo_offer/widgets/bogo_store_section_widget.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/bogo_offer_card_widget.dart';
 import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
 import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_milestone_banner_widget.dart';
@@ -1899,7 +1897,20 @@ class _StoreScreenState extends State<StoreScreen> {
             title: 'capture_prescription_photo'.tr,
             subtitle: 'we_will_prepare_it_for_you'.tr,
             icon: Icons.photo_camera,
-            onTap: () {},
+            onTap: () {
+              if (!AuthHelper.isLoggedIn()) {
+                Get.toNamed(RouteHelper.getSignInRoute(RouteHelper.main));
+              } else if (storeController.store != null) {
+                Get.toNamed(
+                  RouteHelper.getCheckoutRoute('prescription', storeId: storeController.store!.id),
+                  arguments: CheckoutScreen(
+                    fromCart: false,
+                    cartList: null,
+                    storeId: storeController.store!.id,
+                  ),
+                );
+              }
+            },
           ),
 
           const SizedBox(height: Dimensions.paddingSizeLarge),

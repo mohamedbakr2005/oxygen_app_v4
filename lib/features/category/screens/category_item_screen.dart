@@ -464,24 +464,6 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
               },
             ),
           ),
-          Container(
-            width: Dimensions.webMaxWidth,
-            color: Theme.of(context).cardColor,
-            child: TabBar(
-              tabAlignment: TabAlignment.start,
-              isScrollable: true,
-              controller: _tabController,
-              indicatorColor: Theme.of(context).primaryColor,
-              indicatorWeight: 3,
-              labelColor: Theme.of(context).primaryColor,
-              unselectedLabelColor: Theme.of(context).disabledColor,
-              labelStyle: robotoBold.copyWith(
-                fontSize: Dimensions.fontSizeSmall,
-                color: Theme.of(context).primaryColor,
-              ),
-              tabs: [Tab(text: 'item'.tr)],
-            ),
-          ),
           const Expanded(
             child: ItemsView(
               isStore: false,
@@ -540,81 +522,9 @@ class CategoryItemScreenState extends State<CategoryItemScreen>
               ),
             ),
 
-          // Tab bar
-          Container(
-            width: Dimensions.webMaxWidth,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).dividerColor.withOpacity(0.08),
-                ),
-              ),
-            ),
-            child: TabBar(
-              tabAlignment: TabAlignment.start,
-              isScrollable: true,
-              controller: _tabController,
-              indicatorColor: Theme.of(context).primaryColor,
-              indicatorWeight: 3,
-              labelColor: Theme.of(context).primaryColor,
-              unselectedLabelColor: Theme.of(context).disabledColor,
-              unselectedLabelStyle: robotoRegular.copyWith(
-                color: Theme.of(context).disabledColor,
-                fontSize: Dimensions.fontSizeSmall,
-              ),
-              labelStyle: robotoBold.copyWith(
-                fontSize: Dimensions.fontSizeSmall,
-                color: Theme.of(context).primaryColor,
-              ),
-              tabs: [
-                Tab(text: 'item'.tr),
-              ],
-            ),
-          ),
-
           // Main product list
           Expanded(
-            child: NotificationListener(
-              onNotification: (dynamic scrollNotification) {
-                if (scrollNotification is ScrollEndNotification) {
-                  if ((_tabController!.index == 1 && !catController.isStore) ||
-                      _tabController!.index == 0 && catController.isStore) {
-                    catController.setRestaurant(_tabController!.index == 1);
-                    if (catController.isSearching) {
-                      catController.searchData(
-                        catController.searchText,
-                        widget.categoryID,
-                        catController.type,
-                      );
-                    } else {
-                      if (_tabController!.index == 1) {
-                        catController.getCategoryStoreList(
-                          widget.categoryID,
-                          1,
-                          catController.type,
-                          false,
-                        );
-                      } else {
-                        catController.getCategoryItemList(
-                          widget.categoryID,
-                          1,
-                          catController.type,
-                          false,
-                        );
-                      }
-                    }
-                  }
-                }
-                return false;
-              },
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildProductScrollView(catController, item),
-                ],
-              ),
-            ),
+            child: _buildProductScrollView(catController, item),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/api/api_client.dart';
 import 'package:Oxygen_Mart/api/local_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_cancellation_reasons_model.dart';
 import 'package:Oxygen_Mart/features/parcel/domain/models/parcel_category_model.dart';
@@ -112,12 +113,15 @@ class ParcelRepository implements ParcelRepositoryInterface {
     Response response = await apiClient.getData(AppConstants.parcelCategoryUri);
     if (response.statusCode == 200 && response.body != null) {
       parcelCategoryList = [];
-      if (response.body is List) {
-        for (var parcel in response.body) {
-          parcelCategoryList.add(ParcelCategoryModel.fromJson(parcel));
+      final List<dynamic>? list = ResponseParser.listOf(response.body);
+      if (list != null) {
+        for (var parcel in list) {
+          if (parcel is Map) {
+            parcelCategoryList.add(ParcelCategoryModel.fromJson(Map<String, dynamic>.from(parcel)));
+          }
         }
-      } else if (response.body is Map && response.body['data'] is List) {
-        for (var parcel in response.body['data']) {
+      } else if (response.body is List) {
+        for (var parcel in response.body) {
           parcelCategoryList.add(ParcelCategoryModel.fromJson(parcel));
         }
       }

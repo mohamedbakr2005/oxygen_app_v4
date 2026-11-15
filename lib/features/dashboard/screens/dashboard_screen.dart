@@ -16,7 +16,6 @@ import 'package:Oxygen_Mart/features/cart/screens/cart_screen.dart';
 import 'package:Oxygen_Mart/features/checkout/widgets/congratulation_dialogue.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/address_bottom_sheet_widget.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/bottom_nav_item_widget.dart';
-import 'package:Oxygen_Mart/features/dashboard/widgets/parcel_bottom_sheet_widget.dart';
 import 'package:Oxygen_Mart/features/dashboard/widgets/store_registration_success_bottom_sheet.dart';
 import 'package:Oxygen_Mart/features/happy_hour/controllers/happy_hour_controller.dart';
 import 'package:Oxygen_Mart/features/happy_hour/widgets/happy_hour_banner_widget.dart';
@@ -26,7 +25,7 @@ import 'package:Oxygen_Mart/features/location/controllers/location_controller.da
 import 'package:Oxygen_Mart/features/menu/screens/menu_screen.dart';
 import 'package:Oxygen_Mart/features/order/controllers/order_controller.dart';
 import 'package:Oxygen_Mart/features/order/domain/models/order_model.dart';
-import 'package:Oxygen_Mart/features/parcel/controllers/parcel_controller.dart';
+import 'package:Oxygen_Mart/features/order/screens/order_screen.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
 import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
@@ -37,7 +36,6 @@ import 'package:Oxygen_Mart/util/dimensions.dart';
 import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/features/category/screens/category_screen.dart';
 import 'package:Oxygen_Mart/features/favourite/screens/favourite_screen.dart';
-import 'package:Oxygen_Mart/features/parcel/screens/parcel_category_screen.dart';
 import '../widgets/running_order_view_widget.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -93,27 +91,37 @@ class DashboardScreenState extends State<DashboardScreen> {
     final bool hasModule = splashController.module != null;
     final bool isParcel = hasModule &&
         (splashController.configModel?.moduleConfig?.module?.isParcel ?? false);
+    final bool isPharmacy = hasModule &&
+        splashController.module!.moduleType.toString() == AppConstants.pharmacy;
 
-    _screens = hasModule
+    _screens = isParcel
         ? [
             const HomeScreen(),
-            isParcel
-                ? const ParcelCategoryScreen()
-                : const CategoryScreen(fromNav: true),
-            isParcel
-                ? const AddressScreen(fromDashboard: true)
-                : const CartScreen(fromNav: true),
-            isParcel
-                ? const SizedBox()
-                : const FavouriteScreen(),
+            const AddressScreen(fromDashboard: true),
+            const OrderScreen(),
             const MenuScreen(),
           ]
-        : [
-            const HomeScreen(),
-            const CartScreen(fromNav: true),
-            const FavouriteScreen(),
-            const MenuScreen(),
-          ];
+        : isPharmacy
+            ? [
+                const HomeScreen(),
+                const CartScreen(fromNav: true),
+                const FavouriteScreen(),
+                const MenuScreen(),
+              ]
+            : hasModule
+                ? [
+                    const HomeScreen(),
+                    const CategoryScreen(fromNav: true),
+                    const CartScreen(fromNav: true),
+                    const FavouriteScreen(),
+                    const MenuScreen(),
+                  ]
+                : [
+                    const HomeScreen(),
+                    const CartScreen(fromNav: true),
+                    const FavouriteScreen(),
+                    const MenuScreen(),
+                  ];
 
     _pageIndex = widget.pageIndex >= _screens.length ? 0 : widget.pageIndex;
     Get.find<CartController>()
@@ -217,27 +225,37 @@ class DashboardScreenState extends State<DashboardScreen> {
       final bool isParcel = hasModule &&
           (splashController.configModel?.moduleConfig?.module?.isParcel ??
               false);
+      final bool isPharmacy = hasModule &&
+          splashController.module!.moduleType.toString() == AppConstants.pharmacy;
 
-      _screens = hasModule
+      _screens = isParcel
           ? [
               const HomeScreen(),
-              isParcel
-                  ? const ParcelCategoryScreen()
-                  : const CategoryScreen(fromNav: true),
-              isParcel
-                  ? const AddressScreen(fromDashboard: true)
-                  : const CartScreen(fromNav: true),
-              isParcel
-                  ? const SizedBox()
-                  : const FavouriteScreen(),
+              const AddressScreen(fromDashboard: true),
+              const OrderScreen(),
               const MenuScreen(),
             ]
-          : [
-              const HomeScreen(),
-              const CartScreen(fromNav: true),
-              const FavouriteScreen(),
-              const MenuScreen(),
-            ];
+          : isPharmacy
+              ? [
+                  const HomeScreen(),
+                  const CartScreen(fromNav: true),
+                  const FavouriteScreen(),
+                  const MenuScreen(),
+                ]
+              : hasModule
+                  ? [
+                      const HomeScreen(),
+                      const CategoryScreen(fromNav: true),
+                      const CartScreen(fromNav: true),
+                      const FavouriteScreen(),
+                      const MenuScreen(),
+                    ]
+                  : [
+                      const HomeScreen(),
+                      const CartScreen(fromNav: true),
+                      const FavouriteScreen(),
+                      const MenuScreen(),
+                    ];
 
       if (_pageIndex >= _screens.length) {
         _pageIndex = 0;
@@ -373,7 +391,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceEvenly,
-                                    children: hasModule
+                                    children: isParcel
                                         ? [
                                             BottomNavItemWidget(
                                               title: 'home'.tr,
@@ -383,82 +401,103 @@ class DashboardScreenState extends State<DashboardScreen> {
                                               onTap: () => _setPage(0),
                                             ),
                                             BottomNavItemWidget(
-                                              title: 'categories'.tr,
-                                              iconData: Icons.grid_view_rounded,
+                                              title: 'address'.tr,
+                                              selectedIcon: Images.addressSelect,
+                                              unSelectedIcon: Images.addressUnselect,
                                               isSelected: _pageIndex == 1,
                                               onTap: () => _setPage(1),
                                             ),
                                             BottomNavItemWidget(
-                                              title: isParcel
-                                                  ? 'address'.tr
-                                                  : 'cart'.tr,
-                                              selectedIcon: isParcel
-                                                  ? Images.addressSelect
-                                                  : Images.shoppingCart,
-                                              unSelectedIcon: isParcel
-                                                  ? Images.addressUnselect
-                                                  : Images.shoppingCart,
+                                              title: 'orders'.tr,
+                                              selectedIcon: Images.orderSelect,
+                                              unSelectedIcon: Images.orderUnselect,
                                               isSelected: _pageIndex == 2,
-                                              onTap: () {
-                                                if (isParcel) {
-                                                  _setPage(2);
-                                                } else {
-                                                  Get.find<CartController>()
-                                                      .setSelectedFlowTab(0);
-                                                  _setPage(2);
-                                                }
-                                              },
+                                              onTap: () => _setPage(2),
                                             ),
                                             BottomNavItemWidget(
-                                              title: isParcel
-                                                  ? 'cart'.tr
-                                                  : 'favourite'.tr,
-                                              selectedIcon: isParcel
-                                                  ? Images.shoppingCart
-                                                  : Images.favouriteSelect,
-                                              unSelectedIcon: isParcel
-                                                  ? Images.shoppingCart
-                                                  : Images.favouriteUnselect,
+                                              title: 'profile'.tr,
+                                              selectedIcon: Images.profile,
+                                              unSelectedIcon: Images.profile,
                                               isSelected: _pageIndex == 3,
-                                              onTap: () {
-                                                if (isParcel) {
-                                                  showModalBottomSheet(
-                                                    context: context,
-                                                    isScrollControlled: true,
-                                                    backgroundColor:
-                                                        Colors.transparent,
-                                                    builder: (con) =>
-                                                        ParcelBottomSheetWidget(
-                                                            parcelCategoryList: Get
-                                                                .find<
-                                                                    ParcelController>()
-                                                                .parcelCategoryList),
-                                                  );
-                                                } else {
-                                                  _setPage(3);
-                                                }
-                                              },
-                                            ),
-                                            BottomNavItemWidget(
-                                              title: isParcel
-                                                  ? 'orders'.tr
-                                                  : 'profile'.tr,
-                                              selectedIcon: isParcel
-                                                  ? Images.orderSelect
-                                                  : Images.profile,
-                                              unSelectedIcon: isParcel
-                                                  ? Images.orderUnselect
-                                                  : Images.profile,
-                                              isSelected: _pageIndex == 4,
-                                              onTap: () {
-                                                if (isParcel) {
-                                                  _setPage(4);
-                                                } else {
-                                                  _setPage(4);
-                                                }
-                                              },
+                                              onTap: () => _setPage(3),
                                             ),
                                           ]
+                                        : isPharmacy
+                                            ? [
+                                                BottomNavItemWidget(
+                                                  title: 'home'.tr,
+                                                  selectedIcon: Images.homeSelect,
+                                                  unSelectedIcon: Images.homeUnselect,
+                                                  isSelected: _pageIndex == 0,
+                                                  onTap: () => _setPage(0),
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'cart'.tr,
+                                                  selectedIcon: Images.shoppingCart,
+                                                  unSelectedIcon: Images.shoppingCart,
+                                                  isSelected: _pageIndex == 1,
+                                                  onTap: () {
+                                                    Get.find<CartController>()
+                                                        .setSelectedFlowTab(0);
+                                                    _setPage(1);
+                                                  },
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'favourite'.tr,
+                                                  selectedIcon: Images.favouriteSelect,
+                                                  unSelectedIcon: Images.favouriteUnselect,
+                                                  isSelected: _pageIndex == 2,
+                                                  onTap: () => _setPage(2),
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'profile'.tr,
+                                                  selectedIcon: Images.profile,
+                                                  unSelectedIcon: Images.profile,
+                                                  isSelected: _pageIndex == 3,
+                                                  onTap: () => _setPage(3),
+                                                ),
+                                              ]
+                                        : hasModule
+                                            ? [
+                                                BottomNavItemWidget(
+                                                  title: 'home'.tr,
+                                                  selectedIcon: Images.homeSelect,
+                                                  unSelectedIcon: Images.homeUnselect,
+                                                  isSelected: _pageIndex == 0,
+                                                  onTap: () => _setPage(0),
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'categories'.tr,
+                                                  iconData: Icons.grid_view_rounded,
+                                                  isSelected: _pageIndex == 1,
+                                                  onTap: () => _setPage(1),
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'cart'.tr,
+                                                  selectedIcon: Images.shoppingCart,
+                                                  unSelectedIcon: Images.shoppingCart,
+                                                  isSelected: _pageIndex == 2,
+                                                  onTap: () {
+                                                    Get.find<CartController>()
+                                                        .setSelectedFlowTab(0);
+                                                    _setPage(2);
+                                                  },
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'favourite'.tr,
+                                                  selectedIcon: Images.favouriteSelect,
+                                                  unSelectedIcon: Images.favouriteUnselect,
+                                                  isSelected: _pageIndex == 3,
+                                                  onTap: () => _setPage(3),
+                                                ),
+                                                BottomNavItemWidget(
+                                                  title: 'profile'.tr,
+                                                  selectedIcon: Images.profile,
+                                                  unSelectedIcon: Images.profile,
+                                                  isSelected: _pageIndex == 4,
+                                                  onTap: () => _setPage(4),
+                                                ),
+                                              ]
                                         : [
                                             BottomNavItemWidget(
                                               title: 'home'.tr,
@@ -524,7 +563,7 @@ class DashboardScreenState extends State<DashboardScreen> {
                                       ?.module
                                       ?.isParcel ??
                                   false)) {
-                            _setPage(4);
+                            _setPage(2);
                           } else {
                             Get.find<CartController>().setSelectedFlowTab(1);
                             final bool currentHasModule = Get.find<SplashController>().module != null;
@@ -585,12 +624,15 @@ class DashboardScreenState extends State<DashboardScreen> {
                                               ?.module
                                               ?.isParcel ??
                                           false)) {
-                                    _setPage(4);
+                                    _setPage(2);
                                   } else {
                                     Get.find<CartController>()
                                         .setSelectedFlowTab(1);
                                     final bool currentHasModule = Get.find<SplashController>().module != null;
-                                    _setPage(currentHasModule ? 2 : 1);
+                                    final bool currentIsPharmacy = currentHasModule &&
+                                        Get.find<SplashController>().module!.moduleType.toString() ==
+                                            AppConstants.pharmacy;
+                                    _setPage((currentHasModule && !currentIsPharmacy) ? 2 : 1);
                                   }
                                   if (orderController.showBottomSheet) {
                                     orderController.showRunningOrders();
@@ -610,6 +652,13 @@ class DashboardScreenState extends State<DashboardScreen> {
       _pageController!.jumpToPage(pageIndex);
       _pageIndex = pageIndex;
     });
+    final splashController = Get.find<SplashController>();
+    final bool isParcel = splashController.module != null &&
+        (splashController.configModel?.moduleConfig?.module?.isParcel ?? false);
+    if (isParcel && pageIndex == 2 && AuthHelper.isLoggedIn()) {
+      Get.find<OrderController>().getRunningOrders(1);
+      Get.find<OrderController>().getHistoryOrders(1);
+    }
   }
 
   bool _shouldShowHappyHourBanner(HappyHourController happyHourController, SplashController splashController) {

@@ -5,11 +5,14 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:Oxygen_Mart/api/api_client.dart';
+import 'package:Oxygen_Mart/api/response_parser.dart';
 import 'package:Oxygen_Mart/common/enums/data_source_enum.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_snackbar.dart';
 import 'package:Oxygen_Mart/features/address/domain/models/address_model.dart';
 import 'package:Oxygen_Mart/features/auth/controllers/auth_controller.dart';
 import 'package:Oxygen_Mart/features/checkout/controllers/checkout_controller.dart';
+import 'package:Oxygen_Mart/features/checkout/domain/models/checkout_summary_body_model.dart';
 import 'package:Oxygen_Mart/features/checkout/domain/models/place_order_body_model.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/location/domain/models/zone_response_model.dart';
@@ -459,7 +462,8 @@ class ParcelController extends GetxController implements GetxService {
   }
 
   void getDistance(
-      AddressModel pickedUpAddress, AddressModel destinationAddress) async {
+      AddressModel pickedUpAddress, AddressModel destinationAddress,
+      {ParcelCategoryModel? category}) async {
     _distance = -1;
     _distance = await Get.find<CheckoutController>().getDistanceInKM(
       LatLng(double.parse(pickedUpAddress.latitude!),
@@ -470,12 +474,41 @@ class ParcelController extends GetxController implements GetxService {
 
     _extraCharge = Get.find<CheckoutController>().extraCharge;
 
+    if (category != null && _distance != -1) {
+      await getParcelDeliverySummary(pickedUpAddress, destinationAddress, category);
+    }
+
     update();
   }
 
+  Future<void> getParcelDeliverySummary(
+      AddressModel pickedUpAddress, AddressModel destinationAddress, ParcelCategoryModel category) async {
+    try {
+      final body = CheckoutSummaryBodyModel(
+        orderType: 'parcel',
+        orderAmount: 0,
+        distance: (_distance != null && _distance! > 0) ? _distance! : 0,
+        latitude: pickedUpAddress.latitude,
+        longitude: pickedUpAddress.longitude,
+        parcelCategoryId: category.id,
+        receiverDetails: destinationAddress,
+        guestId: AuthHelper.isGuestLoggedIn() ? AuthHelper.getGuestId() : null,
+      );
+      await Get.find<CheckoutController>().getCheckoutSummary(body, notify: true, force: true);
+    } catch (e) {
+      debugPrint('Error getting parcel checkout summary: $e');
+    }
+  }
+
   double calculateDeliveryCharge(ParcelCategoryModel category, {double? surgePrice, String? surgePriceType}) {
+    final summary = Get.find<CheckoutController>().checkoutSummary;
+    if (summary?.delivery?.deliveryCharge != null) {
+      return PriceConverter.toFixed(summary!.delivery!.deliveryCharge!);
+    }
     double charge = 0;
-    if (_distance != -1 && _extraCharge != null) {
+    if (category.charge != null && category.charge! > 0) {
+      charge = category.charge!;
+    } else if (_distance != -1 && _extraCharge != null) {
       final config = Get.find<SplashController>().configModel!;
       final double perKmCharge = (category.parcelPerKmShippingCharge ?? 0) > 0
           ? category.parcelPerKmShippingCharge! : config.parcelPerKmShippingCharge!;
@@ -522,6 +555,23 @@ class ParcelController extends GetxController implements GetxService {
     double proDiscount = 0;
     double proDeliveryDiscount = 0;
     double total = 0;
+
+    final summary = Get.find<CheckoutController>().checkoutSummary;
+    if (summary?.delivery?.deliveryCharge != null) {
+      charge = summary!.delivery!.deliveryCharge!;
+      if (summary.pro?.discount != null) {
+        proDiscount = summary.pro!.discount!;
+      }
+      if (summary.pro?.deliverySavings != null) {
+        proDeliveryDiscount = summary.pro!.deliverySavings!;
+      }
+      total = charge + _tips + additionalCharge + tax - proDiscount - proDeliveryDiscount;
+      if (total < 0) total = 0;
+      return ParcelBill(
+        charge: charge, dmTips: _tips, additionalCharge: additionalCharge, tax: tax,
+        proDiscount: proDiscount, proDeliveryDiscount: proDeliveryDiscount, total: total,
+      );
+    }
 
     if (_distance != -1 && _extraCharge != null) {
       charge = calculateDeliveryCharge(category, surgePrice: surgePrice, surgePriceType: surgePriceType);
@@ -633,6 +683,40 @@ class ParcelController extends GetxController implements GetxService {
     }
   }
 
+  dynamic _bodyValue(Response response, String key) {
+    final dynamic unwrapped = ResponseParser.payloadOf(response.body);
+    if (unwrapped is Map && unwrapped.containsKey(key)) {
+      return unwrapped[key];
+    }
+    final dynamic body = response.body;
+    return body is Map ? body[key] : null;
+  }
+
+  String _orderIdOf(Response response) {
+    final dynamic id = _bodyValue(response, 'order_id') ?? _bodyValue(response, 'id');
+    return id != null ? id.toString() : '';
+  }
+
+  String? _messageOf(Response response) {
+    final dynamic body = response.body;
+    if (body is Map) {
+      if (body['message'] != null && body['message'].toString().isNotEmpty) {
+        return body['message'].toString();
+      }
+      if (body['errors'] is List && (body['errors'] as List).isNotEmpty) {
+        final dynamic firstErr = (body['errors'] as List).first;
+        if (firstErr is Map && firstErr['message'] != null) {
+          return firstErr['message'].toString();
+        }
+      }
+    }
+    final dynamic unwrapped = ResponseParser.payloadOf(response.body);
+    if (unwrapped is Map && unwrapped['message'] != null) {
+      return unwrapped['message'].toString();
+    }
+    return response.statusText;
+  }
+
   Future<String> placeOrder(
       PlaceOrderBodyModel placeOrderBody,
       int? zoneID,
@@ -645,53 +729,71 @@ class ParcelController extends GetxController implements GetxService {
     _isLoading = true;
     update();
     String orderID = '';
-    Response response = await parcelServiceInterface.placeOrder(placeOrderBody);
-    _isLoading = false;
-    if (response.statusCode == 200) {
-      String? message = response.body['message'];
-      orderID = response.body['order_id'].toString();
-      int createUserId = response.body['user_id'];
+    try {
+      Response response = await parcelServiceInterface.placeOrder(placeOrderBody);
+      _isLoading = false;
+      if (ApiClient.isSuccessCode(response.statusCode)) {
+        String? message = _messageOf(response);
+        orderID = _orderIdOf(response);
+        int? createUserId = int.tryParse(_bodyValue(response, 'user_id')?.toString() ?? '');
 
-      if(forParcel && _destinationAddress != null) {
-        await addParcelRecentAddress(_destinationAddress!);
-      }
+        if (forParcel && _destinationAddress != null) {
+          await addParcelRecentAddress(_destinationAddress!);
+        }
 
-      if (!isOfflinePay) {
-        parcelCallback(
-            true,
-            message,
-            orderID,
-            zoneID,
-            amount,
-            maximumCodOrderAmount,
-            isCashOnDeliveryActive,
-            placeOrderBody.contactPersonNumber,
-            createUserId: createUserId,
-            customerName: placeOrderBody.contactPersonName,
-            customerEmail: placeOrderBody.guestEmail);
+        if (!isOfflinePay) {
+          await parcelCallback(
+              true,
+              message,
+              orderID,
+              zoneID,
+              amount,
+              maximumCodOrderAmount,
+              isCashOnDeliveryActive,
+              placeOrderBody.contactPersonNumber,
+              createUserId: createUserId,
+              customerName: placeOrderBody.contactPersonName,
+              customerEmail: placeOrderBody.guestEmail);
+        } else {
+          startLoader(false);
+          Get.offNamed(RouteHelper.getOfflinePaymentScreen(
+            zoneId: zoneID,
+            total: amount,
+            orderId: orderID,
+            contactNumber: placeOrderBody.contactPersonNumber ?? '',
+            maxCodOrderAmount: maximumCodOrderAmount,
+            fromCart: false,
+            isCodActive: isCashOnDeliveryActive,
+            forParcel: true,
+          ));
+        }
+        if (kDebugMode) {
+          print('-------- Order placed successfully $orderID ----------');
+        }
       } else {
-        Get.offNamed(RouteHelper.getOfflinePaymentScreen(
-          zoneId: zoneID, total: amount, orderId: orderID, contactNumber: placeOrderBody.contactPersonNumber??'',
-          maxCodOrderAmount: maximumCodOrderAmount, fromCart: false, isCodActive: isCashOnDeliveryActive, forParcel: true,
-        ));
+        startLoader(false);
+        String? errorMsg = _messageOf(response) ?? 'failed_to_place_order'.tr;
+        if (!isOfflinePay) {
+          await parcelCallback(
+              false,
+              errorMsg,
+              '-1',
+              zoneID,
+              amount,
+              maximumCodOrderAmount,
+              isCashOnDeliveryActive,
+              placeOrderBody.contactPersonNumber);
+        } else {
+          showCustomSnackBar(errorMsg);
+        }
       }
+    } catch (e, stack) {
       if (kDebugMode) {
-        print('-------- Order placed successfully $orderID ----------');
+        print('-------- Error placing parcel order: $e\n$stack ----------');
       }
-    } else {
-      if (!isOfflinePay) {
-        parcelCallback(
-            false,
-            response.statusText,
-            '-1',
-            zoneID,
-            amount,
-            maximumCodOrderAmount,
-            isCashOnDeliveryActive,
-            placeOrderBody.contactPersonNumber);
-      } else {
-        showCustomSnackBar(response.statusText);
-      }
+      _isLoading = false;
+      startLoader(false);
+      showCustomSnackBar('failed_to_place_order'.tr);
     }
     update();
 

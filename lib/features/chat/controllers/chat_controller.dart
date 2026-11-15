@@ -91,17 +91,25 @@ class ChatController extends GetxController implements GetxService {
       if (offset == 1) {
         _conversationModel = conversationModel;
       } else {
+        _conversationModel ??= conversationModel;
         _conversationModel!.totalSize = conversationModel.totalSize;
         _conversationModel!.offset = conversationModel.offset;
-        _conversationModel!.conversations!
-            .addAll(conversationModel.conversations!);
+        if (conversationModel.conversations != null) {
+          _conversationModel!.conversations ??= [];
+          _conversationModel!.conversations!
+              .addAll(conversationModel.conversations!);
+        }
       }
       int index0 =
-          chatServiceInterface.setIndex(_conversationModel!.conversations);
+          chatServiceInterface.setIndex(_conversationModel?.conversations);
       bool sender =
-          chatServiceInterface.checkSender(_conversationModel!.conversations);
+          chatServiceInterface.checkSender(_conversationModel?.conversations);
       _hasAdmin = false;
-      if (index0 != -1 && !ResponsiveHelper.isDesktop(Get.context)) {
+      if (index0 != -1 &&
+          !ResponsiveHelper.isDesktop(Get.context) &&
+          _conversationModel?.conversations != null &&
+          index0 < _conversationModel!.conversations!.length &&
+          _conversationModel!.conversations![index0] != null) {
         _hasAdmin = true;
         if (sender) {
           _conversationModel!.conversations![index0]!.sender = User(
@@ -178,7 +186,7 @@ class ChatController extends GetxController implements GetxService {
 
     ConversationsModel? searchConversationModel =
         await chatServiceInterface.searchConversationList(name);
-    if (searchConversationModel != null) {
+    if (searchConversationModel != null && searchConversationModel.conversations != null) {
       for (var element in searchConversationModel.conversations!) {
         _searchConversationModel!.conversations!.add(element);
       }
@@ -264,7 +272,7 @@ class ChatController extends GetxController implements GetxService {
                 fName: Get.find<ProfileController>().userInfoModel!.fName,
                 lName: Get.find<ProfileController>().userInfoModel!.lName,
               ),
-              receiver: notificationBody!.adminId != null
+              receiver: (notificationBody == null || notificationBody.adminId != null)
                   ? User(
                       id: 0,
                       fName: Get.find<SplashController>()
@@ -276,12 +284,15 @@ class ChatController extends GetxController implements GetxService {
                     )
                   : user);
         }
-        _sortMessage(notificationBody!.adminId);
+        _sortMessage(notificationBody?.adminId);
       } else {
-        _messageModel!.totalSize = ChatModel.fromJson(response.body).totalSize;
-        _messageModel!.offset = ChatModel.fromJson(response.body).offset;
-        _messageModel!.messages!
-            .addAll(ChatModel.fromJson(response.body).messages!);
+        final newChatModel = ChatModel.fromJson(response.body);
+        _messageModel!.totalSize = newChatModel.totalSize;
+        _messageModel!.offset = newChatModel.offset;
+        if (newChatModel.messages != null) {
+          _messageModel!.messages ??= [];
+          _messageModel!.messages!.addAll(newChatModel.messages!);
+        }
       }
     }
     update();
@@ -381,7 +392,7 @@ class ChatController extends GetxController implements GetxService {
         Get.find<ProfileController>()
             .updateUserWithNewData(_messageModel!.conversation!.sender);
       }
-      _sortMessage(notificationBody!.adminId);
+      _sortMessage(notificationBody?.adminId);
       Future.delayed(const Duration(seconds: 2), () {
         getMessages(1, notificationBody, null, conversationID);
       });

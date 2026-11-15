@@ -45,11 +45,12 @@ class ChatService implements ChatServiceInterface {
   @override
   int setIndex(List<Conversation?>? conversations) {
     int index0 = -1;
-    for (int index = 0; index < conversations!.length; index++) {
-      if (conversations[index]!.receiverType == UserType.admin.name) {
-        index0 = index;
-        break;
-      } else if (conversations[index]!.receiverType == UserType.admin.name) {
+    if (conversations == null || conversations.isEmpty) return index0;
+    for (int index = 0; index < conversations.length; index++) {
+      final conv = conversations[index];
+      if (conv != null &&
+          (conv.receiverType == UserType.admin.name ||
+           conv.senderType == UserType.admin.name)) {
         index0 = index;
         break;
       }
@@ -60,13 +61,17 @@ class ChatService implements ChatServiceInterface {
   @override
   bool checkSender(List<Conversation?>? conversations) {
     bool sender = false;
-    for (int index = 0; index < conversations!.length; index++) {
-      if (conversations[index]!.receiverType == UserType.admin.name) {
-        sender = false;
-        break;
-      } else if (conversations[index]!.receiverType == UserType.admin.name) {
-        sender = true;
-        break;
+    if (conversations == null || conversations.isEmpty) return sender;
+    for (int index = 0; index < conversations.length; index++) {
+      final conv = conversations[index];
+      if (conv != null) {
+        if (conv.receiverType == UserType.admin.name) {
+          sender = false;
+          break;
+        } else if (conv.senderType == UserType.admin.name) {
+          sender = true;
+          break;
+        }
       }
     }
     return sender;
@@ -76,8 +81,10 @@ class ChatService implements ChatServiceInterface {
   int findOutConversationUnreadIndex(
       List<Conversation?>? conversations, int? conversationID) {
     int index0 = -1;
-    for (int index = 0; index < conversations!.length; index++) {
-      if (conversationID == conversations[index]!.id) {
+    if (conversations == null || conversations.isEmpty || conversationID == null) return index0;
+    for (int index = 0; index < conversations.length; index++) {
+      final conv = conversations[index];
+      if (conv != null && conversationID == conv.id) {
         index0 = index;
         break;
       }

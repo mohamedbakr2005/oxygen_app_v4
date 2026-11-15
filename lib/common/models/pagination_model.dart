@@ -14,9 +14,9 @@ class PaginationModel {
     final dynamic pagination = json['pagination'];
     if (pagination is Map) {
       return PaginationModel(
-        totalSize: _toInt(pagination['total']),
-        limit: _toInt(pagination['per_page']),
-        offset: _toInt(pagination['current_page']),
+        totalSize: _toInt(pagination['total'] ?? pagination['total_size']),
+        limit: _toInt(pagination['per_page'] ?? pagination['limit']),
+        offset: _toInt(pagination['current_page'] ?? pagination['offset']),
         lastPage: _toInt(pagination['last_page']),
       );
     }

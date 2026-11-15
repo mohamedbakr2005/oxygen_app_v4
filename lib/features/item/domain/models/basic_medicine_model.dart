@@ -16,20 +16,30 @@ class BasicMedicineModel {
   });
 
   BasicMedicineModel.fromJson(Map<String, dynamic> json) {
-    totalSize = json['total_size'];
-    limit = json['limit'];
-    offset = json['offset'];
-    if (json['products'] != null) {
+    totalSize = json['total_size'] ?? json['pagination']?['total'];
+    limit = json['limit']?.toString() ?? json['pagination']?['per_page']?.toString();
+    offset = json['offset']?.toString() ?? json['pagination']?['current_page']?.toString();
+    final dynamic productsData = json['products'] ?? json['data'];
+    if (productsData != null && productsData is List) {
       products = [];
-      json['products'].forEach((v) {
-        products!.add(Item.fromJson(v));
-      });
+      for (var v in productsData) {
+        if (v != null) {
+          products!.add(Item.fromJson(v));
+        }
+      }
+    } else {
+      products = [];
     }
-    if (json['categories'] != null) {
+    final dynamic categoriesData = json['categories'];
+    if (categoriesData != null && categoriesData is List) {
       categories = <Categories>[];
-      json['categories'].forEach((v) {
-        categories!.add(Categories.fromJson(v));
-      });
+      for (var v in categoriesData) {
+        if (v != null) {
+          categories!.add(Categories.fromJson(v));
+        }
+      }
+    } else {
+      categories = [];
     }
   }
 

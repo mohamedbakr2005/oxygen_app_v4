@@ -17,18 +17,23 @@ class ChatModel {
       this.messages});
 
   ChatModel.fromJson(Map<String, dynamic> json) {
-    totalSize = json['total_size'];
-    limit = json['limit'];
-    offset = json['offset'];
+    totalSize = json['total_size'] ?? json['pagination']?['total'];
+    limit = json['limit'] ?? json['pagination']?['per_page'];
+    offset = json['offset'] ?? json['pagination']?['current_page'];
     status = json['status'];
     conversation = json['conversation'] != null
         ? Conversation.fromJson(json['conversation'])
         : null;
-    if (json['messages'] != null) {
+    final dynamic listData = json['messages'] ?? json['data'];
+    if (listData != null && listData is List) {
       messages = <Message>[];
-      json['messages'].forEach((v) {
-        messages!.add(Message.fromJson(v));
-      });
+      for (var v in listData) {
+        if (v != null) {
+          messages!.add(Message.fromJson(v));
+        }
+      }
+    } else {
+      messages = <Message>[];
     }
   }
 
