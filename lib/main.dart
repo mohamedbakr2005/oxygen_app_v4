@@ -276,7 +276,7 @@ class _MyAppState extends State<MyApp> {
                             Get.find<ProController>().maybeShowRenewOnRoute(routing.current);
                           }
                         },
-                        defaultTransition: GetPlatform.isWeb ? Transition.fadeIn : Transition.cupertino,
+                        defaultTransition: GetPlatform.isWeb ? Transition.fadeIn : Transition.fadeIn,
                         transitionDuration: const Duration(milliseconds: 1),
                         builder: (BuildContext context, widget) {
                           return MediaQuery(
