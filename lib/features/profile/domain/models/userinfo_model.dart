@@ -59,7 +59,7 @@ class UserInfoModel {
     lName = json['l_name'];
     email = json['email'];
     imageFullUrl = json['image_full_url'];
-    phone = json['phone'];
+    phone = (json['phone'] != null && json['phone'].toString() != 'null') ? json['phone'].toString() : null;
     createdAt = json['created_at'];
     password = json['password'];
     orderCount = json['order_count'];

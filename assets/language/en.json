@@ -3083,5 +3083,16 @@
   "bogo_offer_list": "BOGO Offer List",
   "buy_count_item": "Buy @count Item",
   "get_count_free": "Get @count FREE",
-  "validity": "Validity"
+  "validity": "Validity",
+  "please_login_to_view_orders": "Please sign in to view your orders",
+  "login_to_track_orders_title": "Sign In to Track Your Orders",
+  "login_to_track_orders_subtitle": "Sign in now to track your live orders, access your complete order history, and enjoy exclusive member privileges.",
+  "login_or_register_now": "Sign In / Create Account",
+  "benefit_live_tracking_title": "Live Order Tracking",
+  "benefit_live_tracking_subtitle": "Follow your delivery driver and order status in real-time.",
+  "benefit_order_history_title": "Order History & Quick Reorder",
+  "benefit_order_history_subtitle": "View past receipts and easily repeat your favorite orders.",
+  "benefit_exclusive_perks_title": "Exclusive Perks & Offers",
+  "benefit_exclusive_perks_subtitle": "Earn loyalty points and unlock member-only special discounts.",
+  "continue_browsing_cart": "Back to Shopping Cart"
 }

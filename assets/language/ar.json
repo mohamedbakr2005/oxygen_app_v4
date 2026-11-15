@@ -3088,5 +3088,16 @@
   "bogo_offer_list": "قائمة عروض BOGO",
   "buy_count_item": "اشترِ @count صنف",
   "get_count_free": "احصل على @count مجانًا",
-  "validity": "الصلاحية"
+  "validity": "الصلاحية",
+  "please_login_to_view_orders": "سجّل دخولك لمتابعة طلباتك",
+  "login_to_track_orders_title": "سجّل دخولك لمتابعة طلباتك",
+  "login_to_track_orders_subtitle": "سجّل الآن لمتابعة حالة طلباتك لحظة بلحظة، والاطلاع على سجل طلباتك السابقة والاستفادة من عروض ومميزات حصرية.",
+  "login_or_register_now": "تسجيل الدخول / إنشاء حساب",
+  "benefit_live_tracking_title": "متابعة الطلب لحظة بلحظة",
+  "benefit_live_tracking_subtitle": "تتبع خط سير المندوب وحالة إعداد طلبك وتوصيله في الوقت الفعلي.",
+  "benefit_order_history_title": "سجل الطلبات وإعادة الطلب بسهولة",
+  "benefit_order_history_subtitle": "الاطلاع على جميع فواتيرك السابقة وتكرار طلباتك المفضلة بنقرة واحدة.",
+  "benefit_exclusive_perks_title": "عروض ومكافآت حصرية للأعضاء",
+  "benefit_exclusive_perks_subtitle": "اجمع نقاط الولاء واستمتع بخصومات وكوبونات خاصة بالمستخدمين المسجلين.",
+  "continue_browsing_cart": "الرجوع إلى سلة مشترياتي"
 }

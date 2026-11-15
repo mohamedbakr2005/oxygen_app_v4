@@ -91,30 +91,41 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
     if (widget.address != null) {
       if (widget.address!.contactPersonNumber != null &&
-          widget.address!.contactPersonNumber!.isNotEmpty) {
+          widget.address!.contactPersonNumber!.isNotEmpty &&
+          widget.address!.contactPersonNumber != 'null') {
         splitPhoneNumber(widget.address!.contactPersonNumber!);
       } else if (Get.find<ProfileController>().userInfoModel?.phone != null &&
-          Get.find<ProfileController>().userInfoModel!.phone!.isNotEmpty) {
+          Get.find<ProfileController>().userInfoModel!.phone!.isNotEmpty &&
+          Get.find<ProfileController>().userInfoModel!.phone != 'null') {
         splitPhoneNumber(Get.find<ProfileController>().userInfoModel!.phone!);
       }
 
       _contactPersonNameController.text = (widget.address!.contactPersonName != null &&
-              widget.address!.contactPersonName!.isNotEmpty)
+              widget.address!.contactPersonName!.isNotEmpty &&
+              widget.address!.contactPersonName != 'null')
           ? widget.address!.contactPersonName!
           : (Get.find<ProfileController>().userInfoModel != null
               ? '${Get.find<ProfileController>().userInfoModel!.fName ?? ''} ${Get.find<ProfileController>().userInfoModel!.lName ?? ''}'.trim()
               : '');
-      _emailController.text = widget.address!.email ??
-          (Get.find<ProfileController>().userInfoModel?.email ?? '');
-      _streetNumberController.text = widget.address!.streetNumber ?? '';
-      _houseController.text = widget.address!.house ?? '';
-      _floorController.text = widget.address!.floor ?? '';
+      _emailController.text = (widget.address!.email != null && widget.address!.email != 'null')
+          ? widget.address!.email!
+          : (Get.find<ProfileController>().userInfoModel?.email ?? '');
+      _streetNumberController.text = (widget.address!.streetNumber != null && widget.address!.streetNumber != 'null')
+          ? widget.address!.streetNumber!
+          : '';
+      _houseController.text = (widget.address!.house != null && widget.address!.house != 'null')
+          ? widget.address!.house!
+          : '';
+      _floorController.text = (widget.address!.floor != null && widget.address!.floor != 'null')
+          ? widget.address!.floor!
+          : '';
     } else if (Get.find<ProfileController>().userInfoModel != null &&
         _contactPersonNameController.text.isEmpty) {
       _contactPersonNameController.text =
           '${Get.find<ProfileController>().userInfoModel!.fName ?? ''} ${Get.find<ProfileController>().userInfoModel!.lName ?? ''}'.trim();
       if (Get.find<ProfileController>().userInfoModel!.phone != null &&
-          Get.find<ProfileController>().userInfoModel!.phone!.isNotEmpty) {
+          Get.find<ProfileController>().userInfoModel!.phone!.isNotEmpty &&
+          Get.find<ProfileController>().userInfoModel!.phone != 'null') {
         splitPhoneNumber(Get.find<ProfileController>().userInfoModel!.phone!);
       }
     }
@@ -162,7 +173,10 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   }
 
   void splitPhoneNumber(String number) async {
-    if (number.trim().isEmpty) return;
+    if (number.trim().isEmpty || number.trim() == 'null') {
+      _contactPersonNumberController.text = '';
+      return;
+    }
     try {
       PhoneNumber phoneNumber = PhoneNumber.parse(number);
       _countryDialCode = '+${phoneNumber.countryCode}';
@@ -173,7 +187,10 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
               : number);
     } catch (e) {
       debugPrint('number can\'t parse : $e');
-      _contactPersonNumberController.text = number;
+      _contactPersonNumberController.text = (number == 'null') ? '' : number;
+    }
+    if (_contactPersonNumberController.text == 'null') {
+      _contactPersonNumberController.text = '';
     }
   }
 
@@ -785,6 +802,9 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   // 📞 Phone Field with Integrated Country Code Picker
   // -------------------------------------------------------------
   Widget _buildPhoneField(BuildContext context) {
+    if (_contactPersonNumberController.text == 'null') {
+      _contactPersonNumberController.text = '';
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

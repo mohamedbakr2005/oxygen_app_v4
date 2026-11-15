@@ -12,6 +12,7 @@ import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/add_to_monthly_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/cart_item_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/extra_packaging_widget.dart';
+import 'package:Oxygen_Mart/features/cart/widgets/order_login_prompt_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_cart_items_widget.dart';
 import 'package:Oxygen_Mart/features/cart/widgets/web_suggested_item_view_widget.dart';
 import 'package:Oxygen_Mart/features/coupon/controllers/coupon_controller.dart';
@@ -908,11 +909,13 @@ class _CartScreenState extends State<CartScreen> {
         : orderController.historyOrderModel;
 
     if (!AuthHelper.isLoggedIn()) {
-      return NoDataScreen(
-        text: 'please_login_to_view_orders'.tr.isNotEmpty
-            ? 'please_login_to_view_orders'.tr
-            : 'no_data_found'.tr,
-        showFooter: false,
+      return OrderLoginPromptWidget(
+        isRunning: isRunning,
+        onLoginSuccess: () async {
+          await orderController.getRunningOrders(1, isUpdate: true);
+          await _loadAllHistoryOrders(isRefresh: true);
+          setState(() {});
+        },
       );
     }
 

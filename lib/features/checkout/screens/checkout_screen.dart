@@ -634,17 +634,23 @@ class CheckoutScreenState extends State<CheckoutScreen> {
           }
 
           String guestContactName = guestContactPersonNameController.text.trim();
-          if (guestContactName.isEmpty && checkoutController.guestAddress?.contactPersonName != null) {
+          if (guestContactName.isEmpty &&
+              checkoutController.guestAddress?.contactPersonName != null &&
+              checkoutController.guestAddress!.contactPersonName != 'null') {
             guestContactName = checkoutController.guestAddress!.contactPersonName!.trim();
           }
 
           String guestContactPhone = guestContactPersonNumberController.text.trim();
-          if (guestContactPhone.isEmpty && checkoutController.guestAddress?.contactPersonNumber != null) {
+          if (guestContactPhone.isEmpty &&
+              checkoutController.guestAddress?.contactPersonNumber != null &&
+              checkoutController.guestAddress!.contactPersonNumber != 'null') {
             guestContactPhone = checkoutController.guestAddress!.contactPersonNumber!.trim();
           }
 
           String guestContactEmail = guestEmailController.text.trim();
-          if (guestContactEmail.isEmpty && checkoutController.guestAddress?.email != null) {
+          if (guestContactEmail.isEmpty &&
+              checkoutController.guestAddress?.email != null &&
+              checkoutController.guestAddress!.email != 'null') {
             guestContactEmail = checkoutController.guestAddress!.email!.trim();
           }
 

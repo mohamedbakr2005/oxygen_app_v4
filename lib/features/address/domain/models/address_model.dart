@@ -70,12 +70,14 @@ class AddressModel {
 
   AddressModel.fromJson(Map<String, dynamic> json) {
     id = json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '');
-    addressType = json['address_type'];
-    contactPersonNumber = json['contact_person_number']?.toString();
-    address = json['address'];
-    additionalAddress = json['additional_address'];
-    latitude = json['latitude']?.toString();
-    longitude = json['longitude']?.toString();
+    addressType = json['address_type'] == 'null' ? null : json['address_type'];
+    contactPersonNumber = (json['contact_person_number'] != null && json['contact_person_number'].toString() != 'null')
+        ? json['contact_person_number']?.toString()
+        : null;
+    address = json['address'] == 'null' ? null : json['address'];
+    additionalAddress = json['additional_address'] == 'null' ? null : json['additional_address'];
+    latitude = (json['latitude'] != null && json['latitude'].toString() != 'null') ? json['latitude']?.toString() : null;
+    longitude = (json['longitude'] != null && json['longitude'].toString() != 'null') ? json['longitude']?.toString() : null;
     zoneId = (json['zone_id'] != null && json['zone_id'] != 'null')
         ? int.tryParse(json['zone_id'].toString())
         : null;
@@ -92,10 +94,12 @@ class AddressModel {
       });
     }
     method = json['_method'];
-    contactPersonName = json['contact_person_name'];
-    streetNumber = json['road'];
-    house = json['house'];
-    floor = json['floor'];
+    contactPersonName = (json['contact_person_name'] != null && json['contact_person_name'].toString() != 'null')
+        ? json['contact_person_name'].toString()
+        : null;
+    streetNumber = (json['road'] != null && json['road'].toString() != 'null') ? json['road'].toString() : null;
+    house = (json['house'] != null && json['house'].toString() != 'null') ? json['house'].toString() : null;
+    floor = (json['floor'] != null && json['floor'].toString() != 'null') ? json['floor'].toString() : null;
     if (json['zone_data'] != null) {
       zoneData = [];
       if (json['zone_data'] is List) {
@@ -119,8 +123,10 @@ class AddressModel {
         }
       });
     }
-    if (json['contact_person_email'] != null) {
-      email = json['contact_person_email'];
+    if (json['contact_person_email'] != null && json['contact_person_email'].toString() != 'null') {
+      email = json['contact_person_email'].toString();
+    } else if (json['email'] != null && json['email'].toString() != 'null') {
+      email = json['email'].toString();
     }
   }
 

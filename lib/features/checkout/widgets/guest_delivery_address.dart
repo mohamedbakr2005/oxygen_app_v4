@@ -94,17 +94,22 @@ class GuestDeliveryAddress extends StatelessWidget {
                         if (address != null) {
                           checkoutController.setGuestAddress(address);
                           if (address.contactPersonName != null &&
-                              address.contactPersonName!.isNotEmpty) {
+                              address.contactPersonName!.isNotEmpty &&
+                              address.contactPersonName != 'null') {
                             guestNameTextEditingController.text =
                                 address.contactPersonName!;
                           }
                           if (address.contactPersonNumber != null &&
-                              address.contactPersonNumber!.isNotEmpty) {
+                              address.contactPersonNumber!.isNotEmpty &&
+                              address.contactPersonNumber != 'null') {
                             guestNumberTextEditingController.text =
                                 address.contactPersonNumber!;
+                          } else {
+                            guestNumberTextEditingController.text = '';
                           }
                           if (address.email != null &&
-                              address.email!.isNotEmpty) {
+                              address.email!.isNotEmpty &&
+                              address.email != 'null') {
                             guestEmailController.text = address.email!;
                           }
                           if (previousGuestAddress != address.address &&
@@ -223,17 +228,22 @@ class GuestDeliveryAddress extends StatelessWidget {
                         if (address != null) {
                           checkoutController.setGuestAddress(address);
                           if (address.contactPersonName != null &&
-                              address.contactPersonName!.isNotEmpty) {
+                              address.contactPersonName!.isNotEmpty &&
+                              address.contactPersonName != 'null') {
                             guestNameTextEditingController.text =
                                 address.contactPersonName!;
                           }
                           if (address.contactPersonNumber != null &&
-                              address.contactPersonNumber!.isNotEmpty) {
+                              address.contactPersonNumber!.isNotEmpty &&
+                              address.contactPersonNumber != 'null') {
                             guestNumberTextEditingController.text =
                                 address.contactPersonNumber!;
+                          } else {
+                            guestNumberTextEditingController.text = '';
                           }
                           if (address.email != null &&
-                              address.email!.isNotEmpty) {
+                              address.email!.isNotEmpty &&
+                              address.email != 'null') {
                             guestEmailController.text = address.email!;
                           }
                           if (previousGuestAddress != address.address &&

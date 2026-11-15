@@ -3063,5 +3063,16 @@
   "bogo_offer_list": "BOGO অফার তালিকা",
   "buy_count_item": "@count টি কিনুন",
   "get_count_free": "@count টি ফ্রি পান",
-  "validity": "মেয়াদ"
+  "validity": "মেয়াদ",
+  "please_login_to_view_orders": "আপনার অর্ডার দেখতে সাইন ইন করুন",
+  "login_to_track_orders_title": "অর্ডার ট্র্যাক করতে সাইন ইন করুন",
+  "login_to_track_orders_subtitle": "রিয়েল-টাইমে আপনার অর্ডার ট্র্যাক করতে, পূর্ববর্তী অর্ডার দেখতে এবং বিশেষ অফার উপভোগ করতে এখনই সাইন ইন করুন।",
+  "login_or_register_now": "সাইন ইন / অ্যাকাউন্ট তৈরি করুন",
+  "benefit_live_tracking_title": "লাইভ অর্ডার ট্র্যাকিং",
+  "benefit_live_tracking_subtitle": "ডেলিভারি ম্যানের অবস্থান ও অর্ডারের আপডেট রিয়েল-টাইমে দেখুন।",
+  "benefit_order_history_title": "অর্ডার ইতিহাস ও পুনরায় অর্ডার",
+  "benefit_order_history_subtitle": "পূর্বের অর্ডার তালিকা দেখুন এবং সহজে প্রিয় আইটেম পুনরায় অর্ডার করুন।",
+  "benefit_exclusive_perks_title": "এক্সক্লুসিভ অফার ও রিওয়ার্ড",
+  "benefit_exclusive_perks_subtitle": "লয়্যালটি পয়েন্ট সংগ্রহ করুন এবং বিশেষ ডিসকাউন্ট উপভোগ করুন।",
+  "continue_browsing_cart": "শপিং কার্টে ফিরে যান"
 }

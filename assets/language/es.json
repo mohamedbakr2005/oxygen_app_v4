@@ -3074,5 +3074,16 @@
   "bogo_offer_list": "Lista de ofertas BOGO",
   "buy_count_item": "Compra @count artículo",
   "get_count_free": "Recibe @count GRATIS",
-  "validity": "Validez"
+  "validity": "Validez",
+  "please_login_to_view_orders": "Inicie sesión para ver sus pedidos",
+  "login_to_track_orders_title": "Inicia sesión para rastrear tus pedidos",
+  "login_to_track_orders_subtitle": "Inicia sesión para seguir tus pedidos en tiempo real, acceder a tu historial completo y disfrutar de beneficios exclusivos.",
+  "login_or_register_now": "Iniciar sesión / Crear cuenta",
+  "benefit_live_tracking_title": "Seguimiento en tiempo real",
+  "benefit_live_tracking_subtitle": "Sigue el recorrido del repartidor y el estado de tu pedido en vivo.",
+  "benefit_order_history_title": "Historial y repetición de pedidos",
+  "benefit_order_history_subtitle": "Revisa tus compras anteriores y repite tus pedidos favoritos con un toque.",
+  "benefit_exclusive_perks_title": "Beneficios y ofertas exclusivas",
+  "benefit_exclusive_perks_subtitle": "Acumula puntos de fidelidad y desbloquea descuentos especiales para miembros.",
+  "continue_browsing_cart": "Volver al carrito de compras"
 }
