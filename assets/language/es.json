@@ -3085,5 +3085,20 @@
   "benefit_order_history_subtitle": "Revisa tus compras anteriores y repite tus pedidos favoritos con un toque.",
   "benefit_exclusive_perks_title": "Beneficios y ofertas exclusivas",
   "benefit_exclusive_perks_subtitle": "Acumula puntos de fidelidad y desbloquea descuentos especiales para miembros.",
-  "continue_browsing_cart": "Volver al carrito de compras"
+  "continue_browsing_cart": "Volver al carrito de compras",
+  "choose_from_map": "Seleccionar del mapa",
+  "write_address_manually": "Escribir dirección manualmente",
+  "detailed_address": "Dirección detallada",
+  "enter_detailed_address": "Ingrese la dirección detallada (área, calle, referencia...)",
+  "address_details": "Detalles de la dirección",
+  "sender_step": "Datos del remitente",
+  "receiver_step": "Datos del destinatario",
+  "please_enter_sender_address": "Por favor ingrese la dirección del remitente",
+  "please_enter_receiver_address": "Por favor ingrese la dirección del destinatario",
+  "how_parcel_works_step_1_title": "Establecer ubicaciones",
+  "how_parcel_works_step_1_desc": "Seleccione o escriba las ubicaciones de recogida y entrega fácilmente",
+  "how_parcel_works_step_2_title": "Ingrese los detalles",
+  "how_parcel_works_step_2_desc": "Ingrese el nombre, teléfono y dirección del remitente y destinatario",
+  "how_parcel_works_step_3_title": "Confirme y rastree",
+  "how_parcel_works_step_3_desc": "Elija su método de pago y disfrute de una entrega rápida y segura"
 }

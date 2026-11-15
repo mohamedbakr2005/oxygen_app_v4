@@ -3094,5 +3094,20 @@
   "benefit_order_history_subtitle": "View past receipts and easily repeat your favorite orders.",
   "benefit_exclusive_perks_title": "Exclusive Perks & Offers",
   "benefit_exclusive_perks_subtitle": "Earn loyalty points and unlock member-only special discounts.",
-  "continue_browsing_cart": "Back to Shopping Cart"
+  "continue_browsing_cart": "Back to Shopping Cart",
+  "choose_from_map": "Select from Map",
+  "write_address_manually": "Enter Address Manually",
+  "detailed_address": "Detailed Address",
+  "enter_detailed_address": "Enter detailed address (area, street, landmark...)",
+  "address_details": "Address Details",
+  "sender_step": "Sender Details",
+  "receiver_step": "Receiver Details",
+  "please_enter_sender_address": "Please enter sender address",
+  "please_enter_receiver_address": "Please enter receiver address",
+  "how_parcel_works_step_1_title": "Set Locations",
+  "how_parcel_works_step_1_desc": "Select or write pickup and delivery locations easily",
+  "how_parcel_works_step_2_title": "Enter Details",
+  "how_parcel_works_step_2_desc": "Provide sender and receiver contact and address info",
+  "how_parcel_works_step_3_title": "Confirm & Relax",
+  "how_parcel_works_step_3_desc": "Select your payment method and track your parcel live"
 }

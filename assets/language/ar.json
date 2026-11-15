@@ -3099,5 +3099,20 @@
   "benefit_order_history_subtitle": "الاطلاع على جميع فواتيرك السابقة وتكرار طلباتك المفضلة بنقرة واحدة.",
   "benefit_exclusive_perks_title": "عروض ومكافآت حصرية للأعضاء",
   "benefit_exclusive_perks_subtitle": "اجمع نقاط الولاء واستمتع بخصومات وكوبونات خاصة بالمستخدمين المسجلين.",
-  "continue_browsing_cart": "الرجوع إلى سلة مشترياتي"
+  "continue_browsing_cart": "الرجوع إلى سلة مشترياتي",
+  "choose_from_map": "اختار من الخريطة",
+  "write_address_manually": "اكتب العنوان يدوياً",
+  "detailed_address": "العنوان بالتفصيل",
+  "enter_detailed_address": "اكتب العنوان بالتفصيل (المنطقة، الشارع، علامة مميزة...)",
+  "address_details": "تفاصيل العنوان",
+  "sender_step": "بيانات اللي هيبعت",
+  "receiver_step": "بيانات اللي هيستلم",
+  "please_enter_sender_address": "لو سمحت دخل عنوان الراسل",
+  "please_enter_receiver_address": "لو سمحت دخل عنوان المستلم",
+  "how_parcel_works_step_1_title": "حدد مكان الاستلام والتسليم",
+  "how_parcel_works_step_1_desc": "اختار من الخريطة أو اكتب العنوان يدوياً بكل سهولة",
+  "how_parcel_works_step_2_title": "دخل بيانات التواصل",
+  "how_parcel_works_step_2_desc": "اكتب اسم ورقم الراسل والمستلم وتفاصيل العنوان",
+  "how_parcel_works_step_3_title": "أكد طلبك وتابعه",
+  "how_parcel_works_step_3_desc": "اختار طريقة الدفع المناسبة واستمتع بتوصيل سريع وآمن"
 }

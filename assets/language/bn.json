@@ -3074,5 +3074,20 @@
   "benefit_order_history_subtitle": "পূর্বের অর্ডার তালিকা দেখুন এবং সহজে প্রিয় আইটেম পুনরায় অর্ডার করুন।",
   "benefit_exclusive_perks_title": "এক্সক্লুসিভ অফার ও রিওয়ার্ড",
   "benefit_exclusive_perks_subtitle": "লয়্যালটি পয়েন্ট সংগ্রহ করুন এবং বিশেষ ডিসকাউন্ট উপভোগ করুন।",
-  "continue_browsing_cart": "শপিং কার্টে ফিরে যান"
+  "continue_browsing_cart": "শপিং কার্টে ফিরে যান",
+  "choose_from_map": "ম্যাপ থেকে নির্বাচন করুন",
+  "write_address_manually": "ঠিকানা ম্যানুয়ালি লিখুন",
+  "detailed_address": "বিস্তারিত ঠিকানা",
+  "enter_detailed_address": "বিস্তারিত ঠিকানা লিখুন (এলাকা, রাস্তা, ল্যান্ডমার্ক...)",
+  "address_details": "ঠিকানার বিবরণ",
+  "sender_step": "প্রেরকের বিবরণ",
+  "receiver_step": "প্রাপকের বিবরণ",
+  "please_enter_sender_address": "অনুগ্রহ করে প্রেরকের ঠিকানা লিখুন",
+  "please_enter_receiver_address": "অনুগ্রহ করে প্রাপকের ঠিকানা লিখুন",
+  "how_parcel_works_step_1_title": "লোকেশন নির্ধারণ করুন",
+  "how_parcel_works_step_1_desc": "সহজেই পিকআপ এবং ডেলিভারি লোকেশন নির্বাচন বা লিখুন",
+  "how_parcel_works_step_2_title": "যোগাযোগের তথ্য দিন",
+  "how_parcel_works_step_2_desc": "প্রেরক এবং প্রাপকের নাম, ফোন এবং ঠিকানার বিবরণ লিখুন",
+  "how_parcel_works_step_3_title": "নিশ্চিত করুন এবং ট্র্যাক করুন",
+  "how_parcel_works_step_3_desc": "পছন্দের পেমেন্ট পদ্ধতি বেছে নিন এবং দ্রুত ডেলিভারি উপভোগ করুন"
 }
