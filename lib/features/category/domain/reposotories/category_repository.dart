@@ -53,13 +53,13 @@ class CategoryRepository implements CategoryRepositoryInterface {
 
     Map<String, String>? cacheHeader = header ?? apiClient.getHeader();
 
-    String cacheId = AppConstants.categoryUri +
+    String cacheId = '${AppConstants.categoryUri}?limit=1000' +
         (Get.find<SplashController>().module?.id?.toString() ?? '0');
 
     switch (source) {
       case DataSourceEnum.client:
         Response response =
-            await apiClient.getData(AppConstants.categoryUri, headers: header);
+            await apiClient.getData('${AppConstants.categoryUri}?limit=1000', headers: header);
         if (ApiClient.isSuccessCode(response.statusCode)) {
           final List<dynamic> categoriesJson = ResponseParser.listOrEmpty(response.body);
           categoryList = [];
@@ -86,11 +86,11 @@ class CategoryRepository implements CategoryRepositoryInterface {
 
   Future<List<CategoryModel>?> _getSubCategoryList(String? parentID, DataSourceEnum source) async {
     List<CategoryModel>? subCategoryList;
-    String cacheId = '${AppConstants.subCategoryUri}$parentID';
+    String cacheId = '${AppConstants.subCategoryUri}$parentID?limit=1000';
 
     switch (source) {
       case DataSourceEnum.client:
-        Response response = await apiClient.getData(cacheId);
+        Response response = await apiClient.getData('${AppConstants.subCategoryUri}$parentID?limit=1000');
         if (ApiClient.isSuccessCode(response.statusCode)) {
           final List<dynamic> subCategoriesJson = ResponseParser.listOrEmpty(response.body);
           subCategoryList = [];

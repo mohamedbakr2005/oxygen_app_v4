@@ -110,7 +110,7 @@ class ParcelRepository implements ParcelRepositoryInterface {
 
   Future<List<ParcelCategoryModel>?> _getParcelCategory() async {
     List<ParcelCategoryModel>? parcelCategoryList;
-    Response response = await apiClient.getData(AppConstants.parcelCategoryUri);
+    Response response = await apiClient.getData('${AppConstants.parcelCategoryUri}?limit=1000');
     if (response.statusCode == 200 && response.body != null) {
       parcelCategoryList = [];
       final List<dynamic>? list = ResponseParser.listOf(response.body);

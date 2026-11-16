@@ -5,21 +5,21 @@ import 'package:Oxygen_Mart/util/images.dart';
 
 class AppConstants {
   static const String appName = 'Oxygen Mart';
-  static const double appVersion = 3.3;
+  static const double appVersion = 4.1;
 
   // Flutter Version: 3.24.5
 
   static const String fontFamily = 'SF-Arabic';
   static const bool payInWevView = true;
   static const int balanceInputLen = 10;
-  static const String webHostedUrl = 'https://new.oxygenmart.online';
+  static const String webHostedUrl = 'https://oxygenmart.online';
   static const bool useReactWebsite = false;
 
   // Google OAuth Client IDs
   static const String googleServerClientId = '274927672089-0bq7bbj0m9b4ad7km3hkhmeh4n89k34q.apps.googleusercontent.com';
   static const String googleIosClientId = '274927672089-1ldpuikpph6ein1qai01h45kcl89sv8f.apps.googleusercontent.com';
 
-  static const String baseUrl = 'https://new.oxygenmart.online';
+  static const String baseUrl = 'https://oxygenmart.online';
   static const String categoryUri = '/api/v1/categories';
   static const String topCategoriesUri = '/api/v1/categories/top';
   static const String trendingSearchesUri = '/api/v1/trending-searches';
