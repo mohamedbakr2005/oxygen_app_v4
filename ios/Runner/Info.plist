@@ -129,6 +129,28 @@
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app requires access to the gallery to upload customer profile picture.</string>
 
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneClassName</key>
+                    <string>UIWindowScene</string>
+                    <key>UISceneConfigurationName</key>
+                    <string>flutter</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                    <key>UISceneStoryboardFile</key>
+                    <string>Main</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
+
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
 
@@ -158,6 +180,9 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
+
+    <key>FlutterDeepLinkingEnabled</key>
+    <false/>
 
     <key>io.flutter.embedded_views_preview</key>
     <string>YES</string>

@@ -94,24 +94,23 @@
 
                 <data
                     android:scheme="https"
-                    android:host="new.oxygenmart.online"
+                    android:host="oxygenmart.online"
                     android:pathPrefix="/product" />
-                <data
-                    android:scheme="https"
-                    android:host="new.oxygenmart.online"
-                    android:pathPrefix="/item" />
                 <data
                     android:scheme="https"
                     android:host="oxygenmart.online"
-                    android:pathPrefix="/product" />
+                    android:pathPrefix="/item" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
                 <data
                     android:scheme="https"
                     android:host="www.oxygenmart.online"
                     android:pathPrefix="/product" />
-                <data
-                    android:scheme="https"
-                    android:host="oxygenmart.online"
-                    android:pathPrefix="/item" />
                 <data
                     android:scheme="https"
                     android:host="www.oxygenmart.online"
