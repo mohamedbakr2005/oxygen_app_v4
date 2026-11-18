@@ -5,7 +5,7 @@ import 'package:Oxygen_Mart/util/images.dart';
 
 class AppConstants {
   static const String appName = 'Oxygen Mart';
-  static const double appVersion = 4.1;
+  static const double appVersion = 4.2;
 
   // Flutter Version: 3.24.5
 

@@ -1,7 +1,7 @@
 name: Oxygen_Mart
 description: A Multi-vendor Food. Grocery, eCommerce, Pharmacy & Parcel service.
 publish_to: "none"
-version: 3.0.1+94
+version: 3.0.2+95
 #ios 1.4.13
 #android 2.0.3+40
 environment:

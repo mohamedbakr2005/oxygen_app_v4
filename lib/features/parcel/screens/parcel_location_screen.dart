@@ -47,13 +47,9 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
   final TextEditingController _receiverFloorController = TextEditingController();
   final TextEditingController _guestSenderEmailController = TextEditingController();
   final TextEditingController _guestReceiverEmailController = TextEditingController();
-  final TextEditingController _senderManualAddressController = TextEditingController();
-  final TextEditingController _receiverManualAddressController = TextEditingController();
 
   TabController? _tabController;
   String? _countryDialCode;
-  bool _isSenderManualAddress = false;
-  bool _isReceiverManualAddress = false;
 
   @override
   void initState() {
@@ -72,9 +68,8 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
     final savedUserAddress = AddressHelper.getUserAddressFromSharedPref();
 
     parcelController.setPickupAddress(savedUserAddress, false);
-    _senderManualAddressController.text = savedUserAddress?.address ?? '';
 
-    // Initialize destination address to null so receiver has to explicitly choose/write location
+    // Initialize destination address to null so receiver has to explicitly choose location from Google Map
     parcelController.setDestinationAddress(null, notify: false);
 
     parcelController.setIsPickedUp(true, false);
@@ -151,8 +146,6 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
     _receiverFloorController.dispose();
     _guestSenderEmailController.dispose();
     _guestReceiverEmailController.dispose();
-    _senderManualAddressController.dispose();
-    _receiverManualAddressController.dispose();
     _tabController?.dispose();
     super.dispose();
   }
@@ -196,12 +189,7 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
                     streetController: _senderStreetNumberController,
                     houseController: _senderHouseController,
                     floorController: _senderFloorController,
-                    manualAddressController: _senderManualAddressController,
                     countryCode: parcelController.senderCountryCode,
-                    isManualAddress: _isSenderManualAddress,
-                    onAddressModeChanged: (isManual) {
-                      setState(() => _isSenderManualAddress = isManual);
-                    },
                     onPickMap: () => _openMapPicker(isSender: true),
                     guestEmailController: _guestSenderEmailController,
                   ),
@@ -212,12 +200,7 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
                     streetController: _receiverStreetNumberController,
                     houseController: _receiverHouseController,
                     floorController: _receiverFloorController,
-                    manualAddressController: _receiverManualAddressController,
                     countryCode: parcelController.receiverCountryCode,
-                    isManualAddress: _isReceiverManualAddress,
-                    onAddressModeChanged: (isManual) {
-                      setState(() => _isReceiverManualAddress = isManual);
-                    },
                     onPickMap: () => _openMapPicker(isSender: false),
                     guestEmailController: _guestReceiverEmailController,
                   ),
@@ -280,7 +263,6 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
           if (isSender) {
             parcelController.setPickupAddress(resolved, true);
             parcelController.setSenderAddressIndex(0);
-            _senderManualAddressController.text = address.address ?? '';
             if (address.streetNumber != null && address.streetNumber!.isNotEmpty) {
               _senderStreetNumberController.text = address.streetNumber!;
             }
@@ -293,7 +275,6 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
           } else {
             parcelController.setDestinationAddress(resolved);
             parcelController.setReceiverAddressIndex(0);
-            _receiverManualAddressController.text = address.address ?? '';
             if (address.streetNumber != null && address.streetNumber!.isNotEmpty) {
               _receiverStreetNumberController.text = address.streetNumber!;
             }
@@ -310,20 +291,19 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
     );
   }
 
+  bool _hasValidCoordinates(AddressModel? address) {
+    if (address == null) return false;
+    final double? lat = double.tryParse(address.latitude ?? '');
+    final double? lng = double.tryParse(address.longitude ?? '');
+    return lat != null && lng != null && (lat != 0.0 || lng != 0.0);
+  }
+
   Future<void> _validateSender(ParcelController parcelController) async {
-    // 1. Validate Address
-    if (_isSenderManualAddress) {
-      if (_senderManualAddressController.text.trim().isEmpty) {
-        showCustomSnackBar('please_enter_sender_address'.tr);
-        _tabController?.animateTo(0);
-        return;
-      }
-    } else {
-      if (parcelController.pickupAddress == null) {
-        showCustomSnackBar('select_pickup_address'.tr);
-        _tabController?.animateTo(0);
-        return;
-      }
+    // 1. Validate Map Address (must be picked from Google Map with valid coordinates)
+    if (!_hasValidCoordinates(parcelController.pickupAddress)) {
+      showCustomSnackBar('select_pickup_address'.tr);
+      _tabController?.animateTo(0);
+      return;
     }
 
     // 2. Validate Name
@@ -358,24 +338,21 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
       return;
     }
 
-    // Construct Sender AddressModel
-    final baseAddress = parcelController.pickupAddress ?? AddressHelper.getUserAddressFromSharedPref();
-    final String resolvedAddress = _isSenderManualAddress
-        ? _senderManualAddressController.text.trim()
-        : (parcelController.pickupAddress?.address ?? _senderManualAddressController.text.trim());
+    // Construct Sender AddressModel from map-picked address
+    final baseAddress = parcelController.pickupAddress!;
 
     AddressModel pickup = AddressModel(
-      id: baseAddress?.id,
-      addressType: baseAddress?.addressType ?? 'other',
-      address: resolvedAddress,
+      id: baseAddress.id,
+      addressType: baseAddress.addressType ?? 'other',
+      address: baseAddress.address ?? '',
       contactPersonName: _senderNameController.text.trim(),
       contactPersonNumber: numberWithCountryCode,
-      latitude: baseAddress?.latitude ?? '0.0',
-      longitude: baseAddress?.longitude ?? '0.0',
-      method: baseAddress?.method,
-      zoneId: baseAddress?.zoneId ?? 0,
-      zoneIds: baseAddress?.zoneIds ?? [],
-      zoneData: baseAddress?.zoneData ?? [],
+      latitude: baseAddress.latitude,
+      longitude: baseAddress.longitude,
+      method: baseAddress.method,
+      zoneId: baseAddress.zoneId ?? 0,
+      zoneIds: baseAddress.zoneIds ?? [],
+      zoneData: baseAddress.zoneData ?? [],
       streetNumber: _senderStreetNumberController.text.trim(),
       house: _senderHouseController.text.trim(),
       floor: _senderFloorController.text.trim(),
@@ -390,17 +367,10 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
   }
 
   Future<void> _validateReceiver(ParcelController parcelController) async {
-    // 1. Validate Address
-    if (_isReceiverManualAddress) {
-      if (_receiverManualAddressController.text.trim().isEmpty) {
-        showCustomSnackBar('please_enter_receiver_address'.tr);
-        return;
-      }
-    } else {
-      if (parcelController.destinationAddress == null) {
-        showCustomSnackBar('select_destination_address'.tr);
-        return;
-      }
+    // 1. Validate Map Address (must be picked from Google Map with valid coordinates)
+    if (!_hasValidCoordinates(parcelController.destinationAddress)) {
+      showCustomSnackBar('select_destination_address'.tr);
+      return;
     }
 
     // 2. Validate Name
@@ -431,27 +401,21 @@ class _ParcelLocationScreenState extends State<ParcelLocationScreen>
       return;
     }
 
-    // Construct Receiver AddressModel
-    final baseAddress = parcelController.destinationAddress ??
-        parcelController.pickupAddress ??
-        AddressHelper.getUserAddressFromSharedPref();
-
-    final String resolvedAddress = _isReceiverManualAddress
-        ? _receiverManualAddressController.text.trim()
-        : (parcelController.destinationAddress?.address ?? _receiverManualAddressController.text.trim());
+    // Construct Receiver AddressModel from map-picked address
+    final baseAddress = parcelController.destinationAddress!;
 
     AddressModel destination = AddressModel(
-      id: baseAddress?.id,
-      addressType: baseAddress?.addressType ?? 'other',
-      address: resolvedAddress,
+      id: baseAddress.id,
+      addressType: baseAddress.addressType ?? 'other',
+      address: baseAddress.address ?? '',
       contactPersonName: _receiverNameController.text.trim(),
       contactPersonNumber: numberWithCountryCode,
-      latitude: baseAddress?.latitude ?? '0.0',
-      longitude: baseAddress?.longitude ?? '0.0',
-      method: baseAddress?.method,
-      zoneId: baseAddress?.zoneId ?? 0,
-      zoneIds: baseAddress?.zoneIds ?? [],
-      zoneData: baseAddress?.zoneData ?? [],
+      latitude: baseAddress.latitude,
+      longitude: baseAddress.longitude,
+      method: baseAddress.method,
+      zoneId: baseAddress.zoneId ?? 0,
+      zoneIds: baseAddress.zoneIds ?? [],
+      zoneData: baseAddress.zoneData ?? [],
       streetNumber: _receiverStreetNumberController.text.trim(),
       house: _receiverHouseController.text.trim(),
       floor: _receiverFloorController.text.trim(),
@@ -477,12 +441,13 @@ class _ParcelStepperHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isCompact = MediaQuery.sizeOf(context).width < 360;
 
     return Container(
       width: double.infinity,
       color: Theme.of(context).cardColor,
-      padding: const EdgeInsets.symmetric(
-        horizontal: Dimensions.paddingSizeDefault,
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? Dimensions.paddingSizeSmall : Dimensions.paddingSizeDefault,
         vertical: Dimensions.paddingSizeSmall + 2,
       ),
       child: Center(
@@ -495,13 +460,14 @@ class _ParcelStepperHeader extends StatelessWidget {
                 title: 'sender_step'.tr,
                 isActive: currentIndex == 0,
                 isCompleted: currentIndex > 0,
+                isCompact: isCompact,
                 onTap: () => onStepTapped(0),
               ),
             ),
             Container(
-              width: 32,
+              width: isCompact ? 12 : 20,
               height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: Dimensions.paddingSizeSmall),
+              margin: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 6),
               color: currentIndex >= 1
                   ? Theme.of(context).primaryColor
                   : (isDark ? Colors.grey[700] : Colors.grey[300]),
@@ -512,6 +478,7 @@ class _ParcelStepperHeader extends StatelessWidget {
                 title: 'receiver_step'.tr,
                 isActive: currentIndex == 1,
                 isCompleted: false,
+                isCompact: isCompact,
                 onTap: () => onStepTapped(1),
               ),
             ),
@@ -527,10 +494,16 @@ class _StepTabItem extends StatelessWidget {
   final String title;
   final bool isActive;
   final bool isCompleted;
+  final bool isCompact;
   final VoidCallback onTap;
 
   const _StepTabItem({
-    required this.stepNumber, required this.title, required this.isActive, required this.isCompleted, required this.onTap,
+    required this.stepNumber,
+    required this.title,
+    required this.isActive,
+    required this.isCompleted,
+    required this.isCompact,
+    required this.onTap,
   });
 
   @override
@@ -542,7 +515,10 @@ class _StepTabItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: 8,
+          horizontal: isCompact ? 6 : 8,
+        ),
         decoration: BoxDecoration(
           color: isActive ? primaryColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
@@ -553,15 +529,15 @@ class _StepTabItem extends StatelessWidget {
         ),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
-            height: 24,
-            width: 24,
+            height: isCompact ? 22 : 24,
+            width: isCompact ? 22 : 24,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isActive || isCompleted ? primaryColor : Theme.of(context).disabledColor.withValues(alpha: 0.3),
             ),
             child: isCompleted
-                ? const Icon(Icons.check, size: 14, color: Colors.white)
+                ? const Icon(Icons.check, size: 13, color: Colors.white)
                 : Text(
                     '$stepNumber',
                     style: robotoBold.copyWith(
@@ -570,15 +546,23 @@ class _StepTabItem extends StatelessWidget {
                     ),
                   ),
           ),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
+          SizedBox(width: isCompact ? 6 : Dimensions.paddingSizeSmall),
           Flexible(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: isActive
-                  ? robotoBold.copyWith(fontSize: Dimensions.fontSizeDefault, color: primaryColor)
-                  : robotoMedium.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).disabledColor),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                title,
+                maxLines: 1,
+                style: isActive
+                    ? robotoBold.copyWith(
+                        fontSize: isCompact ? Dimensions.fontSizeSmall : Dimensions.fontSizeDefault,
+                        color: primaryColor,
+                      )
+                    : robotoMedium.copyWith(
+                        fontSize: isCompact ? Dimensions.fontSizeSmall : Dimensions.fontSizeDefault,
+                        color: Theme.of(context).disabledColor,
+                      ),
+              ),
             ),
           ),
         ]),

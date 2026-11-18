@@ -2,8 +2,6 @@ import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
-import 'package:Oxygen_Mart/common/widgets/address_widget.dart';
-import 'package:Oxygen_Mart/common/widgets/custom_dropdown.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_text_field.dart';
 import 'package:Oxygen_Mart/common/widgets/footer_view.dart';
 import 'package:Oxygen_Mart/features/address/controllers/address_controller.dart';
@@ -22,17 +20,21 @@ class ParcelViewWidget extends StatefulWidget {
   final TextEditingController streetController;
   final TextEditingController houseController;
   final TextEditingController floorController;
-  final TextEditingController manualAddressController;
   final TextEditingController? guestEmailController;
   final String? countryCode;
-  final bool isManualAddress;
-  final Function(bool isManual) onAddressModeChanged;
   final Function() onPickMap;
 
-  const ParcelViewWidget({super.key,
-    required this.isSender, required this.nameController, required this.phoneController, required this.streetController, required this.houseController,
-    required this.floorController, required this.manualAddressController, required this.countryCode, required this.isManualAddress, required this.onAddressModeChanged,
-    required this.onPickMap, this.guestEmailController,
+  const ParcelViewWidget({
+    super.key,
+    required this.isSender,
+    required this.nameController,
+    required this.phoneController,
+    required this.streetController,
+    required this.houseController,
+    required this.floorController,
+    required this.countryCode,
+    required this.onPickMap,
+    this.guestEmailController,
   });
 
   @override
@@ -46,7 +48,6 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
   final FocusNode nameNode = FocusNode();
   final FocusNode phoneNode = FocusNode();
   final FocusNode guestEmailNode = FocusNode();
-  final FocusNode manualAddressNode = FocusNode();
 
   String? _countryCode;
   String? _addressCountryCode;
@@ -66,7 +67,6 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
     nameNode.dispose();
     phoneNode.dispose();
     guestEmailNode.dispose();
-    manualAddressNode.dispose();
     super.dispose();
   }
 
@@ -74,33 +74,28 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
   Widget build(BuildContext context) {
     _countryCode = _addressCountryCode ?? widget.countryCode;
     String? countryDialCode;
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isCompactScreen = screenWidth < 360;
 
     return SizedBox(
       width: Dimensions.webMaxWidth,
       child: GetBuilder<AddressController>(builder: (addressController) {
         return GetBuilder<ParcelController>(builder: (parcelController) {
-          final List<DropdownItem<int>> dropdownList = _getDropdownAddressList(
-            context: context,
-            addressList: addressController.addressList,
-            isSender: widget.isSender,
-            pickupAddress: parcelController.pickupAddress,
-            destinationAddress: parcelController.destinationAddress,
-          );
-          final List<AddressModel> addressList = _getAddressList(
-            addressList: addressController.addressList,
-            isSender: widget.isSender,
-            pickupAddress: parcelController.pickupAddress,
-            destinationAddress: parcelController.destinationAddress,
-          );
+          final List<AddressModel> savedAddresses =
+              (AuthHelper.isLoggedIn() && addressController.addressList != null)
+                  ? addressController.addressList!
+                  : <AddressModel>[];
 
           final AddressModel? currentAddress = widget.isSender
               ? parcelController.pickupAddress
               : parcelController.destinationAddress;
 
           return SingleChildScrollView(
-            controller: ScrollController(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: Dimensions.paddingSizeDefault,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompactScreen
+                  ? Dimensions.paddingSizeSmall
+                  : Dimensions.paddingSizeDefault,
               vertical: Dimensions.paddingSizeSmall,
             ),
             child: Center(
@@ -108,27 +103,23 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
                 child: SizedBox(
                   width: Dimensions.webMaxWidth,
                   child: Column(children: [
-                    // Location card
+                    // Location card (Google Map selection only, fully responsive)
                     _LocationCard(
                       isSender: widget.isSender,
-                      isManualAddress: widget.isManualAddress,
+                      isCompactScreen: isCompactScreen,
                       currentAddress: currentAddress,
-                      dropdownList: dropdownList,
-                      addressList: addressList,
-                      manualAddressController: widget.manualAddressController,
+                      savedAddresses: savedAddresses,
                       streetController: widget.streetController,
                       houseController: widget.houseController,
                       floorController: widget.floorController,
                       streetNode: streetNode,
                       houseNode: houseNode,
                       floorNode: floorNode,
-                      manualAddressNode: manualAddressNode,
-                      onAddressModeChanged: widget.onAddressModeChanged,
                       onPickMap: widget.onPickMap,
-                      onAddressSelected: (int index) async {
+                      onSavedAddressSelected: (AddressModel selected, int index) async {
                         await _handleSavedAddressSelect(
+                          selected: selected,
                           index: index,
-                          addressList: addressList,
                           parcelController: parcelController,
                         );
                       },
@@ -139,6 +130,7 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
                     // Contact info card
                     _ContactInfoCard(
                       isSender: widget.isSender,
+                      isCompactScreen: isCompactScreen,
                       nameController: widget.nameController,
                       phoneController: widget.phoneController,
                       guestEmailController: widget.guestEmailController,
@@ -164,13 +156,10 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
   }
 
   Future<void> _handleSavedAddressSelect({
+    required AddressModel selected,
     required int index,
-    required List<AddressModel> addressList,
     required ParcelController parcelController,
   }) async {
-    if (index >= addressList.length) return;
-    final selected = addressList[index];
-
     ZoneResponseModel responseModel = await Get.find<LocationController>().getZone(
       selected.latitude.toString(),
       selected.longitude.toString(),
@@ -197,7 +186,6 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
     if (widget.isSender) {
       parcelController.setPickupAddress(updated, true);
       parcelController.setSenderAddressIndex(index);
-      widget.manualAddressController.text = selected.address ?? '';
       widget.streetController.text = selected.streetNumber ?? '';
       widget.houseController.text = selected.house ?? '';
       widget.floorController.text = selected.floor ?? '';
@@ -211,7 +199,6 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
     } else {
       parcelController.setDestinationAddress(updated);
       parcelController.setReceiverAddressIndex(index);
-      widget.manualAddressController.text = selected.address ?? '';
       widget.streetController.text = selected.streetNumber ?? '';
       widget.houseController.text = selected.house ?? '';
       widget.floorController.text = selected.floor ?? '';
@@ -219,66 +206,6 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
         widget.nameController.text = selected.contactPersonName!;
       }
     }
-  }
-
-  List<DropdownItem<int>> _getDropdownAddressList({
-    required BuildContext context,
-    required List<AddressModel>? addressList,
-    required bool isSender,
-    required AddressModel? pickupAddress,
-    required AddressModel? destinationAddress,
-  }) {
-    List<DropdownItem<int>> dropDownAddressList = [];
-    final activeAddress = isSender ? pickupAddress : destinationAddress;
-
-    dropDownAddressList.add(DropdownItem<int>(
-      value: 0,
-      child: SizedBox(
-        width: context.width > Dimensions.webMaxWidth ? Dimensions.webMaxWidth - 70 : context.width - 70,
-        child: AddressWidget(
-          address: activeAddress,
-          fromAddress: false,
-          fromCheckout: true,
-        ),
-      ),
-    ));
-
-    if (addressList != null && AuthHelper.isLoggedIn()) {
-      for (int index = 0; index < addressList.length; index++) {
-        dropDownAddressList.add(DropdownItem<int>(
-          value: index + 1,
-          child: SizedBox(
-            width: context.width > Dimensions.webMaxWidth ? Dimensions.webMaxWidth - 70 : context.width - 70,
-            child: AddressWidget(
-              address: addressList[index],
-              fromAddress: false,
-              fromCheckout: true,
-            ),
-          ),
-        ));
-      }
-    }
-    return dropDownAddressList;
-  }
-
-  List<AddressModel> _getAddressList({
-    required List<AddressModel>? addressList,
-    required bool isSender,
-    required AddressModel? pickupAddress,
-    required AddressModel? destinationAddress,
-  }) {
-    List<AddressModel> address = [];
-    if (isSender && pickupAddress != null) {
-      address.add(pickupAddress);
-    } else if (!isSender && destinationAddress != null) {
-      address.add(destinationAddress);
-    }
-    if (addressList != null && AuthHelper.isLoggedIn()) {
-      for (int index = 0; index < addressList.length; index++) {
-        address.add(addressList[index]);
-      }
-    }
-    return address;
   }
 
   Future<void> _splitPhoneNumber(String number) async {
@@ -294,39 +221,54 @@ class _ParcelViewWidgetState extends State<ParcelViewWidget> {
 
 class _LocationCard extends StatelessWidget {
   final bool isSender;
-  final bool isManualAddress;
+  final bool isCompactScreen;
   final AddressModel? currentAddress;
-  final List<DropdownItem<int>> dropdownList;
-  final List<AddressModel> addressList;
-  final TextEditingController manualAddressController;
+  final List<AddressModel> savedAddresses;
   final TextEditingController streetController;
   final TextEditingController houseController;
   final TextEditingController floorController;
   final FocusNode streetNode;
   final FocusNode houseNode;
   final FocusNode floorNode;
-  final FocusNode manualAddressNode;
-  final Function(bool isManual) onAddressModeChanged;
   final Function() onPickMap;
-  final Function(int index) onAddressSelected;
+  final Function(AddressModel address, int index) onSavedAddressSelected;
 
   const _LocationCard({
-    required this.isSender, required this.isManualAddress, required this.currentAddress, required this.dropdownList, required this.addressList,
-    required this.manualAddressController, required this.streetController, required this.houseController, required this.floorController, required this.streetNode,
-    required this.houseNode, required this.floorNode, required this.manualAddressNode, required this.onAddressModeChanged, required this.onPickMap,
-    required this.onAddressSelected,
+    required this.isSender,
+    required this.isCompactScreen,
+    required this.currentAddress,
+    required this.savedAddresses,
+    required this.streetController,
+    required this.houseController,
+    required this.floorController,
+    required this.streetNode,
+    required this.houseNode,
+    required this.floorNode,
+    required this.onPickMap,
+    required this.onSavedAddressSelected,
   });
+
+  IconData _addressIcon(String? type) {
+    final String t = (type ?? 'home').toLowerCase();
+    if (t == 'home') return Icons.home_rounded;
+    if (t == 'office' || t == 'work') return Icons.work_rounded;
+    return Icons.location_on_rounded;
+  }
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color primaryColor = Theme.of(context).primaryColor;
+    final double cardPadding = isCompactScreen
+        ? Dimensions.paddingSizeSmall + 2
+        : Dimensions.paddingSizeDefault;
 
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(Dimensions.radiusLarge),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          color: primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
@@ -337,141 +279,258 @@ class _LocationCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+      padding: EdgeInsets.all(cardPadding),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Section Header
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.location_on_rounded,
-                size: 20,
-                color: Theme.of(context).primaryColor,
-              ),
+        // Section Header (safe against narrow widths / large font scale)
+        Row(children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: primaryColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
             ),
-            const SizedBox(width: Dimensions.paddingSizeSmall),
-            Text(
+            child: Icon(
+              Icons.location_on_rounded,
+              size: 20,
+              color: primaryColor,
+            ),
+          ),
+          const SizedBox(width: Dimensions.paddingSizeSmall),
+          Expanded(
+            child: Text(
               isSender ? 'pickup_location'.tr : 'delivery_location'.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge),
             ),
-          ]),
-
+          ),
+          const SizedBox(width: 4),
           TextButton.icon(
             onPressed: onPickMap,
-            icon: Icon(Icons.add_circle_outline_rounded, size: 18, color: Theme.of(context).primaryColor),
+            icon: Icon(Icons.map_outlined, size: 17, color: primaryColor),
             label: Text(
-              'add_new'.tr,
+              'set_from_map'.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: robotoMedium.copyWith(
                 fontSize: Dimensions.fontSizeSmall,
-                color: Theme.of(context).primaryColor,
+                color: primaryColor,
               ),
             ),
             style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
         ]),
         const SizedBox(height: Dimensions.paddingSizeDefault),
 
-        // Dual Mode Switch: Map / Saved vs Manual Typing
-        _AddressModeSelector(
-          isManualAddress: isManualAddress,
-          onModeChanged: onAddressModeChanged,
-        ),
-        const SizedBox(height: Dimensions.paddingSizeDefault),
-
-        // Mode Content
-        if (!isManualAddress) ...[
-          // Map / Saved Addresses Mode
-          Container(
-            constraints: const BoxConstraints(minHeight: 72),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-              color: Theme.of(context).cardColor,
-            ),
-            child: dropdownList.isNotEmpty
-                ? CustomDropdown<int>(
-                    onChange: (int? value, int index) {
-                      onAddressSelected(index);
-                    },
-                    dropdownButtonStyle: DropdownButtonStyle(
-                      height: 72,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 2,
-                        horizontal: Dimensions.paddingSizeExtraSmall,
-                      ),
-                      primaryColor: Theme.of(context).textTheme.bodyLarge!.color,
+        // Selected Google Map Location Card (self-sizing, zero fixed-height overflow)
+        if (currentAddress != null) ...[
+          InkWell(
+            onTap: onPickMap,
+            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    dropdownStyle: DropdownStyle(
-                      elevation: 8,
-                      borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                      padding: const EdgeInsets.all(Dimensions.paddingSizeExtraSmall),
-                    ),
-                    items: dropdownList,
-                    child: AddressWidget(
-                      address: currentAddress,
-                      fromAddress: false,
-                      fromCheckout: true,
-                    ),
-                  )
-                : InkWell(
-                    onTap: onPickMap,
-                    borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-                    child: Padding(
-                      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
-                      child: Row(children: [
-                        Icon(Icons.add_location_alt_outlined, color: Theme.of(context).primaryColor),
-                        const SizedBox(width: Dimensions.paddingSizeSmall),
-                        Expanded(
-                          child: Text(
-                            'select_from_map'.tr,
-                            style: robotoMedium.copyWith(color: Theme.of(context).primaryColor),
-                          ),
-                        ),
-                      ]),
+                    child: Icon(
+                      _addressIcon(currentAddress!.addressType),
+                      color: primaryColor,
+                      size: 20,
                     ),
                   ),
+                  const SizedBox(width: Dimensions.paddingSizeSmall),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (currentAddress!.addressType != null &&
+                            currentAddress!.addressType!.trim().isNotEmpty) ...[
+                          Text(
+                            currentAddress!.addressType!.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: robotoBold.copyWith(
+                              fontSize: Dimensions.fontSizeSmall,
+                              color: primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                        Text(
+                          currentAddress!.address ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: robotoMedium.copyWith(
+                            fontSize: Dimensions.fontSizeDefault,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.edit_location_alt_outlined,
+                    size: 20,
+                    color: primaryColor,
+                  ),
+                ],
+              ),
+            ),
           ),
         ] else ...[
-          // Manual Address Writing Mode
-          CustomTextField(
-            titleText: 'enter_detailed_address'.tr,
-            labelText: 'detailed_address'.tr,
-            hintText: 'enter_detailed_address'.tr,
-            inputType: TextInputType.streetAddress,
-            focusNode: manualAddressNode,
-            nextFocus: streetNode,
-            controller: manualAddressController,
-            prefixIcon: Icons.edit_location_alt_outlined,
-            maxLines: 2,
+          InkWell(
+            onTap: onPickMap,
+            borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                horizontal: Dimensions.paddingSizeDefault,
+                vertical: Dimensions.paddingSizeDefault,
+              ),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(children: [
+                Icon(Icons.add_location_alt_outlined, color: primaryColor, size: 22),
+                const SizedBox(width: Dimensions.paddingSizeSmall),
+                Expanded(
+                  child: Text(
+                    'choose_from_map'.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: robotoBold.copyWith(
+                      fontSize: Dimensions.fontSizeDefault,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, size: 15, color: primaryColor),
+              ]),
+            ),
+          ),
+        ],
+
+        // Quick-select saved GPS addresses (horizontal chips, never overflows)
+        if (savedAddresses.isNotEmpty) ...[
+          const SizedBox(height: Dimensions.paddingSizeSmall),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(savedAddresses.length, (index) {
+                final addr = savedAddresses[index];
+                final bool isSelected = currentAddress != null &&
+                    currentAddress!.latitude == addr.latitude &&
+                    currentAddress!.longitude == addr.longitude &&
+                    currentAddress!.address == addr.address;
+                final String chipTitle = (addr.addressType != null &&
+                        addr.addressType!.trim().isNotEmpty)
+                    ? addr.addressType!.tr
+                    : (addr.address ?? '');
+
+                return Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: InkWell(
+                    onTap: () => onSavedAddressSelected(addr, index),
+                    borderRadius: BorderRadius.circular(100),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? primaryColor.withValues(alpha: 0.14)
+                            : Theme.of(context).disabledColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: isSelected
+                              ? primaryColor
+                              : Theme.of(context).disabledColor.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _addressIcon(addr.addressType),
+                            size: 15,
+                            color: isSelected
+                                ? primaryColor
+                                : Theme.of(context).hintColor,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              chipTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: robotoMedium.copyWith(
+                                fontSize: Dimensions.fontSizeSmall,
+                                color: isSelected
+                                    ? primaryColor
+                                    : Theme.of(context).textTheme.bodyMedium?.color,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
           ),
         ],
 
         const SizedBox(height: Dimensions.paddingSizeDefault),
 
-        // Address details: Street, House, Floor in a clean row
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(
-            child: CustomTextField(
-              titleText: 'street_number'.tr,
-              labelText: 'street_number'.tr,
-              hintText: 'street_number'.tr,
-              inputType: TextInputType.streetAddress,
-              focusNode: streetNode,
-              nextFocus: houseNode,
-              controller: streetController,
-              prefixIcon: Icons.signpost_outlined,
-            ),
-          ),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
+        // Responsive address details:
+        // Street Number gets its own full-width line so its label never wraps/breaks.
+        CustomTextField(
+          titleText: 'street_number'.tr,
+          labelText: 'street_number'.tr,
+          hintText: 'street_number'.tr,
+          inputType: TextInputType.streetAddress,
+          focusNode: streetNode,
+          nextFocus: houseNode,
+          controller: streetController,
+          prefixIcon: Icons.signpost_outlined,
+        ),
+        const SizedBox(height: Dimensions.paddingSizeSmall + 2),
 
-          Expanded(
-            child: CustomTextField(
+        // House & Floor side-by-side (50/50), stacking automatically on ultra-narrow widths or huge text scales
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
+            final bool stackFields = constraints.maxWidth < 260 || textScale > 1.35;
+
+            final Widget houseField = CustomTextField(
               titleText: 'house'.tr,
               labelText: 'house'.tr,
               hintText: 'house'.tr,
@@ -480,12 +539,9 @@ class _LocationCard extends StatelessWidget {
               nextFocus: floorNode,
               controller: houseController,
               prefixIcon: Icons.apartment_outlined,
-            ),
-          ),
-          const SizedBox(width: Dimensions.paddingSizeSmall),
+            );
 
-          Expanded(
-            child: CustomTextField(
+            final Widget floorField = CustomTextField(
               titleText: 'floor'.tr,
               labelText: 'floor'.tr,
               hintText: 'floor'.tr,
@@ -493,107 +549,36 @@ class _LocationCard extends StatelessWidget {
               focusNode: floorNode,
               controller: floorController,
               prefixIcon: Icons.layers_outlined,
-            ),
-          ),
-        ]),
-      ]),
-    );
-  }
-}
+            );
 
-class _AddressModeSelector extends StatelessWidget {
-  final bool isManualAddress;
-  final Function(bool isManual) onModeChanged;
+            if (stackFields) {
+              return Column(
+                children: [
+                  houseField,
+                  const SizedBox(height: Dimensions.paddingSizeSmall + 2),
+                  floorField,
+                ],
+              );
+            }
 
-  const _AddressModeSelector({required this.isManualAddress, required this.onModeChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Theme.of(context).disabledColor.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Dimensions.radiusDefault),
-      ),
-      child: Row(children: [
-        Expanded(
-          child: _ModeTabButton(
-            title: 'choose_from_map'.tr,
-            icon: Icons.map_outlined,
-            isSelected: !isManualAddress,
-            onTap: () => onModeChanged(false),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: _ModeTabButton(
-            title: 'write_address_manually'.tr,
-            icon: Icons.edit_note_rounded,
-            isSelected: isManualAddress,
-            onTap: () => onModeChanged(true),
-          ),
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: houseField),
+                const SizedBox(width: Dimensions.paddingSizeSmall),
+                Expanded(child: floorField),
+              ],
+            );
+          },
         ),
       ]),
-    );
-  }
-}
-
-class _ModeTabButton extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ModeTabButton({required this.title, required this.icon, required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? primaryColor : Colors.transparent,
-          borderRadius: BorderRadius.circular(Dimensions.radiusSmall + 2),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : Theme.of(context).disabledColor,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: robotoMedium.copyWith(
-                fontSize: Dimensions.fontSizeSmall,
-                color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
-              ),
-            ),
-          ),
-        ]),
-      ),
     );
   }
 }
 
 class _ContactInfoCard extends StatelessWidget {
   final bool isSender;
+  final bool isCompactScreen;
   final TextEditingController nameController;
   final TextEditingController phoneController;
   final TextEditingController? guestEmailController;
@@ -604,14 +589,25 @@ class _ContactInfoCard extends StatelessWidget {
   final Function(CountryCode) onCountryChanged;
 
   const _ContactInfoCard({
-    required this.isSender, required this.nameController, required this.phoneController, required this.guestEmailController, required this.nameNode,
-    required this.phoneNode, required this.guestEmailNode, required this.countryDialCode, required this.onCountryChanged,
+    required this.isSender,
+    required this.isCompactScreen,
+    required this.nameController,
+    required this.phoneController,
+    required this.guestEmailController,
+    required this.nameNode,
+    required this.phoneNode,
+    required this.guestEmailNode,
+    required this.countryDialCode,
+    required this.onCountryChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final String emailLabel = '${isSender ? 'sender_email'.tr : 'receiver_email'.tr} (${'optional'.tr})';
+    final double cardPadding = isCompactScreen
+        ? Dimensions.paddingSizeSmall + 2
+        : Dimensions.paddingSizeDefault;
 
     return Container(
       decoration: BoxDecoration(
@@ -629,7 +625,7 @@ class _ContactInfoCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(Dimensions.paddingSizeDefault),
+      padding: EdgeInsets.all(cardPadding),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Section Header
         Row(children: [
@@ -646,9 +642,13 @@ class _ContactInfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: Dimensions.paddingSizeSmall),
-          Text(
-            isSender ? 'sender_information'.tr : 'receiver_information'.tr,
-            style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge),
+          Expanded(
+            child: Text(
+              isSender ? 'sender_information'.tr : 'receiver_information'.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: robotoBold.copyWith(fontSize: Dimensions.fontSizeLarge),
+            ),
           ),
         ]),
         const SizedBox(height: Dimensions.paddingSizeDefault),

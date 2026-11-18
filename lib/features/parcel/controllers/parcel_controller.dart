@@ -515,9 +515,14 @@ class ParcelController extends GetxController implements GetxService {
           ? category.parcelPerKmShippingCharge! : (config.parcelPerKmShippingCharge ?? 0);
       final double minimumCharge = (category.parcelMinimumShippingCharge ?? 0) > 0
           ? category.parcelMinimumShippingCharge! : (config.parcelMinimumShippingCharge ?? 0);
-      charge = _distance! * perKmCharge;
-      if (charge < minimumCharge) {
-        charge = minimumCharge;
+      if (minimumCharge > 0 && perKmCharge > 0) {
+        final double extraKm = _distance! > 1 ? (_distance! - 1) : 0;
+        charge = minimumCharge + (extraKm * perKmCharge);
+      } else {
+        charge = _distance! * perKmCharge;
+        if (charge < minimumCharge) {
+          charge = minimumCharge;
+        }
       }
       if (category.charge != null && category.charge! > 0) {
         charge += category.charge!;
