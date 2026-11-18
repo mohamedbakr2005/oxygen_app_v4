@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:Oxygen_Mart/common/widgets/custom_image.dart';
 import 'package:Oxygen_Mart/features/cart/controllers/cart_controller.dart';
-import 'package:Oxygen_Mart/features/cart/domain/models/cart_model.dart';
 import 'package:Oxygen_Mart/features/favourite/controllers/favourite_controller.dart';
 import 'package:Oxygen_Mart/features/item/controllers/item_controller.dart';
 import 'package:Oxygen_Mart/features/item/domain/models/item_model.dart';
+import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/auth_helper.dart';
 import 'package:Oxygen_Mart/helper/price_converter.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
@@ -165,60 +165,65 @@ class MostPopularItemCard extends StatefulWidget {
 }
 
 class _MostPopularItemCardState extends State<MostPopularItemCard> {
-  int _quantity = 1;
+  bool _isAdding = false;
 
-  void _increment() {
-    if (_quantity < (widget.item.stock ?? 100)) {
-      setState(() => _quantity++);
-    }
-  }
-
-  void _decrement() {
-    if (_quantity > 1) {
-      setState(() => _quantity--);
-    }
-  }
-
-  void _addToCart() {
-    double price = widget.item.price!;
-    double discount = widget.item.discount!;
-    double discountPrice = PriceConverter.convertWithDiscount(
-        price, discount, widget.item.discountType)!;
-
-    CartModel cartModel = CartModel(
-      null,
-      price,
-      discount,
-      [],
-      [],
-      (price - discountPrice),
-      _quantity,
-      [],
-      [],
-      false,
-      widget.item.stock,
-      widget.item,
-      widget.item.quantityLimit,
-    );
-    print(widget.item.quantityLimit);
-    print(widget.item.price);
-    print(widget.item.discount);
-    print(widget.item.discountType);
-    int cartIndex = Get.find<CartController>().isExistInCart(widget.item.id,
-        Get.find<CartController>().cartVariant(widget.item.id!), false, null);
-    if (cartIndex != -1) {
-      Get.find<CartController>().setQuantity(
-          true, cartIndex, widget.item.stock, widget.item.quantityLimit);
-    } else {
-      Get.find<CartController>().addToCart(cartModel, null);
+  Future<void> _handleAddToCart(CartController cartController) async {
+    if (_isAdding || cartController.isItemAdding(widget.item.id)) return;
+    if (AddressHelper.getUserAddressFromSharedPref() == null) {
+      Get.find<LocationController>()
+          .navigateToLocationScreen('home', canRoute: true);
+      return;
     }
 
-    showCustomSnackBar('item_added_to_cart'.tr, isError: false);
+    setState(() => _isAdding = true);
+    try {
+      await Get.find<ItemController>()
+          .itemDirectlyAddToCart(widget.item, context);
+    } finally {
+      if (mounted) {
+        setState(() => _isAdding = false);
+      }
+    }
+
+    try {
+      FirebaseAnalytics.instance.logAddToCart(
+        currency: 'EGP',
+        value: widget.item.price?.toDouble() ?? 0.0,
+        items: [
+          AnalyticsEventItem(
+            itemId: widget.item.id?.toString(),
+            itemName: widget.item.name,
+            price: widget.item.price?.toDouble(),
+            quantity: 1,
+          ),
+        ],
+      );
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     bool isSoldOut = (widget.item.stock ?? 0) <= 0;
+    final double originalPrice = widget.item.price ?? 0;
+    final double? effectiveDiscount =
+        (widget.item.availableDateStarts != null ||
+                (widget.item.storeDiscount ?? 0) == 0)
+            ? widget.item.discount
+            : widget.item.storeDiscount;
+    final String? effectiveDiscountType =
+        (widget.item.availableDateStarts != null ||
+                (widget.item.storeDiscount ?? 0) == 0)
+            ? widget.item.discountType
+            : 'percent';
+    final double discountedPrice = PriceConverter.convertWithDiscount(
+          originalPrice,
+          effectiveDiscount,
+          effectiveDiscountType,
+        ) ??
+        originalPrice;
+    final bool hasDiscount = effectiveDiscount != null &&
+        effectiveDiscount > 0 &&
+        discountedPrice < originalPrice;
 
     return Container(
       width: 260, // Wide enough to show off the image and bottom controls
@@ -297,7 +302,7 @@ class _MostPopularItemCardState extends State<MostPopularItemCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Discount Badge
-                  (widget.item.discount != null && widget.item.discount! > 0)
+                  (effectiveDiscount != null && effectiveDiscount > 0)
                       ? Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
@@ -331,9 +336,9 @@ class _MostPopularItemCardState extends State<MostPopularItemCard> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                widget.item.discountType == 'percent'
-                                    ? '${widget.item.discount!.toStringAsFixed(0)}% ${'discount'.tr}'
-                                    : '${PriceConverter.convertPrice(widget.item.discount)} ${'discount'.tr}',
+                                effectiveDiscountType == 'percent'
+                                    ? '${effectiveDiscount.toStringAsFixed(0)}% ${'discount'.tr}'
+                                    : '${PriceConverter.convertPrice(effectiveDiscount)} ${'discount'.tr}',
                                 style: robotoBold.copyWith(
                                     color: Colors.white, fontSize: 11),
                               ),
@@ -441,112 +446,278 @@ class _MostPopularItemCardState extends State<MostPopularItemCard> {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
 
                     // Bottom Action Bar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Price
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0F9F4),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            PriceConverter.convertPrice(widget.item.price),
-                            style: robotoBold.copyWith(
-                                color: const Color(0xFF2EAA60), fontSize: 14),
-                          ),
-                        ),
-
-                        // Quantity Selector (Neumorphic)
-                        Container(
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF9FBF9),
-                            borderRadius: BorderRadius.circular(100),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3)),
-                              const BoxShadow(
-                                  color: Colors.white,
-                                  blurRadius: 6,
-                                  offset: Offset(-3, -3)),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              InkWell(
-                                onTap: isSoldOut ? null : _decrement,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10),
-                                  child: Icon(Icons.remove,
-                                      color: Colors.grey.shade600, size: 16),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 20,
-                                child: Text("$_quantity",
-                                    textAlign: TextAlign.center,
-                                    style: robotoBold.copyWith(fontSize: 14)),
-                              ),
-                              InkWell(
-                                onTap: isSoldOut ? null : _increment,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10),
-                                  child: Icon(Icons.add,
-                                      color: const Color(0xFF2EAA60), size: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Add to Cart Button (Glossy Circular)
-                        InkWell(
-                          onTap: isSoldOut ? null : _addToCart,
+                        // Price (discounted price + strikethrough original price when discounted)
+                        Flexible(
                           child: Container(
-                            width: 45,
-                            height: 45,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 9, vertical: hasDiscount ? 5 : 8),
                             decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: isSoldOut
-                                    ? const LinearGradient(
-                                        colors: [Colors.grey, Colors.grey])
-                                    : const LinearGradient(
-                                        colors: [
-                                            Color(0xFF3FE281),
-                                            Color(0xFF1B6E3A)
-                                          ],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight),
-                                boxShadow: isSoldOut
-                                    ? []
-                                    : [
-                                        BoxShadow(
-                                            color: const Color(0xFF2EAA60)
-                                                .withOpacity(0.4),
-                                            blurRadius: 10,
-                                            offset: const Offset(0, 4)),
-                                        BoxShadow(
-                                            color:
-                                                Colors.white.withOpacity(0.3),
-                                            blurRadius: 4,
-                                            spreadRadius: -2,
-                                            offset: const Offset(0, -2))
-                                      ]),
-                            child: const Icon(Icons.add_shopping_cart,
-                                color: Colors.white, size: 20),
+                              color: const Color(0xFFF0F9F4),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: AlignmentDirectional.centerStart,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    PriceConverter.convertPrice(
+                                      hasDiscount
+                                          ? discountedPrice
+                                          : originalPrice,
+                                    ),
+                                    style: robotoBold.copyWith(
+                                      color: const Color(0xFF2EAA60),
+                                      fontSize: 14,
+                                      height: 1.15,
+                                    ),
+                                    maxLines: 1,
+                                  ),
+                                  if (hasDiscount) ...[
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      PriceConverter.convertPrice(
+                                          originalPrice),
+                                      style: robotoRegular.copyWith(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 11,
+                                        height: 1.1,
+                                        decoration: TextDecoration.lineThrough,
+                                        decorationColor: Colors.grey.shade500,
+                                        decorationThickness: 1.6,
+                                      ),
+                                      maxLines: 1,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
-                        )
+                        ),
+
+                        const SizedBox(width: 8),
+
+                        // Cart Action: Add button when not in cart -> replaces with live - qty + stepper once added
+                        GetBuilder<CartController>(builder: (cartController) {
+                          final int? itemId = widget.item.id;
+                          final int cartQty = itemId != null
+                              ? cartController.cartQuantity(itemId)
+                              : 0;
+                          final int cartIndex = itemId != null
+                              ? cartController.isExistInCart(
+                                  itemId,
+                                  cartController.cartVariant(itemId),
+                                  false,
+                                  null,
+                                )
+                              : -1;
+                          final bool isAddingNow =
+                              _isAdding || cartController.isItemAdding(itemId);
+
+                          return AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            transitionBuilder: (child, animation) =>
+                                ScaleTransition(
+                              scale: animation,
+                              child: FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              ),
+                            ),
+                            child: cartQty > 0
+                                ? Container(
+                                    key: const ValueKey('cart_stepper'),
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(100),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF3FE281),
+                                          Color(0xFF1B6E3A),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF2EAA60)
+                                              .withValues(alpha: 0.35),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(100),
+                                          onTap: cartController.isLoading
+                                              ? null
+                                              : () {
+                                                  if (cartIndex != -1 &&
+                                                      cartIndex <
+                                                          cartController
+                                                              .cartList
+                                                              .length) {
+                                                    final cartItem =
+                                                        cartController
+                                                            .cartList[cartIndex];
+                                                    if ((cartItem.quantity ??
+                                                            1) >
+                                                        1) {
+                                                      cartController
+                                                          .changeQuantity(
+                                                        false,
+                                                        cartIndex,
+                                                        cartItem.stock,
+                                                        cartItem
+                                                            .item?.quantityLimit,
+                                                      );
+                                                    } else {
+                                                      cartController
+                                                          .removeFromCart(
+                                                        cartIndex,
+                                                        item: widget.item,
+                                                      );
+                                                    }
+                                                  }
+                                                },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 8),
+                                            child: Icon(
+                                              cartQty == 1
+                                                  ? Icons.delete_outline_rounded
+                                                  : Icons.remove_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          width: 24,
+                                          child: Text(
+                                            '$cartQty',
+                                            textAlign: TextAlign.center,
+                                            style: robotoBold.copyWith(
+                                              fontSize: 15,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(100),
+                                          onTap: cartController.isLoading
+                                              ? null
+                                              : () {
+                                                  if (cartIndex != -1 &&
+                                                      cartIndex <
+                                                          cartController
+                                                              .cartList
+                                                              .length) {
+                                                    final cartItem =
+                                                        cartController
+                                                            .cartList[cartIndex];
+                                                    cartController
+                                                        .changeQuantity(
+                                                      true,
+                                                      cartIndex,
+                                                      cartItem.stock,
+                                                      cartItem
+                                                          .item?.quantityLimit,
+                                                    );
+                                                  }
+                                                },
+                                          child: const Padding(
+                                            padding: EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 8),
+                                            child: Icon(
+                                              Icons.add_rounded,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : InkWell(
+                                    key: const ValueKey('add_to_cart_btn'),
+                                    borderRadius: BorderRadius.circular(100),
+                                    onTap: (isSoldOut || isAddingNow)
+                                        ? null
+                                        : () =>
+                                            _handleAddToCart(cartController),
+                                    child: Container(
+                                      width: 45,
+                                      height: 45,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: isSoldOut
+                                            ? const LinearGradient(colors: [
+                                                Colors.grey,
+                                                Colors.grey
+                                              ])
+                                            : const LinearGradient(
+                                                colors: [
+                                                  Color(0xFF3FE281),
+                                                  Color(0xFF1B6E3A),
+                                                ],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                        boxShadow: isSoldOut
+                                            ? []
+                                            : [
+                                                BoxShadow(
+                                                  color:
+                                                      const Color(0xFF2EAA60)
+                                                          .withValues(
+                                                              alpha: 0.4),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                                BoxShadow(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.3),
+                                                  blurRadius: 4,
+                                                  spreadRadius: -2,
+                                                  offset: const Offset(0, -2),
+                                                ),
+                                              ],
+                                      ),
+                                      child: Center(
+                                        child: isAddingNow
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.add_shopping_cart,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                          );
+                        }),
                       ],
                     )
                   ],

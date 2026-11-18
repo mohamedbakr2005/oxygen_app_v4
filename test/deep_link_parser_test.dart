@@ -101,5 +101,13 @@ void main() {
       expect(DeepLinkParser.parseProductId(Uri.parse('https://oxygenmart.online/product?id=0')), isNull);
       expect(DeepLinkParser.parseProductId(Uri.parse('https://oxygenmart.online/product?id=-1')), isNull);
     });
+
+    test('parses iOS custom URL scheme product deep links correctly', () {
+      expect(DeepLinkParser.parseProductId(Uri.parse('oxygenmart://product/101')), equals(101));
+      expect(DeepLinkParser.parseProductId(Uri.parse('oxygenmart://item/202')), equals(202));
+      expect(DeepLinkParser.parseProductId(Uri.parse('oxygenmart://product?id=303')), equals(303));
+      expect(DeepLinkParser.parseProductId(Uri.parse('oxygenmart://oxygenmart.online/product/404')), equals(404));
+      expect(DeepLinkParser.parseProductId(Uri.parse('oxygenmart://evil.com/product/101')), isNull);
+    });
   });
 }

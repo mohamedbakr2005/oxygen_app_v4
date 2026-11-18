@@ -423,6 +423,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     ),
                                                   ]),
                                                 ),
+                                                if (splashController.module?.resolvedDeliveryTimeMinutes != null) ...[
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: Theme.of(context).primaryColor.withOpacity(0.10),
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                        Icon(Icons.access_time_rounded, size: 11, color: Theme.of(context).primaryColor),
+                                                        const SizedBox(width: 3),
+                                                        Flexible(
+                                                          child: Text(
+                                                            '${'within'.tr} ${splashController.module!.resolvedDeliveryTimeMinutes} ${'mins'.tr}',
+                                                            style: robotoMedium.copyWith(
+                                                                color: Theme.of(context).primaryColor,
+                                                                fontSize: Dimensions.fontSizeExtraSmall),
+                                                            maxLines: 1,
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ]),
+                                                    ),
+                                                  ),
+                                                ],
                                               ]),
                                               const SizedBox(height: 3),
                                               Row(children: [

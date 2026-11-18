@@ -57,6 +57,18 @@
             </array>
         </dict>
 
+        <!-- Oxygen Mart Deep Link Scheme (iOS Safari / In-App Browser fallback) -->
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.oxygenmart.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>oxygenmart</string>
+            </array>
+        </dict>
+
     </array>
 
     <!-- ✅ GOOGLE -->

@@ -3114,5 +3114,7 @@
   "how_parcel_works_step_2_title": "دخل بيانات التواصل",
   "how_parcel_works_step_2_desc": "اكتب اسم ورقم الراسل والمستلم وتفاصيل العنوان",
   "how_parcel_works_step_3_title": "أكد طلبك وتابعه",
-  "how_parcel_works_step_3_desc": "اختار طريقة الدفع المناسبة واستمتع بتوصيل سريع وآمن"
+  "how_parcel_works_step_3_desc": "اختار طريقة الدفع المناسبة واستمتع بتوصيل سريع وآمن",
+  "delivery_within": "التوصيل في غضون",
+  "within": "في غضون"
 }

@@ -61,17 +61,46 @@ class ParcelAppBarWidget extends StatelessWidget
                 return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        AddressHelper.getUserAddressFromSharedPref()!
-                            .addressType!
-                            .tr,
-                        style: robotoMedium.copyWith(
-                          color: Theme.of(context).textTheme.bodyLarge!.color,
-                          fontSize: Dimensions.fontSizeDefault,
+                      Row(children: [
+                        Text(
+                          AddressHelper.getUserAddressFromSharedPref()!
+                              .addressType!
+                              .tr,
+                          style: robotoMedium.copyWith(
+                            color: Theme.of(context).textTheme.bodyLarge!.color,
+                            fontSize: Dimensions.fontSizeDefault,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        if (splashController.module?.resolvedDeliveryTimeMinutes != null) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor.withOpacity(0.10),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.access_time_rounded, size: 11, color: Theme.of(context).primaryColor),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    '${'within'.tr} ${splashController.module!.resolvedDeliveryTimeMinutes} ${'mins'.tr}',
+                                    style: robotoMedium.copyWith(
+                                      color: Theme.of(context).primaryColor,
+                                      fontSize: Dimensions.fontSizeExtraSmall,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ]),
+                            ),
+                          ),
+                        ],
+                      ]),
                       Row(children: [
                         Flexible(
                           child: Text(

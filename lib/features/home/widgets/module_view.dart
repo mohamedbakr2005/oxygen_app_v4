@@ -152,6 +152,7 @@ class _ModulesBentoSection extends StatelessWidget {
                 return _GridModuleCard(
                   moduleName: module.moduleName ?? '',
                   iconUrl: module.iconFullUrl ?? '',
+                  deliveryTimeMinutes: module.resolvedDeliveryTimeMinutes,
                   gradientColors: gradientColors,
                   onTap: () => splashController.switchModule(module),
                 );
@@ -181,6 +182,7 @@ class _HeroModuleCardState extends State<_HeroModuleCard> {
     final String? thumbUrl = widget.module.thumbnailFullUrl;
     final String? iconUrl = widget.module.iconFullUrl;
     final String name = widget.module.moduleName ?? '';
+    final int? deliveryMinutes = widget.module.resolvedDeliveryTimeMinutes;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
@@ -248,14 +250,38 @@ class _HeroModuleCardState extends State<_HeroModuleCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Text('shop_now'.tr, style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).primaryColor)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_ios_rounded, size: 11, color: Theme.of(context).primaryColor),
-                      ]),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Text('shop_now'.tr, style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeSmall, color: Theme.of(context).primaryColor)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.arrow_forward_ios_rounded, size: 11, color: Theme.of(context).primaryColor),
+                          ]),
+                        ),
+                        if (deliveryMinutes != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.45),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.25), width: 1),
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.access_time_rounded, size: 13, color: Colors.white),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${'delivery_within'.tr} $deliveryMinutes ${'mins'.tr}',
+                                style: robotoMedium.copyWith(fontSize: Dimensions.fontSizeExtraSmall, color: Colors.white),
+                              ),
+                            ]),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -271,9 +297,16 @@ class _HeroModuleCardState extends State<_HeroModuleCard> {
 class _GridModuleCard extends StatefulWidget {
   final String moduleName;
   final String iconUrl;
+  final int? deliveryTimeMinutes;
   final List<Color> gradientColors;
   final VoidCallback onTap;
-  const _GridModuleCard({required this.moduleName, required this.iconUrl, required this.gradientColors, required this.onTap});
+  const _GridModuleCard({
+    required this.moduleName,
+    required this.iconUrl,
+    this.deliveryTimeMinutes,
+    required this.gradientColors,
+    required this.onTap,
+  });
   @override
   State<_GridModuleCard> createState() => _GridModuleCardState();
 }
@@ -325,22 +358,53 @@ class _GridModuleCardState extends State<_GridModuleCard> {
                         ? CustomImage(image: widget.iconUrl, height: 30, width: 30, fit: BoxFit.contain)
                         : Icon(Icons.storefront_rounded, size: 30, color: Theme.of(context).primaryColor),
                   ),
-                  Row(children: [
-                    Expanded(
-                      child: Text(
-                        widget.moduleName,
-                        style: robotoBold.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).textTheme.bodyLarge!.color),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.6), shape: BoxShape.circle),
-                      child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Theme.of(context).textTheme.bodyLarge!.color!.withOpacity(0.5)),
-                    ),
-                  ]),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                            widget.moduleName,
+                            style: robotoBold.copyWith(fontSize: Dimensions.fontSizeDefault, color: Theme.of(context).textTheme.bodyLarge!.color),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.6), shape: BoxShape.circle),
+                          child: Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Theme.of(context).textTheme.bodyLarge!.color!.withOpacity(0.5)),
+                        ),
+                      ]),
+                      if (widget.deliveryTimeMinutes != null) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.75),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.access_time_rounded, size: 11, color: Theme.of(context).primaryColor),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                '${'within'.tr} ${widget.deliveryTimeMinutes} ${'mins'.tr}',
+                                style: robotoMedium.copyWith(
+                                  fontSize: Dimensions.fontSizeExtraSmall,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),

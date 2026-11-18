@@ -3109,5 +3109,7 @@
   "how_parcel_works_step_2_title": "Enter Details",
   "how_parcel_works_step_2_desc": "Provide sender and receiver contact and address info",
   "how_parcel_works_step_3_title": "Confirm & Relax",
-  "how_parcel_works_step_3_desc": "Select your payment method and track your parcel live"
+  "how_parcel_works_step_3_desc": "Select your payment method and track your parcel live",
+  "delivery_within": "Delivery within",
+  "within": "Within"
 }

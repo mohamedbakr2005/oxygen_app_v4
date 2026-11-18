@@ -14,6 +14,7 @@ class ModuleModel {
   List<ModuleZoneData>? zones;
   TopOffer? topOffer;
   String? minDeliveryTime;
+  int? deliveryTimeMinutes;
   int? flashSale;
   int? freeDelivery;
 
@@ -33,6 +34,7 @@ class ModuleModel {
     this.zones,
     this.topOffer,
     this.minDeliveryTime,
+    this.deliveryTimeMinutes,
     this.flashSale,
     this.freeDelivery,
   });
@@ -58,8 +60,50 @@ class ModuleModel {
         ? TopOffer.fromJson(json['top_offer'])
         : null;
     minDeliveryTime = _toStringValue(json['min_delivery_time']);
+    deliveryTimeMinutes = _toInt(json['delivery_time_minutes']);
     flashSale = _toInt(json['flash_sale']);
     freeDelivery = _toInt(json['free_delivery']);
+  }
+
+  /// Resolves the module's delivery time in minutes from:
+  /// 1. `delivery_time_minutes` (dashboard ETA configuration via `/api/v1/module`)
+  /// 2. Parsed upper bound of `min_delivery_time` (e.g. "45-60 min" -> 60)
+  /// 3. Default 60 min fallback for delivery-capable modules when unconfigured.
+  int? get resolvedDeliveryTimeMinutes {
+    if (deliveryTimeMinutes != null && deliveryTimeMinutes! > 0) {
+      return deliveryTimeMinutes;
+    }
+    final int? parsed = _parseMaxMinutes(minDeliveryTime);
+    if (parsed != null && parsed > 0) {
+      return parsed;
+    }
+    const Set<String> deliveryTypes = <String>{
+      'grocery',
+      'food',
+      'pharmacy',
+      'ecommerce',
+      'parcel',
+    };
+    if (moduleType != null && deliveryTypes.contains(moduleType!.toLowerCase())) {
+      return 60;
+    }
+    return null;
+  }
+
+  static int? _parseMaxMinutes(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final String lower = raw.toLowerCase();
+    final int factor = lower.contains('day')
+        ? 1440
+        : (lower.contains('hour') ? 60 : 1);
+    final List<int> nums = RegExp(r'\d+')
+        .allMatches(lower)
+        .map((Match m) => int.tryParse(m.group(0) ?? ''))
+        .whereType<int>()
+        .toList();
+    if (nums.isEmpty) return null;
+    nums.sort();
+    return nums.last * factor;
   }
 
   Map<String, dynamic> toJson() {
@@ -83,6 +127,7 @@ class ModuleModel {
       data['top_offer'] = topOffer!.toJson();
     }
     data['min_delivery_time'] = minDeliveryTime;
+    data['delivery_time_minutes'] = deliveryTimeMinutes;
     data['flash_sale'] = flashSale;
     data['free_delivery'] = freeDelivery;
     return data;

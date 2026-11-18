@@ -465,6 +465,7 @@ class ParcelController extends GetxController implements GetxService {
       AddressModel pickedUpAddress, AddressModel destinationAddress,
       {ParcelCategoryModel? category}) async {
     _distance = -1;
+    Get.find<CheckoutController>().resetCheckoutSummary();
     _distance = await Get.find<CheckoutController>().getDistanceInKM(
       LatLng(double.parse(pickedUpAddress.latitude!),
           double.parse(pickedUpAddress.longitude!)),
@@ -491,6 +492,8 @@ class ParcelController extends GetxController implements GetxService {
         latitude: pickedUpAddress.latitude,
         longitude: pickedUpAddress.longitude,
         parcelCategoryId: category.id,
+        weightId: _selectedWeightId,
+        dimensionId: _selectedDimensionId,
         receiverDetails: destinationAddress,
         guestId: AuthHelper.isGuestLoggedIn() ? AuthHelper.getGuestId() : null,
       );
@@ -506,22 +509,25 @@ class ParcelController extends GetxController implements GetxService {
       return PriceConverter.toFixed(summary!.delivery!.deliveryCharge!);
     }
     double charge = 0;
-    if (category.charge != null && category.charge! > 0) {
-      charge = category.charge!;
-    } else if (_distance != -1 && _extraCharge != null) {
+    if (_distance != -1 && _extraCharge != null) {
       final config = Get.find<SplashController>().configModel!;
       final double perKmCharge = (category.parcelPerKmShippingCharge ?? 0) > 0
-          ? category.parcelPerKmShippingCharge! : config.parcelPerKmShippingCharge!;
+          ? category.parcelPerKmShippingCharge! : (config.parcelPerKmShippingCharge ?? 0);
       final double minimumCharge = (category.parcelMinimumShippingCharge ?? 0) > 0
-          ? category.parcelMinimumShippingCharge! : config.parcelMinimumShippingCharge!;
+          ? category.parcelMinimumShippingCharge! : (config.parcelMinimumShippingCharge ?? 0);
       charge = _distance! * perKmCharge;
       if (charge < minimumCharge) {
         charge = minimumCharge;
+      }
+      if (category.charge != null && category.charge! > 0) {
+        charge += category.charge!;
       }
       charge = charge + _extraCharge!;
       if (surgePrice != null && surgePrice > 0) {
         charge = surgePriceType == 'percent' ? charge + (charge * (surgePrice / 100)) : charge + surgePrice;
       }
+    } else if (category.charge != null && category.charge! > 0) {
+      charge = category.charge!;
     }
     return PriceConverter.toFixed(charge);
   }

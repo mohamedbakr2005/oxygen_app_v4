@@ -3,6 +3,8 @@ class DeepLinkParser {
   static const String primaryHost = 'oxygenmart.online';
   static const String secondaryHost = 'www.oxygenmart.online';
 
+  static const String customScheme = 'oxygenmart';
+
   static const Set<String> _allowedHosts = {
     stagingHost,
     primaryHost,
@@ -12,8 +14,9 @@ class DeepLinkParser {
   /// Extracts and validates the product ID from an incoming deep-link [Uri].
   ///
   /// Expected canonical formats:
-  /// - `https://new.oxygenmart.online/product/{productId}`
   /// - `https://oxygenmart.online/product/{productId}`
+  /// - `https://new.oxygenmart.online/product/{productId}`
+  /// - `oxygenmart://product/{productId}` (iOS custom URL scheme fallback)
   ///
   /// Also accepts supported legacy aliases:
   /// - `/item/{productId}`
@@ -27,24 +30,44 @@ class DeepLinkParser {
       return null;
     }
 
-    // Must be https or http (or empty for relative/internal navigation)
-    if (uri.scheme.isNotEmpty && uri.scheme != 'https' && uri.scheme != 'http') {
+    final String scheme = uri.scheme.toLowerCase();
+    final bool isCustomScheme = scheme == customScheme;
+
+    // Must be https, http, oxygenmart custom scheme, or empty for relative navigation
+    if (scheme.isNotEmpty &&
+        scheme != 'https' &&
+        scheme != 'http' &&
+        !isCustomScheme) {
       return null;
     }
 
-    // If host is present, validate it belongs to Oxygen Mart domain
-    if (uri.host.isNotEmpty) {
+    final List<String> rawSegments = uri.pathSegments
+        .where((String segment) => segment.trim().isNotEmpty)
+        .toList();
+
+    final List<String> segments;
+    if (isCustomScheme) {
       final String host = uri.host.toLowerCase();
-      if (!_allowedHosts.contains(host)) {
+      if (host == 'product' || host == 'item') {
+        segments = <String>[host, ...rawSegments];
+      } else if (_allowedHosts.contains(host)) {
+        segments = rawSegments;
+      } else {
         return null;
       }
-    } else if (uri.scheme.isNotEmpty) {
-      // Scheme present without host (e.g. https:///product/101) is invalid
-      return null;
+    } else {
+      // If host is present, validate it belongs to Oxygen Mart domain
+      if (uri.host.isNotEmpty) {
+        final String host = uri.host.toLowerCase();
+        if (!_allowedHosts.contains(host)) {
+          return null;
+        }
+      } else if (scheme.isNotEmpty) {
+        // Scheme present without host (e.g. https:///product/101) is invalid
+        return null;
+      }
+      segments = rawSegments;
     }
-
-    final List<String> segments =
-        uri.pathSegments.where((String segment) => segment.trim().isNotEmpty).toList();
 
     if (segments.isEmpty) {
       return null;
