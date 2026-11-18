@@ -4,10 +4,10 @@ import 'package:get/get.dart';
 import 'package:Oxygen_Mart/features/location/controllers/location_controller.dart';
 import 'package:Oxygen_Mart/features/notification/controllers/notification_controller.dart';
 import 'package:Oxygen_Mart/features/splash/controllers/splash_controller.dart';
+import 'package:Oxygen_Mart/features/store/controllers/store_controller.dart';
 import 'package:Oxygen_Mart/helper/address_helper.dart';
 import 'package:Oxygen_Mart/helper/route_helper.dart';
 import 'package:Oxygen_Mart/util/dimensions.dart';
-import 'package:Oxygen_Mart/util/images.dart';
 import 'package:Oxygen_Mart/util/styles.dart';
 
 class ParcelAppBarWidget extends StatelessWidget
@@ -22,10 +22,10 @@ class ParcelAppBarWidget extends StatelessWidget
       shape: Border(
         bottom: BorderSide(
             width: .4,
-            color: Theme.of(context).primaryColorLight.withOpacity(.2)),
+            color: Theme.of(context).primaryColorLight.withValues(alpha: .2)),
       ),
       elevation: 0,
-      leadingWidth: backButton! ? Dimensions.paddingSizeLarge : 0,
+      automaticallyImplyLeading: false,
       title: GetBuilder<SplashController>(builder: (splashController) {
         return Row(children: [
           (splashController.module != null &&
@@ -33,11 +33,20 @@ class ParcelAppBarWidget extends StatelessWidget
                   splashController.moduleList != null &&
                   splashController.moduleList!.length != 1)
               ? InkWell(
-                  onTap: () => splashController.removeModule(),
-                  child: Image.asset(Images.moduleIcon,
-                      height: 25,
-                      width: 25,
-                      color: Theme.of(context).textTheme.bodyLarge!.color),
+                  onTap: () {
+                    splashController.removeModule();
+                    if (Get.isRegistered<StoreController>()) {
+                      Get.find<StoreController>().resetStoreData();
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.arrow_back_ios,
+                      size: 20,
+                      color: Theme.of(context).textTheme.bodyLarge!.color,
+                    ),
+                  ),
                 )
               : const SizedBox(),
           SizedBox(
@@ -79,7 +88,7 @@ class ParcelAppBarWidget extends StatelessWidget
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.10),
+                                color: Theme.of(context).primaryColor.withValues(alpha: 0.10),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(mainAxisSize: MainAxisSize.min, children: [
